@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const AUTH_BASE = "https://user.stringzhao.life";
-const ALLOWED_ACTIONS = new Set(["send-code", "verify-code", "logout"]);
+const ALLOWED_ACTIONS = new Set(["send-code", "verify-code", "refresh", "logout"]);
 
 // POST /api/auth/send-code  { email }
 // POST /api/auth/verify-code { email, code }
+// POST /api/auth/refresh
 // POST /api/auth/logout
 export async function POST(
   req: NextRequest,
