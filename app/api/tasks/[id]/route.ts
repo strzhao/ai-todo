@@ -10,14 +10,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const body = await req.json() as { complete?: boolean } & Partial<ParsedTask>;
+  const body = await req.json() as { complete?: boolean } & Partial<ParsedTask> & { assignee_email?: string | null };
 
   try {
     if (body.complete) {
-      const task = await completeTask(user.id, id);
+      const task = await completeTask(id, user.id);
       return NextResponse.json(task);
     }
-    const task = await updateTask(user.id, id, body);
+    const task = await updateTask(id, user.id, body);
+    if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(task);
   } catch (e) {
     if (e instanceof Error && e.message === "Task not found") {
@@ -32,6 +33,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  await deleteTask(user.id, id);
+  await deleteTask(id, user.id);
   return new NextResponse(null, { status: 204 });
 }

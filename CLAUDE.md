@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # AI Todo
 
 AI 驱动的个人 Todo 工具。自然语言录入 → DeepSeek 解析 → 预览确认 → 任务管理。
@@ -34,9 +38,25 @@ export async function proxy(req: NextRequest) { ... }
 ### 认证流程
 - 外部服务统一跳转 `https://user.stringzhao.life/authorize?service&return_to&state`，不直接拼接 `/login`
 - 回跳页面使用 `/auth/callback`，`proxy.ts` 会校验 `state`（cookie 对比 query），并通过临时 cookie 传递原始访问路径
-- `/auth/callback` 会调用 auth 服务 `/api/auth/refresh` 拉取 token，再通过 `/api/auth/session` 写入本域 `access_token/refresh_token`
+- `/auth/callback` 通过服务端中转 `/api/auth/exchange` 拉取 token（避免浏览器直接跨域），再通过 `/api/auth/session` 写入本域 `access_token/refresh_token`
 - `proxy.ts` 在访问受保护页面/API时先校验本域 `access_token`，过期自动调用 auth 服务 `/api/auth/refresh`
 - 不再在本项目内维护验证码登录页和 `/api/auth/[action]` 多 action 认证代理
+- **本地开发**：`.env.local` 设置 `AUTH_DEV_BYPASS=true` + `AUTH_DEV_EMAIL` + `AUTH_DEV_USER_ID` 可跳过认证（生产环境不设置）
+
+### API 路由约定
+每个 API 路由文件的标准样板：
+```typescript
+export const preferredRegion = "hkg1";  // 固定香港区域
+
+export async function GET(req: NextRequest) {
+  const user = await getUserFromRequest(req);  // 返回 { id, email } 或 null
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  await initDb();  // 幂等建表，每次请求调用
+  // ...
+}
+```
+错误响应格式统一为 `{ error: "message" }`，HTTP 码：400 输入错误、401 未授权、404 未找到、503 AI 超时。
 
 ### Vercel Postgres 数组字段
 `sql` 模板标签不支持数组类型 → 有数组字段的查询使用 `sql.query()`：
@@ -64,26 +84,46 @@ POSTGRES_URL=...    # Neon DB（与 ai-news 共享，表名不同）
 
 ```
 app/
-  page.tsx                    # 今日视图（客户端组件）
-  all/page.tsx                # 全部任务视图
-  auth/callback/page.tsx      # 统一授权回跳页（authorized/state）
+  (app)/                        # 路由组，共享 AppShell 布局
+    layout.tsx                  # Server Component，读取 user + spaces，渲染 SpaceNav
+    page.tsx                    # 今日视图
+    all/page.tsx                # 全部任务视图
+    spaces/
+      page.tsx                  # 空间列表
+      new/page.tsx              # 创建空间
+      [id]/page.tsx             # 空间任务视图（进度条 + 成员筛选 + @mention）
+      [id]/settings/page.tsx    # 空间设置（邀请链接 + 成员管理 + 解散）
+  auth/callback/page.tsx        # 统一授权回跳页（authorized/state 校验）
+  join/[invite_code]/page.tsx   # 加入空间（独立布局，无 AppShell）
   api/
-    auth/session/route.ts     # 会话同步（写入本域 access_token/refresh_token）
-    parse-task/route.ts       # AI 解析自然语言 → ParsedTask JSON
-    tasks/route.ts            # GET（列表/今日过滤）+ POST（创建）
-    tasks/[id]/route.ts       # PATCH（完成/更新）+ DELETE
+    auth/session/route.ts       # 写入本域 access_token/refresh_token
+    auth/exchange/route.ts      # 服务端中转：转发 refresh 请求给认证服务器（避免 CORS）
+    parse-task/route.ts         # AI 解析自然语言 → ParsedTask JSON（含 @mention）
+    tasks/route.ts              # GET（列表/今日/已完成/空间/指派）+ POST（创建）
+    tasks/[id]/route.ts         # PATCH（完成/更新）+ DELETE
+    spaces/route.ts             # GET（我的空间列表）+ POST（创建空间）
+    spaces/[id]/route.ts        # GET + PATCH + DELETE
+    spaces/[id]/members/route.ts          # GET 成员列表
+    spaces/[id]/members/[uid]/route.ts    # PATCH（审批/更新）+ DELETE（移除/退出）
+    spaces/join/[code]/route.ts           # GET 预览 + POST 加入
 components/
-  NLInput.tsx                 # 自然语言输入框，Cmd+Enter 触发
-  ParsePreviewCard.tsx        # AI 解析预览 + 确认创建
-  TaskItem.tsx                # 单条任务行
-  TaskList.tsx                # 任务列表容器
+  SpaceNav.tsx                  # 侧边栏导航（桌面）+ 底部 Tab（移动端）
+  NLInput.tsx                   # 自然语言输入框，Cmd+K 聚焦，@ 触发成员菜单
+  ParsePreviewCard.tsx          # AI 解析预览 + 确认创建（支持空间/负责人）
+  TaskItem.tsx                  # 单条任务行（内联编辑 + 键盘导航 + AssigneeBadge）
+  TaskList.tsx                  # 任务列表（骨架屏 + 已完成折叠区域）
+  AssigneeBadge.tsx             # 显示非自己的负责人徽章
+  TaskSkeleton.tsx              # 加载骨架屏（3 行）
+  EmptyState.tsx                # 空状态展示组件
 lib/
-  types.ts                    # Task、ParsedTask 接口
-  llm-client.ts               # DeepSeek 客户端（改编自 ai-news）
-  auth.ts                     # JWT 验证（jose + JWKS，模块级缓存）
-  auth-config.ts              # 统一授权配置（authorize/callback）
-  db.ts                       # Vercel Postgres CRUD
-proxy.ts                      # 路由保护（未登录重定向到 /authorize）
+  types.ts                      # Task、ParsedTask、Space、SpaceMember 接口
+  llm-client.ts                 # DeepSeek 客户端
+  auth.ts                       # JWT 验证（jose + JWKS）+ DEV_BYPASS 模式
+  auth-config.ts                # 统一授权配置（authorize/callback）
+  server-auth.ts                # Server Component 用 getServerUser()
+  spaces.ts                     # 空间权限工具（requireSpaceMember/Owner）
+  db.ts                         # Vercel Postgres CRUD（tasks + spaces + members）
+proxy.ts                        # 路由保护（未登录重定向到 /authorize）
 ```
 
 ## 任务优先级

@@ -19,9 +19,10 @@ interface Props {
   parsed: ParsedTask;
   onConfirm: (task: Task) => void;
   onCancel: () => void;
+  spaceId?: string;
 }
 
-export function ParsePreviewCard({ parsed, onConfirm, onCancel }: Props) {
+export function ParsePreviewCard({ parsed, onConfirm, onCancel, spaceId }: Props) {
   const [form, setForm] = useState<ParsedTask>({ ...parsed });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -29,7 +30,7 @@ export function ParsePreviewCard({ parsed, onConfirm, onCancel }: Props) {
   function formatDueDate(iso?: string) {
     if (!iso) return null;
     return new Date(iso).toLocaleString("zh-CN", {
-      month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"
+      month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit",
     });
   }
 
@@ -38,10 +39,15 @@ export function ParsePreviewCard({ parsed, onConfirm, onCancel }: Props) {
     setLoading(true);
     setError("");
     try {
+      const body = {
+        ...form,
+        ...(spaceId ? { space_id: spaceId } : {}),
+        ...(form.assignee ? { assignee_email: form.assignee } : {}),
+      };
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const d = await res.json() as { error?: string };
@@ -73,23 +79,32 @@ export function ParsePreviewCard({ parsed, onConfirm, onCancel }: Props) {
           />
         </div>
 
-        {/* 截止时间 + 优先级 */}
+        {/* 负责人（有 assignee 时显示） */}
+        {form.assignee && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">负责人</span>
+            <span className="text-xs font-medium">{form.assignee}</span>
+            <button
+              className="text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setForm({ ...form, assignee: undefined })}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {/* 截止时间 + 优先级 + 标签 */}
         <div className="flex gap-2 flex-wrap">
           {form.due_date && (
             <Badge variant="outline" className="text-xs">
               📅 {formatDueDate(form.due_date)}
             </Badge>
           )}
-          <Badge
-            variant="outline"
-            className={`text-xs ${PRIORITY_COLORS[form.priority ?? 2]}`}
-          >
+          <Badge variant="outline" className={`text-xs ${PRIORITY_COLORS[form.priority ?? 2]}`}>
             {PRIORITY_LABELS[form.priority ?? 2]}
           </Badge>
           {form.tags?.map((tag) => (
-            <Badge key={tag} variant="secondary" className="text-xs">
-              #{tag}
-            </Badge>
+            <Badge key={tag} variant="secondary" className="text-xs">#{tag}</Badge>
           ))}
         </div>
 
@@ -104,9 +119,7 @@ export function ParsePreviewCard({ parsed, onConfirm, onCancel }: Props) {
           <Button size="sm" onClick={confirm} disabled={!form.title.trim() || loading}>
             {loading ? "创建中..." : "确认创建"}
           </Button>
-          <Button size="sm" variant="ghost" onClick={onCancel}>
-            取消
-          </Button>
+          <Button size="sm" variant="ghost" onClick={onCancel}>取消</Button>
         </div>
       </CardContent>
     </Card>

@@ -1,0 +1,73 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { NLInput } from "@/components/NLInput";
+import { ParsePreviewCard } from "@/components/ParsePreviewCard";
+import { TaskList } from "@/components/TaskList";
+import type { ParsedTask, Task } from "@/lib/types";
+
+export default function AllTasksPage() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
+  const [preview, setPreview] = useState<{ parsed: ParsedTask; raw: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/tasks").then((r) => r.json()),
+      fetch("/api/tasks?filter=completed").then((r) => r.json()).catch(() => []),
+    ]).then(([active, completed]: [Task[], Task[]]) => {
+      setTasks(active);
+      setCompletedTasks(Array.isArray(completed) ? completed.filter((t) => t.status === 2) : []);
+    }).finally(() => setLoading(false));
+  }, []);
+
+  function handleConfirm(task: Task) {
+    setTasks((prev) => [task, ...prev]);
+    setPreview(null);
+  }
+
+  function handleComplete(id: string) {
+    const done = tasks.find((t) => t.id === id);
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    if (done) setCompletedTasks((prev) => [{ ...done, status: 2 as const }, ...prev].slice(0, 20));
+  }
+
+  function handleDelete(id: string) {
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  function handleUpdate(id: string, updates: Partial<Task>) {
+    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, ...updates } : t));
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold">全部任务</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">{tasks.length} 个待办</p>
+      </div>
+
+      <div className="mb-4">
+        <NLInput onParsed={(p, r) => setPreview({ parsed: p, raw: r })} />
+      </div>
+
+      {preview && (
+        <div className="mb-4">
+          <ParsePreviewCard parsed={preview.parsed} onConfirm={handleConfirm} onCancel={() => setPreview(null)} />
+        </div>
+      )}
+
+      <TaskList
+        tasks={tasks}
+        completedTasks={completedTasks}
+        loading={loading}
+        onComplete={handleComplete}
+        onDelete={handleDelete}
+        onUpdate={handleUpdate}
+        emptyText="还没有任务"
+        emptySubtext="试着输入一句话"
+      />
+    </div>
+  );
+}

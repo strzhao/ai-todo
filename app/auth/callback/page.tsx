@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -37,7 +36,6 @@ function safeDecode(value: string): string {
 }
 
 export default function AuthCallbackPage() {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -70,8 +68,43 @@ export default function AuthCallbackPage() {
         return;
       }
 
+      // 通过服务端中转接口获取 token，避免浏览器直接跨域请求认证服务器（CORS 限制）。
+      // 服务端会将请求 cookies 转发给认证服务器（生产环境下包含 .stringzhao.life 共享域 refresh_token）。
+      let accessToken: string | undefined;
+      let refreshToken: string | undefined;
+      let expiresIn: number | undefined;
+
+      try {
+        const refreshRes = await fetch("/api/auth/exchange", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        if (refreshRes.ok) {
+          const data = await refreshRes.json().catch(() => ({}));
+          accessToken = data.accessToken ?? data.access_token;
+          refreshToken = data.refreshToken ?? data.refresh_token;
+          expiresIn = data.expiresIn ?? data.expires_in;
+        }
+      } catch {
+        // 网络异常
+      }
+
+      if (accessToken && refreshToken) {
+        // Write tokens to our domain so the proxy can verify them.
+        await fetch("/api/auth/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accessToken, refreshToken, expiresIn }),
+        }).catch(() => undefined);
+      } else if (!cancelled) {
+        setError("获取登录凭证失败，请重试。");
+        return;
+      }
+
       clearCookie("auth_next");
-      router.replace(nextPath);
+      // 使用完整页面跳转而非 router.replace()。
+      // router.replace() 会触发 Next.js RSC fetch，proxy 会将其拦截并 307 重定向到认证服务器（跨域），导致 CORS 错误。
+      window.location.href = nextPath;
     }
 
     void finalizeAuth();
@@ -79,7 +112,7 @@ export default function AuthCallbackPage() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">

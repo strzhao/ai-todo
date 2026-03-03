@@ -10,8 +10,8 @@ import {
   normalizeNextPath,
 } from "@/lib/auth-config";
 
-const protectedPaths = ["/", "/all"];
-const protectedApiPaths = ["/api/tasks", "/api/parse-task"];
+const protectedPaths = ["/", "/all", "/spaces", "/join"];
+const protectedApiPaths = ["/api/tasks", "/api/parse-task", "/api/spaces"];
 
 function getSetCookieValues(headers: Headers): string[] {
   const headerBag = headers as Headers & { getSetCookie?: () => string[] };
@@ -132,6 +132,14 @@ function buildCallbackErrorUrl(req: NextRequest, code: string): URL {
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // 本地开发 bypass：AUTH_DEV_BYPASS=true 时跳过所有认证检查。
+  if (
+    process.env.AUTH_DEV_BYPASS === "true" &&
+    process.env.NODE_ENV !== "production"
+  ) {
+    return NextResponse.next();
+  }
+
   if (pathname === CALLBACK_PATH) {
     const hasError = Boolean(req.nextUrl.searchParams.get("error"));
     if (hasError) {
@@ -196,7 +204,7 @@ export async function proxy(req: NextRequest) {
   if (isProtectedPage) {
     const state = crypto.randomUUID();
     const nextPath = normalizeNextPath(`${pathname}${req.nextUrl.search}`);
-    const returnTo = buildCallbackUrl();
+    const returnTo = new URL(CALLBACK_PATH, req.nextUrl.origin).toString();
     const authorizeUrl = buildAuthorizeUrl(returnTo, state);
 
     const res = NextResponse.redirect(authorizeUrl);
