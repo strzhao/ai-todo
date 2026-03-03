@@ -34,9 +34,9 @@ export async function proxy(req: NextRequest) { ... }
 ### 认证流程
 - 外部服务统一跳转 `https://user.stringzhao.life/authorize?service&return_to&state`，不直接拼接 `/login`
 - 回跳页面使用 `/auth/callback`，`proxy.ts` 会校验 `state`（cookie 对比 query）
-- 认证 cookie 由认证服务下发（`Domain=.stringzhao.life`），本服务只做读取与透传
-- `proxy.ts` 在访问受保护页面/API时先校验 `access_token`，过期自动调用 auth 服务 `/api/auth/refresh`
-- 不再在本项目内维护验证码登录页和 `/api/auth/[action]` 认证代理
+- `/auth/callback` 会调用 auth 服务 `/api/auth/refresh` 拉取 token，再通过 `/api/auth/session` 写入本域 `access_token/refresh_token`
+- `proxy.ts` 在访问受保护页面/API时先校验本域 `access_token`，过期自动调用 auth 服务 `/api/auth/refresh`
+- 不再在本项目内维护验证码登录页和 `/api/auth/[action]` 多 action 认证代理
 
 ### Vercel Postgres 数组字段
 `sql` 模板标签不支持数组类型 → 有数组字段的查询使用 `sql.query()`：
@@ -51,6 +51,7 @@ AUTH_AUDIENCE=base-account-client
 AUTH_JWKS_URL=https://user.stringzhao.life/.well-known/jwks.json
 AUTH_SERVICE_ID=base-account-client
 APP_ORIGIN=https://ai-todo.stringzhao.life
+NEXT_PUBLIC_AUTH_ISSUER=https://user.stringzhao.life
 DEEPSEEK_API_KEY=...
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 DEEPSEEK_MODEL=deepseek-chat
@@ -67,6 +68,7 @@ app/
   all/page.tsx                # 全部任务视图
   auth/callback/page.tsx      # 统一授权回跳页（authorized/state）
   api/
+    auth/session/route.ts     # 会话同步（写入本域 access_token/refresh_token）
     parse-task/route.ts       # AI 解析自然语言 → ParsedTask JSON
     tasks/route.ts            # GET（列表/今日过滤）+ POST（创建）
     tasks/[id]/route.ts       # PATCH（完成/更新）+ DELETE
