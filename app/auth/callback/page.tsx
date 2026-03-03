@@ -9,18 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 const ERROR_MESSAGES: Record<string, string> = {
   state_mismatch: "登录状态校验失败，请重新发起登录。",
   authorization_not_completed: "授权未完成，请重新登录。",
-  session_sync_failed: "登录成功，但会话同步失败，请重试。",
-};
-
-const AUTH_ISSUER =
-  process.env.NEXT_PUBLIC_AUTH_ISSUER ?? "https://user.stringzhao.life";
-
-type RefreshPayload = {
-  accessToken?: string;
-  access_token?: string;
-  refreshToken?: string;
-  refresh_token?: string;
-  expiresIn?: number;
 };
 
 function normalizeNextPath(rawPath: string | null): string {
@@ -82,50 +70,8 @@ export default function AuthCallbackPage() {
         return;
       }
 
-      try {
-        const refreshRes = await fetch(`${AUTH_ISSUER}/api/auth/refresh`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: "{}",
-          credentials: "include",
-        });
-
-        if (!refreshRes.ok) {
-          throw new Error("refresh_failed");
-        }
-
-        const refreshData = (await refreshRes.json()) as RefreshPayload;
-        const accessToken =
-          refreshData.accessToken ?? refreshData.access_token ?? "";
-        const refreshToken =
-          refreshData.refreshToken ?? refreshData.refresh_token ?? "";
-
-        if (!accessToken || !refreshToken) {
-          throw new Error("token_missing");
-        }
-
-        const syncRes = await fetch("/api/auth/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            accessToken,
-            refreshToken,
-            expiresIn: refreshData.expiresIn,
-          }),
-        });
-
-        if (!syncRes.ok) {
-          throw new Error("sync_failed");
-        }
-
-        clearCookie("auth_next");
-        router.replace(nextPath);
-      } catch {
-        clearCookie("auth_next");
-        if (!cancelled) {
-          setError(ERROR_MESSAGES.session_sync_failed);
-        }
-      }
+      clearCookie("auth_next");
+      router.replace(nextPath);
     }
 
     void finalizeAuth();
