@@ -3,6 +3,8 @@ import { getUserFromRequest } from "@/lib/auth";
 import { completeTask, deleteTask, updateTask } from "@/lib/db";
 import type { ParsedTask } from "@/lib/types";
 
+export const preferredRegion = "hkg1";
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

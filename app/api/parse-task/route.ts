@@ -3,6 +3,8 @@ import { getUserFromRequest } from "@/lib/auth";
 import { LLMClient, LLMError } from "@/lib/llm-client";
 import type { ParsedTask } from "@/lib/types";
 
+export const preferredRegion = "hkg1";
+
 const SYSTEM_PROMPT = `你是一个任务解析助手。将用户输入的自然语言解析为结构化任务数据，以 JSON 格式输出。
 
 输出格式（严格 JSON，无其他内容）：

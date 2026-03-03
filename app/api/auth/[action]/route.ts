@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const AUTH_BASE = "https://user.stringzhao.life";
 const ALLOWED_ACTIONS = new Set(["send-code", "verify-code", "refresh", "logout"]);
+export const preferredRegion = "hkg1";
 
 // POST /api/auth/send-code  { email }
 // POST /api/auth/verify-code { email, code }

@@ -3,6 +3,8 @@ import { getUserFromRequest } from "@/lib/auth";
 import { getTasks, getTodayTasks, createTask, initDb } from "@/lib/db";
 import type { ParsedTask } from "@/lib/types";
 
+export const preferredRegion = "hkg1";
+
 export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

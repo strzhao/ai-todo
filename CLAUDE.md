@@ -27,6 +27,10 @@ npm run start  # 启动生产服务器
 export async function proxy(req: NextRequest) { ... }
 ```
 
+### API 运行区域
+- 面向中国用户，核心 API 路由（`/api/tasks`、`/api/tasks/[id]`、`/api/parse-task`、`/api/auth/[action]`）固定在 `hkg1`
+- 数据库使用新加坡 Neon（`ap-southeast-1`），避免跨太平洋访问
+
 ### 认证流程
 - 用户在 `/login` 输入邮箱 + 验证码
 - `/api/auth/[action]` 代理转发到 user.stringzhao.life（仅做同源转发，支持 `send-code / verify-code / refresh / logout`）
