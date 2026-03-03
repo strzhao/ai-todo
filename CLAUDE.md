@@ -17,7 +17,7 @@ npm run start  # 启动生产服务器
 - **认证**: user.stringzhao.life JWT 系统（`jose` + JWKS 验证）
 - **AI**: DeepSeek API（自定义 fetch 客户端）
 - **数据库**: Vercel Postgres（`@vercel/postgres`，表名 `ai_todo_tasks`）
-- **部署**: Vercel → https://ai-todo-taupe.vercel.app
+- **部署**: Vercel → https://ai-todo.stringzhao.life
 
 ## 关键架构注意事项
 
@@ -28,15 +28,15 @@ export async function proxy(req: NextRequest) { ... }
 ```
 
 ### API 运行区域
-- 面向中国用户，核心 API 路由（`/api/tasks`、`/api/tasks/[id]`、`/api/parse-task`、`/api/auth/[action]`）固定在 `hkg1`
+- 面向中国用户，核心 API 路由（`/api/tasks`、`/api/tasks/[id]`、`/api/parse-task`）固定在 `hkg1`
 - 数据库使用新加坡 Neon（`ap-southeast-1`），避免跨太平洋访问
 
 ### 认证流程
-- 用户在 `/login` 输入邮箱 + 验证码
-- `/api/auth/[action]` 代理转发到 user.stringzhao.life（仅做同源转发，支持 `send-code / verify-code / refresh / logout`）
-- 认证 cookie 由认证服务下发，代理透传 `Set-Cookie` 响应头
-- 不再在本项目内做 `accessToken` 到 cookie 的手动转换
-- `proxy.ts` 在访问受保护页面/API时会先校验 `access_token`，过期则自动尝试 `refresh`，实现 30 天内免重复登录
+- 外部服务统一跳转 `https://user.stringzhao.life/authorize?service&return_to&state`，不直接拼接 `/login`
+- 回跳页面使用 `/auth/callback`，`proxy.ts` 会校验 `state`（cookie 对比 query）
+- 认证 cookie 由认证服务下发（`Domain=.stringzhao.life`），本服务只做读取与透传
+- `proxy.ts` 在访问受保护页面/API时先校验 `access_token`，过期自动调用 auth 服务 `/api/auth/refresh`
+- 不再在本项目内维护验证码登录页和 `/api/auth/[action]` 认证代理
 
 ### Vercel Postgres 数组字段
 `sql` 模板标签不支持数组类型 → 有数组字段的查询使用 `sql.query()`：
@@ -49,6 +49,8 @@ await sql.query(`INSERT INTO ... VALUES ($1, $2, $3, $4, $5, $6)`, [userId, titl
 AUTH_ISSUER=https://user.stringzhao.life
 AUTH_AUDIENCE=base-account-client
 AUTH_JWKS_URL=https://user.stringzhao.life/.well-known/jwks.json
+AUTH_SERVICE_ID=base-account-client
+APP_ORIGIN=https://ai-todo.stringzhao.life
 DEEPSEEK_API_KEY=...
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 DEEPSEEK_MODEL=deepseek-chat
@@ -63,12 +65,11 @@ POSTGRES_URL=...    # Neon DB（与 ai-news 共享，表名不同）
 app/
   page.tsx                    # 今日视图（客户端组件）
   all/page.tsx                # 全部任务视图
-  login/page.tsx              # 邮箱 + 验证码登录
+  auth/callback/page.tsx      # 统一授权回跳页（authorized/state）
   api/
     parse-task/route.ts       # AI 解析自然语言 → ParsedTask JSON
     tasks/route.ts            # GET（列表/今日过滤）+ POST（创建）
     tasks/[id]/route.ts       # PATCH（完成/更新）+ DELETE
-    auth/[action]/route.ts    # 认证代理（send-code/verify-code/logout）
 components/
   NLInput.tsx                 # 自然语言输入框，Cmd+Enter 触发
   ParsePreviewCard.tsx        # AI 解析预览 + 确认创建
@@ -78,8 +79,9 @@ lib/
   types.ts                    # Task、ParsedTask 接口
   llm-client.ts               # DeepSeek 客户端（改编自 ai-news）
   auth.ts                     # JWT 验证（jose + JWKS，模块级缓存）
+  auth-config.ts              # 统一授权配置（authorize/callback）
   db.ts                       # Vercel Postgres CRUD
-proxy.ts                      # 路由保护（未登录重定向到 /login）
+proxy.ts                      # 路由保护（未登录重定向到 /authorize）
 ```
 
 ## 任务优先级

@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookie } from "@/lib/auth";
+import {
+  AUTH_ISSUER,
+  AUTH_STATE_COOKIE,
+  CALLBACK_PATH,
+  buildAuthorizeUrl,
+  buildCallbackUrl,
+  normalizeNextPath,
+} from "@/lib/auth-config";
 
 const protectedPaths = ["/", "/all"];
 const protectedApiPaths = ["/api/tasks", "/api/parse-task"];
-const loginPath = "/login";
 
 function getSetCookieValues(headers: Headers): string[] {
   const headerBag = headers as Headers & { getSetCookie?: () => string[] };
@@ -18,6 +25,30 @@ function appendSetCookieHeaders(res: NextResponse, values: string[]) {
   for (const value of values) {
     res.headers.append("set-cookie", value);
   }
+}
+
+function setAuthStateCookie(res: NextResponse, state: string) {
+  res.cookies.set({
+    name: AUTH_STATE_COOKIE,
+    value: state,
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: CALLBACK_PATH,
+    maxAge: 60 * 5,
+  });
+}
+
+function clearAuthStateCookie(res: NextResponse) {
+  res.cookies.set({
+    name: AUTH_STATE_COOKIE,
+    value: "",
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: CALLBACK_PATH,
+    maxAge: 0,
+  });
 }
 
 function getAccessTokenFromSetCookie(values: string[]): string | null {
@@ -48,7 +79,7 @@ async function tryRefreshSession(req: NextRequest): Promise<{
     headers.cookie = cookie;
   }
 
-  const refreshRes = await fetch(new URL("/api/auth/refresh", req.url), {
+  const refreshRes = await fetch(new URL("/api/auth/refresh", AUTH_ISSUER), {
     method: "POST",
     headers,
     body: "{}",
@@ -68,11 +99,45 @@ async function tryRefreshSession(req: NextRequest): Promise<{
   return { accessToken, setCookies };
 }
 
+function buildCallbackErrorUrl(req: NextRequest, code: string): URL {
+  const callbackUrl = new URL(CALLBACK_PATH, req.url);
+  const nextPath = normalizeNextPath(req.nextUrl.searchParams.get("next"));
+  if (nextPath !== "/") {
+    callbackUrl.searchParams.set("next", nextPath);
+  }
+  callbackUrl.searchParams.set("error", code);
+  return callbackUrl;
+}
+
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (pathname === loginPath || pathname.startsWith("/api/auth/")) {
-    return NextResponse.next();
+  if (pathname === CALLBACK_PATH) {
+    const hasError = Boolean(req.nextUrl.searchParams.get("error"));
+    if (hasError) {
+      return NextResponse.next();
+    }
+
+    const returnedState = req.nextUrl.searchParams.get("state");
+    const authorized = req.nextUrl.searchParams.get("authorized");
+    const expectedState = req.cookies.get(AUTH_STATE_COOKIE)?.value;
+
+    if (
+      authorized === "1" &&
+      returnedState &&
+      expectedState &&
+      returnedState === expectedState
+    ) {
+      const res = NextResponse.next();
+      clearAuthStateCookie(res);
+      return res;
+    }
+
+    const code =
+      authorized === "1" ? "state_mismatch" : "authorization_not_completed";
+    const res = NextResponse.redirect(buildCallbackErrorUrl(req, code));
+    clearAuthStateCookie(res);
+    return res;
   }
 
   const isProtectedPage = protectedPaths.some(
@@ -109,7 +174,14 @@ export async function proxy(req: NextRequest) {
   }
 
   if (isProtectedPage) {
-    return NextResponse.redirect(new URL(loginPath, req.url));
+    const state = crypto.randomUUID();
+    const nextPath = normalizeNextPath(`${pathname}${req.nextUrl.search}`);
+    const returnTo = buildCallbackUrl(nextPath);
+    const authorizeUrl = buildAuthorizeUrl(returnTo, state);
+
+    const res = NextResponse.redirect(authorizeUrl);
+    setAuthStateCookie(res, state);
+    return res;
   }
 
   return NextResponse.next();
