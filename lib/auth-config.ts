@@ -4,6 +4,7 @@ const DEFAULT_APP_ORIGIN = "https://ai-todo.stringzhao.life";
 
 export const CALLBACK_PATH = "/auth/callback";
 export const AUTH_STATE_COOKIE = "auth_state";
+export const AUTH_NEXT_COOKIE = "auth_next";
 export const AUTH_ISSUER = process.env.AUTH_ISSUER ?? DEFAULT_AUTH_ISSUER;
 export const AUTH_SERVICE_ID =
   process.env.AUTH_SERVICE_ID ??
@@ -18,9 +19,8 @@ export function normalizeNextPath(rawPath: string | null | undefined): string {
   return rawPath;
 }
 
-export function buildCallbackUrl(nextPath: string): string {
+export function buildCallbackUrl(): string {
   const callbackUrl = new URL(CALLBACK_PATH, APP_ORIGIN);
-  callbackUrl.searchParams.set("next", normalizeNextPath(nextPath));
   return callbackUrl.toString();
 }
 

@@ -30,6 +30,24 @@ function normalizeNextPath(rawPath: string | null): string {
   return rawPath;
 }
 
+function readCookie(name: string): string | null {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
+  return match ? match[1] : null;
+}
+
+function clearCookie(name: string) {
+  document.cookie = `${name}=; Max-Age=0; Path=/auth/callback; Secure; SameSite=Lax`;
+}
+
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 export default function AuthCallbackPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -41,9 +59,15 @@ export default function AuthCallbackPage() {
       const callbackUrl = new URL(window.location.href);
       const callbackError = callbackUrl.searchParams.get("error");
       const authorized = callbackUrl.searchParams.get("authorized");
-      const nextPath = normalizeNextPath(callbackUrl.searchParams.get("next"));
+      const nextFromCookie = readCookie("auth_next");
+      const nextPath = normalizeNextPath(
+        nextFromCookie
+          ? safeDecode(nextFromCookie)
+          : callbackUrl.searchParams.get("next")
+      );
 
       if (callbackError) {
+        clearCookie("auth_next");
         if (!cancelled) {
           setError(ERROR_MESSAGES[callbackError] ?? "登录流程异常，请重试。");
         }
@@ -51,6 +75,7 @@ export default function AuthCallbackPage() {
       }
 
       if (authorized !== "1") {
+        clearCookie("auth_next");
         if (!cancelled) {
           setError("授权未完成，请重新登录。");
         }
@@ -93,8 +118,10 @@ export default function AuthCallbackPage() {
           throw new Error("sync_failed");
         }
 
+        clearCookie("auth_next");
         router.replace(nextPath);
       } catch {
+        clearCookie("auth_next");
         if (!cancelled) {
           setError(ERROR_MESSAGES.session_sync_failed);
         }

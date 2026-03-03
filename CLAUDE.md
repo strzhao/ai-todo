@@ -33,7 +33,7 @@ export async function proxy(req: NextRequest) { ... }
 
 ### 认证流程
 - 外部服务统一跳转 `https://user.stringzhao.life/authorize?service&return_to&state`，不直接拼接 `/login`
-- 回跳页面使用 `/auth/callback`，`proxy.ts` 会校验 `state`（cookie 对比 query）
+- 回跳页面使用 `/auth/callback`，`proxy.ts` 会校验 `state`（cookie 对比 query），并通过临时 cookie 传递原始访问路径
 - `/auth/callback` 会调用 auth 服务 `/api/auth/refresh` 拉取 token，再通过 `/api/auth/session` 写入本域 `access_token/refresh_token`
 - `proxy.ts` 在访问受保护页面/API时先校验本域 `access_token`，过期自动调用 auth 服务 `/api/auth/refresh`
 - 不再在本项目内维护验证码登录页和 `/api/auth/[action]` 多 action 认证代理

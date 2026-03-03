@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookie } from "@/lib/auth";
 import {
+  AUTH_NEXT_COOKIE,
   AUTH_ISSUER,
   AUTH_STATE_COOKIE,
   CALLBACK_PATH,
@@ -27,11 +28,21 @@ function appendSetCookieHeaders(res: NextResponse, values: string[]) {
   }
 }
 
-function setAuthStateCookie(res: NextResponse, state: string) {
+function setAuthFlowCookies(res: NextResponse, state: string, nextPath: string) {
   res.cookies.set({
     name: AUTH_STATE_COOKIE,
     value: state,
     httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: CALLBACK_PATH,
+    maxAge: 60 * 5,
+  });
+
+  res.cookies.set({
+    name: AUTH_NEXT_COOKIE,
+    value: encodeURIComponent(normalizeNextPath(nextPath)),
+    httpOnly: false,
     secure: true,
     sameSite: "lax",
     path: CALLBACK_PATH,
@@ -44,6 +55,19 @@ function clearAuthStateCookie(res: NextResponse) {
     name: AUTH_STATE_COOKIE,
     value: "",
     httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: CALLBACK_PATH,
+    maxAge: 0,
+  });
+}
+
+function clearAuthFlowCookies(res: NextResponse) {
+  clearAuthStateCookie(res);
+  res.cookies.set({
+    name: AUTH_NEXT_COOKIE,
+    value: "",
+    httpOnly: false,
     secure: true,
     sameSite: "lax",
     path: CALLBACK_PATH,
@@ -101,10 +125,6 @@ async function tryRefreshSession(req: NextRequest): Promise<{
 
 function buildCallbackErrorUrl(req: NextRequest, code: string): URL {
   const callbackUrl = new URL(CALLBACK_PATH, req.url);
-  const nextPath = normalizeNextPath(req.nextUrl.searchParams.get("next"));
-  if (nextPath !== "/") {
-    callbackUrl.searchParams.set("next", nextPath);
-  }
   callbackUrl.searchParams.set("error", code);
   return callbackUrl;
 }
@@ -136,7 +156,7 @@ export async function proxy(req: NextRequest) {
     const code =
       authorized === "1" ? "state_mismatch" : "authorization_not_completed";
     const res = NextResponse.redirect(buildCallbackErrorUrl(req, code));
-    clearAuthStateCookie(res);
+    clearAuthFlowCookies(res);
     return res;
   }
 
@@ -176,11 +196,11 @@ export async function proxy(req: NextRequest) {
   if (isProtectedPage) {
     const state = crypto.randomUUID();
     const nextPath = normalizeNextPath(`${pathname}${req.nextUrl.search}`);
-    const returnTo = buildCallbackUrl(nextPath);
+    const returnTo = buildCallbackUrl();
     const authorizeUrl = buildAuthorizeUrl(returnTo, state);
 
     const res = NextResponse.redirect(authorizeUrl);
-    setAuthStateCookie(res, state);
+    setAuthFlowCookies(res, state, nextPath);
     return res;
   }
 
