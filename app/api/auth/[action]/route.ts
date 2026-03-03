@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const AUTH_BASE = "https://user.stringzhao.life";
+const ALLOWED_ACTIONS = new Set(["send-code", "verify-code", "logout"]);
 
 // POST /api/auth/send-code  { email }
 // POST /api/auth/verify-code { email, code }
@@ -10,38 +11,42 @@ export async function POST(
   { params }: { params: Promise<{ action: string }> }
 ) {
   const { action } = await params;
-  const body = await req.json();
+  if (!ALLOWED_ACTIONS.has(action)) {
+    return NextResponse.json({ error: "Invalid action" }, { status: 404 });
+  }
+
+  const body = await req.json().catch(() => ({}));
+  const cookie = req.headers.get("cookie");
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+  if (cookie) {
+    headers.cookie = cookie;
+  }
 
   const upstream = await fetch(`${AUTH_BASE}/api/auth/${action}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(body),
-    credentials: "include",
+    cache: "no-store",
   });
 
-  const data = await upstream.json();
+  const data = await upstream.json().catch(() => ({
+    error: "Auth service response parse failed",
+  }));
+  const res = NextResponse.json(data, { status: upstream.status });
 
-  if (!upstream.ok) {
-    return NextResponse.json(data, { status: upstream.status });
-  }
-
-  // On verify-code, set access_token cookie on our domain
-  const res = NextResponse.json(data);
-
-  // Auth server returns accessToken (camelCase)
-  const token = data.accessToken ?? data.access_token;
-  if (action === "verify-code" && token) {
-    res.cookies.set("access_token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: "/",
-    });
-  }
-
-  if (action === "logout") {
-    res.cookies.delete("access_token");
+  const headerBag = upstream.headers as Headers & {
+    getSetCookie?: () => string[];
+  };
+  const setCookies = headerBag.getSetCookie?.() ?? [];
+  if (setCookies.length > 0) {
+    for (const value of setCookies) {
+      res.headers.append("set-cookie", value);
+    }
+  } else {
+    const setCookie = upstream.headers.get("set-cookie");
+    if (setCookie) {
+      res.headers.set("set-cookie", setCookie);
+    }
   }
 
   return res;

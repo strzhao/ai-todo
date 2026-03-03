@@ -29,9 +29,9 @@ export async function proxy(req: NextRequest) { ... }
 
 ### 认证流程
 - 用户在 `/login` 输入邮箱 + 验证码
-- `/api/auth/[action]` 代理转发到 user.stringzhao.life（解决跨域 cookie 问题）
-- 代理在我们域名下设置 `access_token` httpOnly cookie
-- 认证服务返回 `accessToken`（camelCase），代码中已兼容处理
+- `/api/auth/[action]` 代理转发到 user.stringzhao.life（仅做同源转发）
+- 认证 cookie 由认证服务下发，代理透传 `Set-Cookie` 响应头
+- 不再在本项目内做 `accessToken` 到 cookie 的手动转换
 
 ### Vercel Postgres 数组字段
 `sql` 模板标签不支持数组类型 → 有数组字段的查询使用 `sql.query()`：
