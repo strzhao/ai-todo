@@ -24,6 +24,7 @@ interface Props {
 export function ParsePreviewCard({ parsed, onConfirm, onCancel }: Props) {
   const [form, setForm] = useState<ParsedTask>({ ...parsed });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   function formatDueDate(iso?: string) {
     if (!iso) return null;
@@ -35,17 +36,22 @@ export function ParsePreviewCard({ parsed, onConfirm, onCancel }: Props) {
   async function confirm() {
     if (!form.title.trim()) return;
     setLoading(true);
+    setError("");
     try {
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      if (!res.ok) throw new Error("创建失败");
+      if (!res.ok) {
+        const d = await res.json() as { error?: string };
+        setError(d.error || "创建失败，请重试");
+        return;
+      }
       const task = await res.json() as Task;
       onConfirm(task);
-    } catch (e) {
-      console.error(e);
+    } catch {
+      setError("网络错误，请重试");
     } finally {
       setLoading(false);
     }
@@ -93,6 +99,7 @@ export function ParsePreviewCard({ parsed, onConfirm, onCancel }: Props) {
         )}
 
         {/* 操作 */}
+        {error && <p className="text-xs text-destructive">{error}</p>}
         <div className="flex gap-2 pt-1">
           <Button size="sm" onClick={confirm} disabled={!form.title.trim() || loading}>
             {loading ? "创建中..." : "确认创建"}

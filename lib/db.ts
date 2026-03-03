@@ -75,6 +75,7 @@ export async function completeTask(userId: string, id: string): Promise<Task> {
     WHERE id = ${id} AND user_id = ${userId}
     RETURNING *
   `;
+  if (!rows[0]) throw new Error("Task not found");
   return rowToTask(rows[0]);
 }
 

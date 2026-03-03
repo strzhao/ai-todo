@@ -28,12 +28,12 @@ export function TaskItem({ task, onComplete, onDelete }: Props) {
     if (completing) return;
     setCompleting(true);
     try {
-      await fetch(`/api/tasks/${task.id}`, {
+      const res = await fetch(`/api/tasks/${task.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ complete: true }),
       });
-      onComplete(task.id);
+      if (res.ok) onComplete(task.id);
     } finally {
       setCompleting(false);
     }
@@ -43,8 +43,8 @@ export function TaskItem({ task, onComplete, onDelete }: Props) {
     if (deleting) return;
     setDeleting(true);
     try {
-      await fetch(`/api/tasks/${task.id}`, { method: "DELETE" });
-      onDelete(task.id);
+      const res = await fetch(`/api/tasks/${task.id}`, { method: "DELETE" });
+      if (res.ok) onDelete(task.id);
     } finally {
       setDeleting(false);
     }

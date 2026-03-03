@@ -10,13 +10,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params;
   const body = await req.json() as { complete?: boolean } & Partial<ParsedTask>;
 
-  if (body.complete) {
-    const task = await completeTask(user.id, id);
+  try {
+    if (body.complete) {
+      const task = await completeTask(user.id, id);
+      return NextResponse.json(task);
+    }
+    const task = await updateTask(user.id, id, body);
     return NextResponse.json(task);
+  } catch (e) {
+    if (e instanceof Error && e.message === "Task not found") {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    throw e;
   }
-
-  const task = await updateTask(user.id, id, body);
-  return NextResponse.json(task);
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
