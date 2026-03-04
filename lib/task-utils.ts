@@ -1,6 +1,6 @@
 import type { Task } from "@/lib/types";
 
-export type TaskNode = Task & { subtasks: Task[] };
+export type TaskNode = Task & { subtasks: TaskNode[] };
 
 export function buildTree(tasks: Task[]): TaskNode[] {
   const map = new Map<string, TaskNode>(tasks.map((t) => [t.id, { ...t, subtasks: [] }]));

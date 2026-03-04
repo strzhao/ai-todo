@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { updateSpaceMember, removeSpaceMember, getSpaceMemberRecord } from "@/lib/db";
+import { updateTaskMember, removeTaskMember, getTaskMemberRecord } from "@/lib/db";
 import { requireSpaceOwner } from "@/lib/spaces";
 import { createRouteTimer } from "@/lib/route-timing";
 
@@ -17,7 +17,6 @@ export async function PATCH(
 
   const body = await req.json() as { status?: string; display_name?: string; role?: string };
 
-  // Members can only update their own display_name
   const isSelf = uid === user.id;
   const updatingOthers = !isSelf || body.status !== undefined || body.role !== undefined;
 
@@ -29,7 +28,7 @@ export async function PATCH(
     }
   }
 
-  const member = await rt.track("db_query", async () => updateSpaceMember(id, uid, body));
+  const member = await rt.track("db_query", async () => updateTaskMember(id, uid, body));
   if (!member) return rt.json({ error: "Not found" }, { status: 404 });
 
   return rt.json(member);
@@ -54,14 +53,13 @@ export async function DELETE(
     }
   }
 
-  // Prevent removing the last owner
   if (!isSelf) {
-    const target = await rt.track("db_query", async () => getSpaceMemberRecord(id, uid));
+    const target = await rt.track("db_query", async () => getTaskMemberRecord(id, uid));
     if (target?.role === "owner") {
       return rt.json({ error: "Cannot remove the space owner" }, { status: 400 });
     }
   }
 
-  await rt.track("db_query", async () => removeSpaceMember(id, uid));
+  await rt.track("db_query", async () => removeTaskMember(id, uid));
   return rt.empty(204);
 }

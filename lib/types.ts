@@ -17,8 +17,15 @@ export interface Task {
   assignee_id?: string;
   assignee_email?: string;
   mentioned_emails?: string[];
-  // Phase D: hierarchy (max 2 levels)
+  // Phase D: hierarchy (arbitrary depth)
   parent_id?: string;
+  // Pinned task = acts as a "space" (sidebar entry + members + invite)
+  pinned?: boolean;
+  invite_code?: string;
+  invite_mode?: "open" | "approval";
+  member_count?: number;
+  task_count?: number;
+  my_role?: "owner" | "member";
 }
 
 export interface ParsedTask {
@@ -36,25 +43,10 @@ export interface ParsedTask {
   children?: Omit<ParsedTask, "children">[];
 }
 
-// Phase C: Project Spaces
-export interface Space {
+// Task member (was SpaceMember; space_id → task_id)
+export interface TaskMember {
   id: string;
-  name: string;
-  description?: string;
-  owner_id: string;
-  owner_email: string;
-  invite_code: string;
-  invite_mode: "open" | "approval";
-  created_at: string;
-  updated_at: string;
-  member_count?: number;
-  task_count?: number;
-  my_role?: "owner" | "member";
-}
-
-export interface SpaceMember {
-  id: string;
-  space_id: string;
+  task_id: string;
   user_id: string;
   email: string;
   display_name?: string;
@@ -62,6 +54,10 @@ export interface SpaceMember {
   status: "active" | "pending";
   joined_at: string;
 }
+
+// Backward-compat aliases (deprecated, use Task / TaskMember directly)
+export type Space = Task;
+export type SpaceMember = TaskMember & { space_id: string };
 
 // Phase E: Task logs (progress updates)
 export interface TaskLog {

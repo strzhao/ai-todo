@@ -1,43 +1,8 @@
 import { sql } from "@vercel/postgres";
-import type { Task, ParsedTask, Space, SpaceMember, TaskLog } from "./types";
+import type { Task, ParsedTask, TaskMember, TaskLog } from "./types";
 
 export async function initDb() {
-  // 1. Spaces table (must exist before tasks references it)
-  await sql`
-    CREATE TABLE IF NOT EXISTS ai_todo_spaces (
-      id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      name         TEXT NOT NULL,
-      description  TEXT,
-      owner_id     TEXT NOT NULL,
-      owner_email  TEXT NOT NULL,
-      invite_code  TEXT UNIQUE NOT NULL,
-      invite_mode  TEXT NOT NULL DEFAULT 'open',
-      created_at   TIMESTAMPTZ DEFAULT NOW(),
-      updated_at   TIMESTAMPTZ DEFAULT NOW()
-    )
-  `;
-  await sql`CREATE INDEX IF NOT EXISTS idx_spaces_owner  ON ai_todo_spaces(owner_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_spaces_invite ON ai_todo_spaces(invite_code)`;
-
-  // 2. Space members table
-  await sql`
-    CREATE TABLE IF NOT EXISTS ai_todo_space_members (
-      id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      space_id     UUID NOT NULL REFERENCES ai_todo_spaces(id) ON DELETE CASCADE,
-      user_id      TEXT NOT NULL,
-      email        TEXT NOT NULL,
-      display_name TEXT,
-      role         TEXT NOT NULL DEFAULT 'member',
-      status       TEXT NOT NULL DEFAULT 'active',
-      joined_at    TIMESTAMPTZ DEFAULT NOW(),
-      UNIQUE(space_id, user_id)
-    )
-  `;
-  await sql`CREATE INDEX IF NOT EXISTS idx_members_space ON ai_todo_space_members(space_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_members_user  ON ai_todo_space_members(user_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_members_email ON ai_todo_space_members(space_id, email)`;
-
-  // 3. Tasks table (original schema)
+  // 1. Tasks table (core, must exist first for self-referencing FK)
   await sql`
     CREATE TABLE IF NOT EXISTS ai_todo_tasks (
       id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -54,24 +19,47 @@ export async function initDb() {
     )
   `;
 
-  // 4. Add new columns to tasks (idempotent — ADD COLUMN IF NOT EXISTS)
-  await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS space_id UUID REFERENCES ai_todo_spaces(id) ON DELETE SET NULL`;
+  // 2. Add columns to tasks (idempotent)
+  await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS space_id UUID REFERENCES ai_todo_tasks(id) ON DELETE SET NULL`;
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS assignee_id TEXT`;
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS assignee_email TEXT`;
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS mentioned_emails TEXT[] DEFAULT '{}'`;
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES ai_todo_tasks(id) ON DELETE CASCADE`;
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS start_date TIMESTAMPTZ`;
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS end_date TIMESTAMPTZ`;
+  await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS pinned BOOLEAN DEFAULT FALSE`;
+  await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS invite_code TEXT`;
+  await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS invite_mode TEXT DEFAULT 'open'`;
 
-  // 5. Indexes
+  // 3. Indexes on tasks
   await sql`CREATE INDEX IF NOT EXISTS idx_ai_todo_tasks_user_id ON ai_todo_tasks(user_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_ai_todo_tasks_due     ON ai_todo_tasks(user_id, due_date)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_tasks_space           ON ai_todo_tasks(space_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_tasks_assignee        ON ai_todo_tasks(assignee_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_tasks_parent          ON ai_todo_tasks(parent_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_tasks_dates           ON ai_todo_tasks(space_id, start_date, end_date)`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_invite_code ON ai_todo_tasks(invite_code) WHERE invite_code IS NOT NULL`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_tasks_pinned          ON ai_todo_tasks(pinned) WHERE pinned = TRUE`;
 
-  // 6. Task logs table
+  // 4. Task members table (replaces ai_todo_space_members)
+  await sql`
+    CREATE TABLE IF NOT EXISTS ai_todo_task_members (
+      id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      task_id      UUID NOT NULL REFERENCES ai_todo_tasks(id) ON DELETE CASCADE,
+      user_id      TEXT NOT NULL,
+      email        TEXT NOT NULL,
+      display_name TEXT,
+      role         TEXT NOT NULL DEFAULT 'member',
+      status       TEXT NOT NULL DEFAULT 'active',
+      joined_at    TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(task_id, user_id)
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_task_members_task_id    ON ai_todo_task_members(task_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_task_members_user_id    ON ai_todo_task_members(user_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_task_members_task_email ON ai_todo_task_members(task_id, email)`;
+
+  // 5. Task logs table
   await sql`
     CREATE TABLE IF NOT EXISTS ai_todo_task_logs (
       id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -85,8 +73,6 @@ export async function initDb() {
   await sql`CREATE INDEX IF NOT EXISTS idx_task_logs_task ON ai_todo_task_logs(task_id)`;
 }
 
-// Deployment-time alias. Keep exports backward-compatible while runtime callers
-// are migrated away from request-path schema initialization.
 export async function migrateDb() {
   await initDb();
 }
@@ -113,30 +99,19 @@ function rowToTask(row: Record<string, unknown>): Task {
     assignee_email: (row.assignee_email as string) || undefined,
     mentioned_emails: (row.mentioned_emails as string[]) ?? [],
     parent_id: (row.parent_id as string) || undefined,
-  };
-}
-
-function rowToSpace(row: Record<string, unknown>): Space {
-  return {
-    id: row.id as string,
-    name: row.name as string,
-    description: (row.description as string) || undefined,
-    owner_id: row.owner_id as string,
-    owner_email: row.owner_email as string,
-    invite_code: row.invite_code as string,
-    invite_mode: row.invite_mode as "open" | "approval",
-    created_at: (row.created_at as Date).toISOString(),
-    updated_at: (row.updated_at as Date).toISOString(),
+    pinned: (row.pinned as boolean) || undefined,
+    invite_code: (row.invite_code as string) || undefined,
+    invite_mode: (row.invite_mode as "open" | "approval") || undefined,
     member_count: row.member_count != null ? Number(row.member_count) : undefined,
     task_count: row.task_count != null ? Number(row.task_count) : undefined,
     my_role: (row.my_role as "owner" | "member") || undefined,
   };
 }
 
-function rowToMember(row: Record<string, unknown>): SpaceMember {
+function rowToMember(row: Record<string, unknown>): TaskMember {
   return {
     id: row.id as string,
-    space_id: row.space_id as string,
+    task_id: (row.task_id ?? row.space_id) as string, // compat: migration may still have space_id col
     user_id: row.user_id as string,
     email: row.email as string,
     display_name: (row.display_name as string) || undefined,
@@ -227,7 +202,6 @@ export async function getCompletedTasks(userId: string, spaceId?: string): Promi
   return rows.map(rowToTask);
 }
 
-// Returns task if user has access (personal owner or active space member)
 export async function getTaskForUser(taskId: string, userId: string): Promise<Task | null> {
   const { rows } = await sql`
     SELECT t.* FROM ai_todo_tasks t
@@ -236,8 +210,8 @@ export async function getTaskForUser(taskId: string, userId: string): Promise<Ta
         (t.space_id IS NULL AND t.user_id = ${userId})
         OR
         (t.space_id IS NOT NULL AND EXISTS (
-          SELECT 1 FROM ai_todo_space_members m
-          WHERE m.space_id = t.space_id
+          SELECT 1 FROM ai_todo_task_members m
+          WHERE m.task_id = t.space_id
             AND m.user_id = ${userId}
             AND m.status = 'active'
         ))
@@ -290,7 +264,6 @@ export async function completeTask(taskId: string, userId: string): Promise<Task
     WHERE id = ${taskId}
     RETURNING *
   `;
-  // Cascade: complete all incomplete children
   await sql`
     UPDATE ai_todo_tasks SET status = 2, completed_at = NOW()
     WHERE parent_id = ${taskId} AND status = 0
@@ -304,11 +277,10 @@ export async function deleteTask(taskId: string, userId: string): Promise<void> 
   const task = rowToTask(raw[0]);
 
   if (task.space_id) {
-    // Space task: creator or space owner can delete
     if (task.user_id !== userId) {
       const { rows: ownerRows } = await sql`
-        SELECT 1 FROM ai_todo_space_members
-        WHERE space_id = ${task.space_id} AND user_id = ${userId} AND role = 'owner'
+        SELECT 1 FROM ai_todo_task_members
+        WHERE task_id = ${task.space_id} AND user_id = ${userId} AND role = 'owner'
       `;
       if (!ownerRows[0]) return;
     }
@@ -352,13 +324,7 @@ export async function updateTask(
   return rowToTask(rows[0]);
 }
 
-// ─── Space CRUD ───────────────────────────────────────────────────────────────
-
-export interface CreateSpaceData {
-  name: string;
-  description?: string;
-  invite_mode?: "open" | "approval";
-}
+// ─── Pinned Task ("Space") CRUD ───────────────────────────────────────────────
 
 function generateInviteCode(): string {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -367,112 +333,171 @@ function generateInviteCode(): string {
   return Array.from(bytes, (b) => chars[b % chars.length]).join("");
 }
 
-export async function createSpace(ownerId: string, ownerEmail: string, data: CreateSpaceData): Promise<Space> {
+// Returns all pinned tasks the user is an active member of (sidebar data)
+export async function getPinnedTasksForUser(userId: string): Promise<Task[]> {
+  const { rows } = await sql`
+    SELECT
+      t.*,
+      my.role AS my_role,
+      (SELECT COUNT(*) FROM ai_todo_task_members m WHERE m.task_id = t.id AND m.status = 'active') AS member_count,
+      (SELECT COUNT(*) FROM ai_todo_tasks c WHERE c.space_id = t.id AND c.status != 2) AS task_count
+    FROM ai_todo_tasks t
+    JOIN ai_todo_task_members my ON my.task_id = t.id AND my.user_id = ${userId} AND my.status = 'active'
+    WHERE t.pinned = TRUE
+    ORDER BY t.created_at ASC
+  `;
+  return rows.map(rowToTask);
+}
+
+export interface PinTaskOptions {
+  invite_mode?: "open" | "approval";
+}
+
+// Pin an existing task to the sidebar (makes it a collaboration root)
+export async function pinTask(
+  taskId: string,
+  userId: string,
+  email: string,
+  opts: PinTaskOptions = {}
+): Promise<Task> {
   let inviteCode = generateInviteCode();
-  const { rows: existing } = await sql`SELECT 1 FROM ai_todo_spaces WHERE invite_code = ${inviteCode}`;
+  // Ensure uniqueness
+  const { rows: existing } = await sql`SELECT 1 FROM ai_todo_tasks WHERE invite_code = ${inviteCode}`;
   if (existing.length > 0) inviteCode = generateInviteCode();
 
   const { rows } = await sql.query(
-    `INSERT INTO ai_todo_spaces (name, description, owner_id, owner_email, invite_code, invite_mode)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [data.name, data.description ?? null, ownerId, ownerEmail, inviteCode, data.invite_mode ?? "open"]
+    `UPDATE ai_todo_tasks
+     SET pinned = TRUE, invite_code = $1, invite_mode = $2
+     WHERE id = $3
+     RETURNING *`,
+    [inviteCode, opts.invite_mode ?? "open", taskId]
   );
-  const space = rowToSpace(rows[0]);
 
   await sql.query(
-    `INSERT INTO ai_todo_space_members (space_id, user_id, email, role, status)
-     VALUES ($1, $2, $3, 'owner', 'active')`,
-    [space.id, ownerId, ownerEmail]
+    `INSERT INTO ai_todo_task_members (task_id, user_id, email, role, status)
+     VALUES ($1, $2, $3, 'owner', 'active')
+     ON CONFLICT (task_id, user_id) DO NOTHING`,
+    [taskId, userId, email]
   );
 
-  return { ...space, member_count: 1, task_count: 0, my_role: "owner" };
+  return rowToTask(rows[0]);
 }
 
-export async function getSpacesByUser(userId: string): Promise<Space[]> {
-  const { rows } = await sql`
-    SELECT
-      s.*,
-      m.role AS my_role,
-      (SELECT COUNT(*) FROM ai_todo_space_members sm WHERE sm.space_id = s.id AND sm.status = 'active') AS member_count,
-      (SELECT COUNT(*) FROM ai_todo_tasks t WHERE t.space_id = s.id AND t.status != 2) AS task_count
-    FROM ai_todo_spaces s
-    JOIN ai_todo_space_members m ON m.space_id = s.id AND m.user_id = ${userId} AND m.status = 'active'
-    ORDER BY s.created_at ASC
+// Unpin a task (removes collaboration, keeps task and its children)
+export async function unpinTask(taskId: string): Promise<void> {
+  await sql`
+    UPDATE ai_todo_tasks
+    SET pinned = FALSE, invite_code = NULL, invite_mode = 'open'
+    WHERE id = ${taskId}
   `;
-  return rows.map(rowToSpace);
 }
 
-export async function getSpaceById(id: string): Promise<Space | null> {
-  const { rows } = await sql`SELECT * FROM ai_todo_spaces WHERE id = ${id}`;
-  return rows[0] ? rowToSpace(rows[0]) : null;
+// Create a brand-new pinned task (equivalent of old createSpace)
+export async function createPinnedTask(
+  userId: string,
+  email: string,
+  data: { title: string; description?: string; invite_mode?: "open" | "approval" }
+): Promise<Task> {
+  let inviteCode = generateInviteCode();
+  const { rows: existing } = await sql`SELECT 1 FROM ai_todo_tasks WHERE invite_code = ${inviteCode}`;
+  if (existing.length > 0) inviteCode = generateInviteCode();
+
+  const { rows } = await sql.query(
+    `INSERT INTO ai_todo_tasks (user_id, title, description, pinned, invite_code, invite_mode, tags, mentioned_emails)
+     VALUES ($1, $2, $3, TRUE, $4, $5, '{}', '{}')
+     RETURNING *`,
+    [userId, data.title, data.description ?? null, inviteCode, data.invite_mode ?? "open"]
+  );
+  const task = rowToTask(rows[0]);
+
+  await sql.query(
+    `INSERT INTO ai_todo_task_members (task_id, user_id, email, role, status)
+     VALUES ($1, $2, $3, 'owner', 'active')`,
+    [task.id, userId, email]
+  );
+
+  return { ...task, member_count: 1, task_count: 0, my_role: "owner" };
 }
 
-export async function getSpaceByInviteCode(code: string): Promise<Space | null> {
-  const { rows } = await sql`SELECT * FROM ai_todo_spaces WHERE invite_code = ${code}`;
-  return rows[0] ? rowToSpace(rows[0]) : null;
+export async function getTaskById(id: string): Promise<Task | null> {
+  const { rows } = await sql`SELECT * FROM ai_todo_tasks WHERE id = ${id}`;
+  return rows[0] ? rowToTask(rows[0]) : null;
 }
 
-export async function updateSpace(id: string, patch: { name?: string; description?: string; invite_mode?: string }): Promise<Space | null> {
-  const fields: string[] = ["updated_at = NOW()"];
+export async function getTaskByInviteCode(code: string): Promise<Task | null> {
+  const { rows } = await sql`
+    SELECT t.*,
+      (SELECT COUNT(*) FROM ai_todo_task_members m WHERE m.task_id = t.id AND m.status = 'active') AS member_count
+    FROM ai_todo_tasks t
+    WHERE t.invite_code = ${code}
+  `;
+  return rows[0] ? rowToTask(rows[0]) : null;
+}
+
+export async function updatePinnedTask(
+  id: string,
+  patch: { title?: string; description?: string; invite_mode?: string }
+): Promise<Task | null> {
+  const fields: string[] = [];
   const values: unknown[] = [];
   let idx = 1;
 
-  if (patch.name !== undefined) { fields.push(`name = $${idx++}`); values.push(patch.name); }
+  if (patch.title !== undefined) { fields.push(`title = $${idx++}`); values.push(patch.title); }
   if (patch.description !== undefined) { fields.push(`description = $${idx++}`); values.push(patch.description); }
   if (patch.invite_mode !== undefined) { fields.push(`invite_mode = $${idx++}`); values.push(patch.invite_mode); }
 
+  if (fields.length === 0) {
+    const { rows } = await sql`SELECT * FROM ai_todo_tasks WHERE id = ${id}`;
+    return rows[0] ? rowToTask(rows[0]) : null;
+  }
+
   const { rows } = await sql.query(
-    `UPDATE ai_todo_spaces SET ${fields.join(", ")} WHERE id = $${idx} RETURNING *`,
+    `UPDATE ai_todo_tasks SET ${fields.join(", ")} WHERE id = $${idx} RETURNING *`,
     [...values, id]
   );
-  return rows[0] ? rowToSpace(rows[0]) : null;
+  return rows[0] ? rowToTask(rows[0]) : null;
 }
 
-export async function deleteSpace(id: string): Promise<void> {
-  await sql`UPDATE ai_todo_tasks SET space_id = NULL WHERE space_id = ${id}`;
-  await sql`DELETE FROM ai_todo_spaces WHERE id = ${id}`;
-}
+// ─── Task Member CRUD ─────────────────────────────────────────────────────────
 
-// ─── Space Member CRUD ────────────────────────────────────────────────────────
-
-export async function getSpaceMembers(spaceId: string): Promise<SpaceMember[]> {
+export async function getTaskMembers(taskId: string): Promise<TaskMember[]> {
   const { rows } = await sql`
-    SELECT * FROM ai_todo_space_members
-    WHERE space_id = ${spaceId}
+    SELECT * FROM ai_todo_task_members
+    WHERE task_id = ${taskId}
     ORDER BY role ASC, joined_at ASC
   `;
   return rows.map(rowToMember);
 }
 
-export async function getSpaceMemberRecord(spaceId: string, userId: string): Promise<SpaceMember | null> {
+export async function getTaskMemberRecord(taskId: string, userId: string): Promise<TaskMember | null> {
   const { rows } = await sql`
-    SELECT * FROM ai_todo_space_members WHERE space_id = ${spaceId} AND user_id = ${userId}
+    SELECT * FROM ai_todo_task_members WHERE task_id = ${taskId} AND user_id = ${userId}
   `;
   return rows[0] ? rowToMember(rows[0]) : null;
 }
 
-export async function addSpaceMember(
-  spaceId: string,
+export async function addTaskMember(
+  taskId: string,
   userId: string,
   email: string,
   role: "owner" | "member" = "member",
   status: "active" | "pending" = "active"
-): Promise<SpaceMember> {
+): Promise<TaskMember> {
   const { rows } = await sql.query(
-    `INSERT INTO ai_todo_space_members (space_id, user_id, email, role, status)
+    `INSERT INTO ai_todo_task_members (task_id, user_id, email, role, status)
      VALUES ($1, $2, $3, $4, $5)
-     ON CONFLICT (space_id, user_id) DO UPDATE SET status = EXCLUDED.status
+     ON CONFLICT (task_id, user_id) DO UPDATE SET status = EXCLUDED.status
      RETURNING *`,
-    [spaceId, userId, email, role, status]
+    [taskId, userId, email, role, status]
   );
   return rowToMember(rows[0]);
 }
 
-export async function updateSpaceMember(
-  spaceId: string,
+export async function updateTaskMember(
+  taskId: string,
   userId: string,
   patch: { status?: string; display_name?: string; role?: string }
-): Promise<SpaceMember | null> {
+): Promise<TaskMember | null> {
   const fields: string[] = [];
   const values: unknown[] = [];
   let idx = 1;
@@ -484,16 +509,21 @@ export async function updateSpaceMember(
   if (fields.length === 0) return null;
 
   const { rows } = await sql.query(
-    `UPDATE ai_todo_space_members SET ${fields.join(", ")}
-     WHERE space_id = $${idx} AND user_id = $${idx + 1} RETURNING *`,
-    [...values, spaceId, userId]
+    `UPDATE ai_todo_task_members SET ${fields.join(", ")}
+     WHERE task_id = $${idx} AND user_id = $${idx + 1} RETURNING *`,
+    [...values, taskId, userId]
   );
   return rows[0] ? rowToMember(rows[0]) : null;
 }
 
-export async function removeSpaceMember(spaceId: string, userId: string): Promise<void> {
-  await sql`DELETE FROM ai_todo_space_members WHERE space_id = ${spaceId} AND user_id = ${userId}`;
+export async function removeTaskMember(taskId: string, userId: string): Promise<void> {
+  await sql`DELETE FROM ai_todo_task_members WHERE task_id = ${taskId} AND user_id = ${userId}`;
 }
+
+// Backward-compat aliases (deprecated)
+export const getSpacesByUser = getPinnedTasksForUser;
+export const getSpaceMemberRecord = getTaskMemberRecord;
+export const addSpaceMember = addTaskMember;
 
 // ─── Task Logs CRUD ───────────────────────────────────────────────────────────
 

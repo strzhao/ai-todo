@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { getTasks, getTodayTasks, getCompletedTasks, createTask, getSpaceMemberRecord } from "@/lib/db";
+import { getTasks, getTodayTasks, getCompletedTasks, createTask, getTaskMemberRecord } from "@/lib/db";
 import { createRouteTimer } from "@/lib/route-timing";
 import type { ParsedTask } from "@/lib/types";
 
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const spaceId = req.nextUrl.searchParams.get("space_id") ?? undefined;
 
   if (spaceId) {
-    const member = await rt.track("db_query", async () => getSpaceMemberRecord(spaceId, user.id));
+    const member = await rt.track("db_query", async () => getTaskMemberRecord(spaceId, user.id));
     if (!member || member.status !== "active") {
       return rt.json({ error: "Not a space member" }, { status: 403 });
     }
@@ -46,30 +46,22 @@ export async function POST(req: NextRequest) {
   }
 
   if (body.space_id) {
-    const member = await rt.track("db_query", async () => getSpaceMemberRecord(body.space_id!, user.id));
+    const member = await rt.track("db_query", async () => getTaskMemberRecord(body.space_id!, user.id));
     if (!member || member.status !== "active") {
       return rt.json({ error: "Not a space member" }, { status: 403 });
     }
   }
 
-  // Enforce max 2 levels: parent must be a root task (no parent_id)
-  if (body.parent_id) {
-    const { sql } = await import("@vercel/postgres");
-    const { rows } = await rt.track("db_query", async () => sql`SELECT parent_id FROM ai_todo_tasks WHERE id = ${body.parent_id}`);
-    if (!rows[0]) return rt.json({ error: "父任务不存在" }, { status: 400 });
-    if (rows[0].parent_id) return rt.json({ error: "最多支持 2 层任务" }, { status: 400 });
-  }
-
-  // Resolve assignee user_id from space members list
+  // Resolve assignee user_id from task members
   const assigneeEmail = body.assignee_email ?? body.assignee ?? undefined;
   let assigneeId: string | undefined;
 
   if (assigneeEmail && body.space_id) {
     const { sql } = await import("@vercel/postgres");
     const { rows } = await rt.track("db_query", async () => sql`
-        SELECT user_id FROM ai_todo_space_members
-        WHERE space_id = ${body.space_id} AND email = ${assigneeEmail} AND status = 'active'
-      `);
+      SELECT user_id FROM ai_todo_task_members
+      WHERE task_id = ${body.space_id} AND email = ${assigneeEmail} AND status = 'active'
+    `);
     if (rows[0]) assigneeId = rows[0].user_id as string;
   }
 

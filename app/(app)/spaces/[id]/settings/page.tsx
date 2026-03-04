@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { Space, SpaceMember } from "@/lib/types";
+import type { Space, TaskMember } from "@/lib/types";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -12,11 +12,12 @@ interface Props {
 export default function SpaceSettingsPage({ params }: Props) {
   const [spaceId, setSpaceId] = useState("");
   const [space, setSpace] = useState<Space | null>(null);
-  const [members, setMembers] = useState<SpaceMember[]>([]);
+  const [members, setMembers] = useState<TaskMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [archiving, setArchiving] = useState(false);
   const [dissolveConfirm, setDissolveConfirm] = useState("");
   const [dissolving, setDissolving] = useState(false);
 
@@ -67,6 +68,16 @@ export default function SpaceSettingsPage({ params }: Props) {
     });
     const updated = await res.json() as SpaceMember;
     setMembers((prev) => prev.map((m) => m.user_id === uid ? updated : m));
+  }
+
+  async function archiveSpace() {
+    setArchiving(true);
+    await fetch(`/api/tasks/${spaceId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ complete: true }),
+    });
+    window.location.href = "/spaces";
   }
 
   async function dissolveSpace() {
@@ -170,6 +181,19 @@ export default function SpaceSettingsPage({ params }: Props) {
           ))}
         </div>
       </section>
+
+      {/* Archive */}
+      {isOwner && (
+        <section className="space-y-3 border-t border-border/40 pt-6">
+          <h2 className="text-sm font-semibold">归档空间</h2>
+          <p className="text-xs text-muted-foreground">
+            将空间标记为已完成，任务数据保留但不再活跃显示。可在「全部任务」中查看历史记录。
+          </p>
+          <Button size="sm" variant="outline" onClick={archiveSpace} disabled={archiving}>
+            {archiving ? "归档中..." : "归档空间"}
+          </Button>
+        </section>
+      )}
 
       {/* Danger Zone */}
       {isOwner && (

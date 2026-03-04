@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { AssigneeBadge } from "@/components/AssigneeBadge";
 import { TaskDetail } from "@/components/TaskDetail";
 import type { Task } from "@/lib/types";
+import type { TaskNode } from "@/lib/task-utils";
 
 const PRIORITY_BADGES: Record<number, { label: string; cls: string }> = {
   0: { label: "P0", cls: "bg-danger-soft text-danger border-danger/35" },
@@ -16,7 +17,7 @@ const PRIORITY_BADGES: Record<number, { label: string; cls: string }> = {
 
 interface Props {
   task: Task;
-  subtasks?: Task[];
+  subtasks?: TaskNode[];
   onComplete: (id: string) => void;
   onDelete: (id: string) => void;
   onUpdate?: (id: string, updates: Partial<Task>) => void;
@@ -75,6 +76,26 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
     } finally {
       setDeleting(false);
     }
+  }
+
+  async function handlePin() {
+    setMoreOpen(false);
+    await fetch(`/api/tasks/${task.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "pin" }),
+    });
+    window.location.reload();
+  }
+
+  async function handleUnpin() {
+    setMoreOpen(false);
+    await fetch(`/api/tasks/${task.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "unpin" }),
+    });
+    window.location.reload();
   }
 
   function startEdit() {
@@ -220,6 +241,22 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
           </Button>
           {moreOpen && (
             <div className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded-md shadow-md min-w-[88px] py-1">
+              {!task.parent_id && !task.pinned && (
+                <button
+                  onClick={handlePin}
+                  className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted/60"
+                >
+                  置顶到侧边栏
+                </button>
+              )}
+              {!task.parent_id && task.pinned && (
+                <button
+                  onClick={handleUnpin}
+                  className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted/60"
+                >
+                  取消置顶
+                </button>
+              )}
               <button
                 onClick={handleDelete}
                 disabled={deleting}
@@ -246,6 +283,7 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
             <TaskItem
               key={sub.id}
               task={sub}
+              subtasks={sub.subtasks}
               onComplete={onComplete}
               onDelete={onDelete}
               onUpdate={onUpdate}

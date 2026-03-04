@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { Space } from "@/lib/types";
+import type { Task } from "@/lib/types";
 
 interface SpaceTaskItem {
   id: string;
@@ -12,13 +12,15 @@ interface SpaceTaskItem {
 }
 
 interface Props {
-  spaces: Space[];
+  spaces: (Task & { name?: string })[];
   userEmail: string;
 }
 
 export function SpaceNav({ spaces, userEmail }: Props) {
   const pathname = usePathname();
   const [spaceTasks, setSpaceTasks] = useState<SpaceTaskItem[]>([]);
+  const [openMenuSpaceId, setOpenMenuSpaceId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // Extract current space ID from pathname (e.g. /spaces/abc123 or /spaces/abc123/settings)
   const spaceMatch = pathname.match(/^\/spaces\/([^/]+)/);
@@ -45,6 +47,26 @@ export function SpaceNav({ spaces, userEmail }: Props) {
       })
       .catch(() => {});
   }, [currentSpaceId, isValidSpaceId]);
+
+  async function handleUnpin(spaceId: string) {
+    await fetch(`/api/tasks/${spaceId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "unpin" }),
+    });
+    window.location.reload();
+  }
+
+  useEffect(() => {
+    if (!openMenuSpaceId) return;
+    function handler(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuSpaceId(null);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [openMenuSpaceId]);
 
   function isActive(path: string) {
     if (path === "/") return pathname === "/";
@@ -79,22 +101,46 @@ export function SpaceNav({ spaces, userEmail }: Props) {
             </div>
             {spaces.map((space) => (
               <div key={space.id}>
-                <Link
-                  href={`/spaces/${space.id}`}
-                  className={navLinkCls(isActive(`/spaces/${space.id}`))}
-                >
-                  <span className="w-5 h-5 rounded bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary flex-shrink-0">
-                    {space.name[0]?.toUpperCase()}
-                  </span>
-                  <span className="truncate">{space.name}</span>
-                  {(space.task_count ?? 0) > 0 && (
-                    <span className="ml-auto text-[10px] text-muted-foreground">{space.task_count}</span>
-                  )}
-                </Link>
+                <div className="group/space relative">
+                  <Link
+                    href={`/spaces/${space.id}`}
+                    className={navLinkCls(isActive(`/spaces/${space.id}`))}
+                  >
+                    <span className="w-5 h-5 rounded bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary flex-shrink-0">
+                      {(space.name ?? space.title)[0]?.toUpperCase()}
+                    </span>
+                    <span className="truncate">{space.name ?? space.title}</span>
+                    {(space.task_count ?? 0) > 0 && (
+                      <span className="ml-auto text-[10px] text-muted-foreground group-hover/space:hidden">{space.task_count}</span>
+                    )}
+                  </Link>
+                  <div
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2"
+                    ref={openMenuSpaceId === space.id ? menuRef : undefined}
+                  >
+                    <button
+                      onClick={(e) => { e.preventDefault(); setOpenMenuSpaceId(v => v === space.id ? null : space.id); }}
+                      className="opacity-0 group-hover/space:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:bg-muted text-xs"
+                      title="更多操作"
+                    >
+                      ⋯
+                    </button>
+                    {openMenuSpaceId === space.id && (
+                      <div className="absolute right-0 top-full mt-0.5 z-50 bg-popover border border-border rounded-md shadow-md min-w-[100px] py-1">
+                        <button
+                          onClick={() => { setOpenMenuSpaceId(null); handleUnpin(space.id); }}
+                          className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted/60"
+                        >
+                          取消置顶
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* Task directory for current active space */}
                 {currentSpaceId === space.id && spaceTasks.length > 0 && (
-                  <div className="ml-5 mt-0.5 mb-1 border-l border-border/50 pl-2 max-h-48 overflow-y-auto space-y-0.5">
+                  <div className="ml-5 mt-0.5 mb-1 border-l border-border/50 pl-2 space-y-0.5">
                     {spaceTasks.map((t) => (
                       <Link
                         key={t.id}

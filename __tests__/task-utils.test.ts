@@ -104,4 +104,52 @@ describe("buildTree", () => {
     expect(tree[0].subtasks[0].id).toBe("2");
     expect(tree[0].subtasks[1].id).toBe("3");
   });
+
+  it("3 层深度（曾孙节点）", () => {
+    const tasks = [
+      makeTask("1"),
+      makeTask("2", { parent_id: "1" }),
+      makeTask("3", { parent_id: "2" }),
+    ];
+    const tree = buildTree(tasks);
+    expect(tree).toHaveLength(1);
+    expect(tree[0].id).toBe("1");
+    expect(tree[0].subtasks).toHaveLength(1);
+    expect(tree[0].subtasks[0].id).toBe("2");
+    expect(tree[0].subtasks[0].subtasks).toHaveLength(1);
+    expect(tree[0].subtasks[0].subtasks[0].id).toBe("3");
+    expect(tree[0].subtasks[0].subtasks[0].subtasks).toEqual([]);
+  });
+
+  it("4 层深度（任意嵌套）", () => {
+    const tasks = [
+      makeTask("1"),
+      makeTask("2", { parent_id: "1" }),
+      makeTask("3", { parent_id: "2" }),
+      makeTask("4", { parent_id: "3" }),
+    ];
+    const tree = buildTree(tasks);
+    const level3 = tree[0].subtasks[0].subtasks[0];
+    expect(level3.id).toBe("3");
+    expect(level3.subtasks).toHaveLength(1);
+    expect(level3.subtasks[0].id).toBe("4");
+  });
+
+  it("混合深度：部分 2 层、部分 3 层", () => {
+    const tasks = [
+      makeTask("root"),
+      makeTask("child1", { parent_id: "root" }),
+      makeTask("child2", { parent_id: "root" }),
+      makeTask("grand", { parent_id: "child1" }),
+    ];
+    const tree = buildTree(tasks);
+    expect(tree).toHaveLength(1);
+    const root = tree[0];
+    expect(root.subtasks).toHaveLength(2);
+    const c1 = root.subtasks.find((s) => s.id === "child1")!;
+    const c2 = root.subtasks.find((s) => s.id === "child2")!;
+    expect(c1.subtasks).toHaveLength(1);
+    expect(c1.subtasks[0].id).toBe("grand");
+    expect(c2.subtasks).toHaveLength(0);
+  });
 });

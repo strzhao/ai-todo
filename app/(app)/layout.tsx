@@ -8,10 +8,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect("/auth/callback?error=unauthorized");
 
   const spaces = await getSpacesByUser(user.id);
+  // Task objects have `title`; SpaceNav expects `name` (legacy Space shape)
+  const spacesForNav = spaces.map((s) => ({ ...s, name: s.title }));
 
   return (
     <div className="min-h-screen bg-background">
-      <SpaceNav spaces={spaces} userEmail={user.email} />
+      <SpaceNav spaces={spacesForNav} userEmail={user.email} />
       {/* Desktop: offset for sidebar; mobile: offset for bottom tab */}
       <main className="md:ml-52 pb-16 md:pb-0">
         {children}
