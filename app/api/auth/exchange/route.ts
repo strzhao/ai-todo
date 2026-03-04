@@ -3,6 +3,17 @@ import { AUTH_ISSUER } from "@/lib/auth-config";
 
 export const preferredRegion = "hkg1";
 
+type UpstreamResponse = {
+  error?: unknown;
+  message?: unknown;
+};
+
+function asString(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim();
+  return normalized || undefined;
+}
+
 /**
  * Server-side relay for the auth server's /api/auth/refresh endpoint.
  * The browser cannot call the auth server directly due to CORS restrictions,
@@ -21,12 +32,19 @@ export async function POST(req: NextRequest) {
       body: "{}",
       cache: "no-store",
     });
+    const data = (await res.json().catch(() => ({}))) as UpstreamResponse;
 
     if (!res.ok) {
-      return NextResponse.json({ error: "refresh_failed" }, { status: res.status });
+      return NextResponse.json(
+        {
+          error: "refresh_failed",
+          upstreamError: asString(data.error),
+          upstreamMessage: asString(data.message),
+        },
+        { status: res.status }
+      );
     }
 
-    const data = await res.json().catch(() => ({}));
     return NextResponse.json(data);
   } catch {
     return NextResponse.json({ error: "network_error" }, { status: 503 });

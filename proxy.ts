@@ -129,6 +129,18 @@ function buildCallbackErrorUrl(req: NextRequest, code: string): URL {
   return callbackUrl;
 }
 
+function isRscPrefetchRequest(req: NextRequest): boolean {
+  if (req.nextUrl.searchParams.has("_rsc")) return true;
+  if (req.headers.has("rsc")) return true;
+  if (req.headers.get("next-router-prefetch") === "1") return true;
+
+  const accept = req.headers.get("accept") ?? "";
+  if (accept.includes("text/x-component")) return true;
+
+  const purpose = (req.headers.get("purpose") ?? req.headers.get("sec-purpose") ?? "").toLowerCase();
+  return purpose.includes("prefetch");
+}
+
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -202,6 +214,13 @@ export async function proxy(req: NextRequest) {
   }
 
   if (isProtectedPage) {
+    // Client-side RSC/prefetch requests must not be redirected to the external
+    // auth server, otherwise the fetch follows cross-origin redirect and hits CORS.
+    // Return 401 so the client aborts these background requests silently.
+    if (isRscPrefetchRequest(req)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const state = crypto.randomUUID();
     const nextPath = normalizeNextPath(`${pathname}${req.nextUrl.search}`);
     const returnTo = buildCallbackUrl();

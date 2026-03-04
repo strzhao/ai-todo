@@ -40,3 +40,11 @@ export function buildAuthorizeUrl(returnTo: string, state: string): string {
   authorizeUrl.searchParams.set("state", state);
   return authorizeUrl.toString();
 }
+
+export function buildLoginUrl(returnTo: string, state: string): string {
+  const loginUrl = new URL("/login", AUTH_ISSUER);
+  loginUrl.searchParams.set("service", AUTH_SERVICE_ID);
+  loginUrl.searchParams.set("return_to", returnTo);
+  loginUrl.searchParams.set("state", state);
+  return loginUrl.toString();
+}
