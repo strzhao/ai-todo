@@ -90,11 +90,12 @@ export async function POST(req: NextRequest) {
   const user = await rt.track("auth", async () => getUserFromRequest(req));
   if (!user) return rt.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { text, now, members, tasks: tasksCtx } = await req.json() as {
+  const { text, now, members, tasks: tasksCtx, parent_task } = await req.json() as {
     text: string;
     now: string;
     members?: Array<{ email: string; display_name?: string }>;
     tasks?: Array<{ id: string; title: string; status: number; priority: number }>;
+    parent_task?: { id: string; title: string };
   };
 
   if (!text?.trim()) return rt.json({ error: "text is required" }, { status: 400 });
@@ -107,9 +108,13 @@ export async function POST(req: NextRequest) {
     ? `\n\n当前任务列表（用于匹配操作目标）：\n${tasksCtx.map((t) => `- id:${t.id} 标题:${t.title} 状态:${t.status === 2 ? "已完成" : "待办"} 优先级:P${t.priority}`).join("\n")}`
     : "";
 
+  const parentContext = parent_task
+    ? `\n\n当前操作上下文：你正在为父任务「${parent_task.title}」添加子任务，你创建的所有新任务将自动成为该父任务的子任务，请不要在 tasks 数组里再嵌套 children 字段。`
+    : "";
+
   const memberKey = (members ?? []).map((m) => `${m.email}|${m.display_name ?? ""}`).sort().join(",");
   const taskKey = (tasksCtx ?? []).map((t) => t.id).sort().join(",");
-  const cacheKey = `${user.id}|${text.trim()}|${getNowMinuteKey(now)}|${memberKey}|${taskKey}`;
+  const cacheKey = `${user.id}|${text.trim()}|${getNowMinuteKey(now)}|${memberKey}|${taskKey}|${parent_task?.id ?? ""}`;
 
   cleanupCache();
   const cached = parseCache.get(cacheKey);
@@ -122,7 +127,7 @@ export async function POST(req: NextRequest) {
     const client = new LLMClient();
     const result = await rt.track("llm", async () => client.chatJson([
       { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: `当前时间: ${now}${membersContext}${tasksContext}\n\n用户输入: ${text}` },
+      { role: "user", content: `当前时间: ${now}${membersContext}${tasksContext}${parentContext}\n\n用户输入: ${text}` },
     ], 0.1));
 
     const actions = parseActions(result, text);

@@ -11,9 +11,11 @@ interface Props {
   tasks?: Task[];
   spaceId?: string;
   members?: SpaceMember[];
+  parentTaskId?: string;
+  parentTaskTitle?: string;
 }
 
-export function NLInput({ onResult, onParsed, tasks, spaceId, members }: Props) {
+export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTaskId, parentTaskTitle }: Props) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -22,6 +24,16 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members }: Props) 
   const containerRef = useRef<HTMLDivElement>(null);
 
   const activeMembers = members?.filter((m) => m.status === "active") ?? [];
+
+  function getPlaceholder(): string {
+    if (parentTaskTitle) {
+      return `为「${parentTaskTitle}」添加子任务，或描述操作，支持 @成员`;
+    }
+    if (spaceId) {
+      return '描述任务或操作，支持 @成员 指派，例如："@alice 明天 review API 文档"、"完成调研任务"';
+    }
+    return '描述任务或操作，例如："明天三点开会"、"完成写报告"、"把调研改成高优"';
+  }
 
   const filteredMembers = mentionQuery !== null
     ? activeMembers.filter((m) => {
@@ -55,6 +67,7 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members }: Props) 
             ? { members: activeMembers.map((m) => ({ email: m.email, display_name: m.display_name })) }
             : {}),
           ...(tasksCtx.length > 0 ? { tasks: tasksCtx } : {}),
+          ...(parentTaskId ? { parent_task: { id: parentTaskId, title: parentTaskTitle ?? "" } } : {}),
         }),
       });
 
@@ -136,11 +149,7 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members }: Props) 
     <div ref={containerRef} className="space-y-2 relative">
       <Textarea
         ref={textareaRef}
-        placeholder={
-          spaceId
-            ? '描述任务或操作，支持 @成员 指派，例如："@alice 明天 review API 文档"、"完成调研任务"'
-            : '描述任务或操作，例如："明天三点开会"、"完成写报告"、"把调研改成高优"'
-        }
+        placeholder={getPlaceholder()}
         value={text}
         onChange={onTextChange}
         onKeyDown={onKeyDown}
@@ -170,11 +179,13 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members }: Props) 
       )}
 
       <div className="flex items-center gap-2">
-        <Button onClick={parse} disabled={!text.trim() || loading} size="sm">
-          {loading ? "解析中..." : "AI 解析"}
-        </Button>
-        <span className="text-xs text-muted-foreground">⌘ + Enter</span>
         {error && <span className="text-xs text-destructive">{error}</span>}
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">⌘ + Enter</span>
+          <Button onClick={parse} disabled={!text.trim() || loading} size="sm">
+            {loading ? "解析中..." : "AI 解析"}
+          </Button>
+        </div>
       </div>
     </div>
   );

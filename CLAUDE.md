@@ -106,14 +106,14 @@ app/
     spaces/
       page.tsx                  # 空间列表
       new/page.tsx              # 创建空间
-      [id]/page.tsx             # 空间任务视图（进度条 + 成员筛选 + @mention）
+      [id]/page.tsx             # 空间任务视图（进度条 + 成员筛选 + @mention + ?focus=taskId 聚焦态）
       [id]/settings/page.tsx    # 空间设置（邀请链接 + 成员管理 + 解散）
   auth/callback/page.tsx        # 统一授权回跳页（authorized/state 校验）
   join/[invite_code]/page.tsx   # 加入空间（独立布局，无 AppShell）
   api/
     auth/session/route.ts       # 写入本域 access_token/refresh_token
     auth/exchange/route.ts      # 服务端中转：转发 refresh 请求给认证服务器（避免 CORS）
-    parse-task/route.ts         # AI 解析自然语言 → { actions: ParsedAction[] }（支持创建/更新/完成/删除/日报，附带 tasks 上下文）
+    parse-task/route.ts         # AI 解析自然语言 → { actions: ParsedAction[] }（支持创建/更新/完成/删除/日报，附带 tasks + parent_task 上下文）
     tasks/route.ts              # GET（列表/今日/已完成/空间/指派）+ POST（创建）
     tasks/[id]/route.ts         # PATCH（完成/更新）+ DELETE
     tasks/[id]/logs/route.ts    # GET + POST 任务进展日报
@@ -123,8 +123,8 @@ app/
     spaces/[id]/members/[uid]/route.ts    # PATCH（审批/更新）+ DELETE（移除/退出）
     spaces/join/[code]/route.ts           # GET 预览 + POST 加入
 components/
-  SpaceNav.tsx                  # 侧边栏导航（桌面）+ 底部 Tab（移动端）
-  NLInput.tsx                   # 自然语言输入框，Cmd+K 聚焦，@ 触发成员菜单，传 tasks 上下文给 AI
+  SpaceNav.tsx                  # 侧边栏导航（桌面）+ 底部 Tab（移动端）+ 当前空间一级任务目录
+  NLInput.tsx                   # 自然语言输入框，Cmd+K 聚焦，@ 触发成员菜单，传 tasks + parent_task 上下文给 AI；聚焦态下 placeholder 提示父任务名
   ActionPreview.tsx             # 统一操作预览 + 执行（create/update/complete/delete/add_log）
   GanttChart.tsx                # 甘特图（纯 CSS，按优先级着色，today 参考线，未排期列表）
   TaskDetail.tsx                # 任务详情内联面板（描述编辑 + 日期 + 进展评论流）

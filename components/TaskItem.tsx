@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, KeyboardEvent } from "react";
+import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AssigneeBadge } from "@/components/AssigneeBadge";
@@ -31,10 +31,24 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const moreRef = useRef<HTMLDivElement>(null);
 
   const p = PRIORITY_BADGES[task.priority] ?? PRIORITY_BADGES[2];
   const hasSubtasks = (subtasks?.length ?? 0) > 0;
+
+  // Close more menu on outside click
+  useEffect(() => {
+    if (!moreOpen) return;
+    function handler(e: MouseEvent) {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [moreOpen]);
 
   async function handleComplete() {
     if (completing) return;
@@ -53,6 +67,7 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
 
   async function handleDelete() {
     if (deleting) return;
+    setMoreOpen(false);
     setDeleting(true);
     try {
       const res = await fetch(`/api/tasks/${task.id}`, { method: "DELETE" });
@@ -126,7 +141,7 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
         {/* Checkbox */}
         <button
           onClick={handleComplete}
-          className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full border-2 border-muted-foreground/40 hover:border-primary transition-colors"
+          className="mt-1 flex-shrink-0 w-4 h-4 rounded-full border-2 border-muted-foreground/40 hover:border-primary transition-colors"
           aria-label="完成任务"
           tabIndex={-1}
         />
@@ -141,11 +156,11 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
               onBlur={saveEdit}
               onKeyDown={onEditKeyDown}
               disabled={saving}
-              className="w-full text-sm font-medium bg-transparent border-b-2 border-primary outline-none pb-0.5"
+              className="w-full text-base font-medium bg-transparent border-b-2 border-primary outline-none pb-0.5"
             />
           ) : (
             <p
-              className="text-sm font-medium leading-5 truncate cursor-text hover:text-primary/80 transition-colors"
+              className="text-base font-medium leading-6 truncate cursor-text hover:text-primary/80 transition-colors"
               onClick={startEdit}
               title="单击编辑"
             >
@@ -153,17 +168,17 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
             </p>
           )}
           {task.description && (
-            <p className="text-xs text-muted-foreground mt-0.5 truncate">{task.description}</p>
+            <p className="text-sm text-muted-foreground mt-0.5 truncate">{task.description}</p>
           )}
           <div className="flex gap-1.5 mt-1.5 flex-wrap items-center">
-            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.cls}`}>
+            <Badge variant="outline" className={`text-xs px-1.5 py-0 ${p.cls}`}>
               {p.label}
             </Badge>
             {task.due_date && (
-              <span className="text-[10px] text-muted-foreground">📅 {formatDue(task.due_date)}</span>
+              <span className="text-xs text-muted-foreground">📅 {formatDue(task.due_date)}</span>
             )}
             {task.tags.map((tag) => (
-              <span key={tag} className="text-[10px] text-muted-foreground">#{tag}</span>
+              <span key={tag} className="text-xs text-muted-foreground">#{tag}</span>
             ))}
             {isAssignedToOther && (
               <AssigneeBadge email={task.assignee_email!} isMe={false} />
@@ -172,7 +187,7 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
             {hasSubtasks && (
               <button
                 onClick={() => setExpanded((v) => !v)}
-                className="text-[10px] px-1.5 py-0 rounded border border-border text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
+                className="text-xs px-1.5 py-0 rounded border border-border text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
               >
                 {expanded ? "▼" : "▶"} {subtasks!.length} 子任务
               </button>
@@ -180,34 +195,46 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
           </div>
         </div>
 
-        {/* Delete */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-          onClick={handleDelete}
-          disabled={deleting}
-          aria-label="删除任务"
-          tabIndex={-1}
-        >
-          ×
-        </Button>
-
-        {/* Detail expand */}
+        {/* Detail expand - now in left action position */}
         <button
           onClick={() => setDetailOpen((v) => !v)}
-          className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 flex items-center justify-center text-[11px] text-muted-foreground hover:text-foreground"
+          className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 flex items-center justify-center text-sm text-muted-foreground hover:text-foreground"
           title="查看详情"
           tabIndex={-1}
           aria-label="展开详情"
         >
-          {detailOpen ? "▲" : "…"}
+          {detailOpen ? "▲" : "▼"}
         </button>
+
+        {/* More menu with delete inside */}
+        <div className="relative" ref={moreRef}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+            onClick={() => setMoreOpen((v) => !v)}
+            aria-label="更多操作"
+            tabIndex={-1}
+          >
+            ⋮
+          </Button>
+          {moreOpen && (
+            <div className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded-md shadow-md min-w-[88px] py-1">
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="w-full text-left px-3 py-1.5 text-sm text-destructive hover:bg-muted/60 disabled:opacity-50"
+              >
+                {deleting ? "删除中..." : "删除"}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Detail panel */}
+      {/* Detail panel - card style */}
       {detailOpen && (
-        <div className="pl-7 pr-1 pb-3 border-t border-border/30 mt-0">
+        <div className="mx-1 mb-3 mt-1 border border-border/40 rounded-lg bg-muted/20 overflow-hidden">
           <TaskDetail task={task} currentUserEmail={currentUserEmail} onUpdate={onUpdate} />
         </div>
       )}

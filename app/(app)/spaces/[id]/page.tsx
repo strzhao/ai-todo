@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { NLInput } from "@/components/NLInput";
 import { ActionPreview } from "@/components/ActionPreview";
 import { TaskList } from "@/components/TaskList";
@@ -22,6 +23,10 @@ export default function SpacePage({ params }: SpacePageProps) {
   const [loading, setLoading] = useState(true);
   const [filterMember, setFilterMember] = useState<string>("all");
   const [tab, setTab] = useState<"list" | "gantt">("list");
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const focusedTaskId = searchParams.get("focus");
 
   useEffect(() => {
     params.then(({ id }) => {
@@ -85,9 +90,24 @@ export default function SpacePage({ params }: SpacePageProps) {
     ? tasks
     : tasks.filter((t) => t.assignee_id === filterMember || t.user_id === filterMember);
 
-  const completedCount = completedTasks.length;
-  const totalCount = filteredTasks.length + completedCount;
+  // When a task is focused, show only its subtasks directly
+  const focusedTask = focusedTaskId ? tasks.find((t) => t.id === focusedTaskId) : null;
+  const displayTasks = focusedTaskId
+    ? filteredTasks.filter((t) => t.parent_id === focusedTaskId)
+    : filteredTasks;
+
+  // Completed tasks scoped to focus context
+  const focusedCompletedTasks = focusedTaskId
+    ? completedTasks.filter((t) => t.parent_id === focusedTaskId)
+    : completedTasks;
+
+  const completedCount = focusedCompletedTasks.length;
+  const totalCount = displayTasks.length + completedCount;
   const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  const ganttTasks = focusedTaskId
+    ? [...displayTasks, ...focusedCompletedTasks]
+    : [...tasks, ...completedTasks];
 
   if (loading) {
     return (
@@ -105,13 +125,24 @@ export default function SpacePage({ params }: SpacePageProps) {
     );
   }
 
-  const ganttTasks = [...tasks, ...completedTasks];
-
   return (
     <div className={`mx-auto px-4 py-8 ${tab === "gantt" ? "max-w-5xl" : "max-w-2xl"}`}>
-      <div className="flex items-center justify-between mb-2">
-        <h1 className="text-xl font-semibold">{space.name}</h1>
-        <Link href={`/spaces/${spaceId}/settings`} className="text-xs text-muted-foreground hover:text-foreground">
+      <div className="flex items-center justify-between mb-4">
+        {focusedTask ? (
+          <h1 className="text-xl font-semibold flex items-center gap-1.5 min-w-0">
+            <button
+              onClick={() => router.push(`/spaces/${spaceId}`)}
+              className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            >
+              {space.name}
+            </button>
+            <span className="text-muted-foreground/50 shrink-0">›</span>
+            <span className="truncate">{focusedTask.title}</span>
+          </h1>
+        ) : (
+          <h1 className="text-xl font-semibold">{space.name}</h1>
+        )}
+        <Link href={`/spaces/${spaceId}/settings`} className="text-xs text-muted-foreground hover:text-foreground shrink-0 ml-2">
           设置
         </Link>
       </div>
@@ -168,9 +199,11 @@ export default function SpacePage({ params }: SpacePageProps) {
           <div className="mb-4">
             <NLInput
               onResult={(actions, r) => setPreview({ actions, raw: r })}
-              tasks={tasks}
+              tasks={focusedTaskId ? displayTasks : tasks}
               spaceId={spaceId}
               members={members}
+              parentTaskId={focusedTaskId ?? undefined}
+              parentTaskTitle={focusedTask?.title}
             />
           </div>
 
@@ -182,6 +215,7 @@ export default function SpacePage({ params }: SpacePageProps) {
                 allTasks={tasks}
                 spaceId={spaceId}
                 members={members}
+                parentTaskId={focusedTaskId ?? undefined}
                 onDone={handleActionDone}
                 onCancel={() => setPreview(null)}
               />
@@ -189,14 +223,14 @@ export default function SpacePage({ params }: SpacePageProps) {
           )}
 
           <TaskList
-            tasks={filteredTasks}
-            completedTasks={completedTasks}
+            tasks={displayTasks}
+            completedTasks={focusedCompletedTasks}
             loading={false}
             onComplete={handleComplete}
             onDelete={handleDelete}
             onUpdate={handleUpdate}
-            emptyText="空间内暂无任务"
-            emptySubtext="输入一句话创建空间任务，支持 @成员 指派"
+            emptyText={focusedTaskId ? "该任务暂无子任务" : "空间内暂无任务"}
+            emptySubtext={focusedTaskId ? "通过 AI 输入框为该任务添加子任务" : "输入一句话创建空间任务，支持 @成员 指派"}
           />
         </>
       )}
@@ -207,4 +241,3 @@ export default function SpacePage({ params }: SpacePageProps) {
     </div>
   );
 }
-

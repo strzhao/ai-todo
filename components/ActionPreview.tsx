@@ -11,6 +11,7 @@ interface Props {
   allTasks: Task[];
   spaceId?: string;
   members?: SpaceMember[];
+  parentTaskId?: string;
   onDone: (result: ActionResult) => void;
   onCancel: () => void;
 }
@@ -118,7 +119,7 @@ function ActionRow({ action, allTasks }: { action: ParsedAction; allTasks: Task[
   return null;
 }
 
-export function ActionPreview({ actions, raw, allTasks, spaceId, members, onDone, onCancel }: Props) {
+export function ActionPreview({ actions, raw, allTasks, spaceId, members, parentTaskId, onDone, onCancel }: Props) {
   const [executing, setExecuting] = useState(false);
 
   // 如果全是 create actions，委托给 MultiTaskPreview
@@ -134,6 +135,7 @@ export function ActionPreview({ actions, raw, allTasks, spaceId, members, onDone
         onConfirm={(created) => onDone({ created })}
         onCancel={onCancel}
         spaceId={spaceId}
+        parentTaskId={parentTaskId}
       />
     );
   }
@@ -155,7 +157,12 @@ export function ActionPreview({ actions, raw, allTasks, spaceId, members, onDone
               fetch("/api/tasks", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...t, space_id: spaceId ?? undefined, assignee_email: t.assignee }),
+                body: JSON.stringify({
+                  ...t,
+                  space_id: spaceId ?? undefined,
+                  assignee_email: t.assignee,
+                  ...(parentTaskId ? { parent_id: parentTaskId } : {}),
+                }),
               }).then((r) => r.ok ? r.json() as Promise<Task> : null)
             )
           );

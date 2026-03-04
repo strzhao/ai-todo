@@ -20,9 +20,10 @@ interface Props {
   onConfirm: (task: Task) => void;
   onCancel: () => void;
   spaceId?: string;
+  parentTaskId?: string;
 }
 
-export function ParsePreviewCard({ parsed, onConfirm, onCancel, spaceId }: Props) {
+export function ParsePreviewCard({ parsed, onConfirm, onCancel, spaceId, parentTaskId }: Props) {
   const [form, setForm] = useState<ParsedTask>({ ...parsed });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -43,6 +44,7 @@ export function ParsePreviewCard({ parsed, onConfirm, onCancel, spaceId }: Props
         ...form,
         ...(spaceId ? { space_id: spaceId } : {}),
         ...(form.assignee ? { assignee_email: form.assignee } : {}),
+        ...(parentTaskId ? { parent_id: parentTaskId } : {}),
       };
       const res = await fetch("/api/tasks", {
         method: "POST",

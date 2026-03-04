@@ -86,7 +86,7 @@ export function TaskDetail({ task, currentUserEmail, onUpdate }: Props) {
   const hasDateRange = task.start_date || task.end_date;
 
   return (
-    <div className="text-xs text-muted-foreground space-y-3 pt-2">
+    <div className="p-4 space-y-4">
       {/* Description */}
       <div>
         <textarea
@@ -96,14 +96,14 @@ export function TaskDetail({ task, currentUserEmail, onUpdate }: Props) {
           disabled={savingDesc}
           placeholder="添加描述..."
           rows={2}
-          className="w-full text-xs bg-muted/40 border border-border/50 rounded px-2 py-1.5 resize-none outline-none focus:border-primary/50 placeholder:text-muted-foreground/50 transition-colors"
+          className="w-full text-sm bg-muted/40 border border-border/50 rounded-md px-3 py-2 resize-none outline-none focus:border-primary/50 placeholder:text-muted-foreground/50 transition-colors min-h-[72px]"
         />
       </div>
 
       {/* Date range */}
       {hasDateRange && (
-        <div className="flex items-center gap-1.5 text-[11px]">
-          <span className="text-muted-foreground/60">⏱</span>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>⏱</span>
           {task.start_date && <span>开始: {formatDate(task.start_date)}</span>}
           {task.start_date && task.end_date && <span className="text-muted-foreground/40">→</span>}
           {task.end_date && <span>结束: {formatDate(task.end_date)}</span>}
@@ -112,24 +112,26 @@ export function TaskDetail({ task, currentUserEmail, onUpdate }: Props) {
 
       {/* Logs */}
       <div>
-        <p className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wide mb-1.5">进展更新</p>
+        <p className="text-xs font-medium text-muted-foreground mb-2">进展更新</p>
         {!logsLoaded ? (
-          <p className="text-[11px] text-muted-foreground/50">加载中...</p>
+          <p className="text-sm text-muted-foreground/50">加载中...</p>
         ) : logs.length === 0 ? (
-          <p className="text-[11px] text-muted-foreground/50">暂无进展记录</p>
+          <p className="text-sm text-muted-foreground/50">暂无进展记录</p>
         ) : (
-          <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
             {logs.map((log) => (
-              <div key={log.id} className="flex gap-2">
-                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[9px] font-medium uppercase">
+              <div key={log.id} className="flex gap-2.5">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium uppercase">
                   {log.user_email[0]}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-[10px] font-medium">
-                    {log.user_email === currentUserEmail ? "你" : log.user_email.split("@")[0]}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground/50 ml-1">{formatRelativeTime(log.created_at)}</span>
-                  <p className="text-[11px] text-foreground/80 mt-0.5 break-words">{log.content}</p>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-xs font-medium">
+                      {log.user_email === currentUserEmail ? "你" : log.user_email.split("@")[0]}
+                    </span>
+                    <span className="text-xs text-muted-foreground/50">{formatRelativeTime(log.created_at)}</span>
+                  </div>
+                  <p className="text-sm text-foreground/80 mt-0.5 break-words">{log.content}</p>
                 </div>
               </div>
             ))}
@@ -147,12 +149,12 @@ export function TaskDetail({ task, currentUserEmail, onUpdate }: Props) {
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
           placeholder="添加进展更新..."
           disabled={submitting}
-          className="flex-1 text-xs bg-muted/40 border border-border/50 rounded px-2 py-1 outline-none focus:border-primary/50 placeholder:text-muted-foreground/50 transition-colors"
+          className="flex-1 text-sm bg-muted/40 border border-border/50 rounded-md px-3 py-1.5 outline-none focus:border-primary/50 placeholder:text-muted-foreground/50 transition-colors"
         />
         <button
           onClick={submitComment}
           disabled={!comment.trim() || submitting}
-          className="text-[11px] px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="text-sm px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           发送
         </button>

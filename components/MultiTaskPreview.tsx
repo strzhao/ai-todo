@@ -22,9 +22,10 @@ interface Props {
   onConfirm: (created: Task[]) => void;
   onCancel: () => void;
   spaceId?: string;
+  parentTaskId?: string;
 }
 
-export function MultiTaskPreview({ tasks, raw, onConfirm, onCancel, spaceId }: Props) {
+export function MultiTaskPreview({ tasks, raw, onConfirm, onCancel, spaceId, parentTaskId }: Props) {
   // Single task with no children → use detailed ParsePreviewCard
   if (tasks.length === 1 && !tasks[0].children?.length) {
     return (
@@ -33,6 +34,7 @@ export function MultiTaskPreview({ tasks, raw, onConfirm, onCancel, spaceId }: P
         onConfirm={(task) => onConfirm([task])}
         onCancel={onCancel}
         spaceId={spaceId}
+        parentTaskId={parentTaskId}
       />
     );
   }
@@ -43,6 +45,7 @@ export function MultiTaskPreview({ tasks, raw, onConfirm, onCancel, spaceId }: P
       onConfirm={onConfirm}
       onCancel={onCancel}
       spaceId={spaceId}
+      parentTaskId={parentTaskId}
     />
   );
 }
@@ -56,14 +59,19 @@ type FlatItem = {
   localId: string;
 };
 
-function toFlatItems(tasks: ParsedTask[]): FlatItem[] {
+function toFlatItems(tasks: ParsedTask[], flatten = false): FlatItem[] {
   const items: FlatItem[] = [];
   tasks.forEach((task, pi) => {
     const parentLocalId = `p-${pi}`;
     const { children, ...rest } = task;
     items.push({ task: rest, level: 0, parentLocalId: null, localId: parentLocalId });
     children?.forEach((child, ci) => {
-      items.push({ task: child, level: 1, parentLocalId, localId: `c-${pi}-${ci}` });
+      items.push({
+        task: child,
+        level: flatten ? 0 : 1,
+        parentLocalId: flatten ? null : parentLocalId,
+        localId: `c-${pi}-${ci}`,
+      });
     });
   });
   return items;
@@ -78,13 +86,17 @@ function formatDueDate(iso?: string) {
 
 // ─── Multi-task list with hierarchy ──────────────────────────────────────────
 
-function MultiTaskList({ initialTasks, onConfirm, onCancel, spaceId }: {
+function MultiTaskList({ initialTasks, onConfirm, onCancel, spaceId, parentTaskId }: {
   initialTasks: ParsedTask[];
   onConfirm: (created: Task[]) => void;
   onCancel: () => void;
   spaceId?: string;
+  parentTaskId?: string;
 }) {
-  const [flatItems, setFlatItems] = useState<FlatItem[]>(() => toFlatItems(initialTasks));
+  // When parentTaskId is set, flatten all children to avoid exceeding max 2 levels
+  const [flatItems, setFlatItems] = useState<FlatItem[]>(() =>
+    toFlatItems(initialTasks, !!parentTaskId)
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -129,6 +141,7 @@ function MultiTaskList({ initialTasks, onConfirm, onCancel, spaceId }: {
             ...item.task,
             ...(spaceId ? { space_id: spaceId } : {}),
             ...(item.task.assignee ? { assignee_email: item.task.assignee } : {}),
+            ...(parentTaskId ? { parent_id: parentTaskId } : {}),
           })
         )
       );
