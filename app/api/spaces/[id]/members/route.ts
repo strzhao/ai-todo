@@ -1,23 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { getSpaceMembers, initDb } from "@/lib/db";
+import { getSpaceMembers } from "@/lib/db";
 import { requireSpaceMember } from "@/lib/spaces";
+import { createRouteTimer } from "@/lib/route-timing";
 
 export const preferredRegion = "hkg1";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  await initDb();
+  const rt = createRouteTimer(req);
+  const user = await rt.track("auth", async () => getUserFromRequest(req));
+  if (!user) return rt.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
 
   try {
-    await requireSpaceMember(id, user.id);
+    await rt.track("db_query", async () => requireSpaceMember(id, user.id));
   } catch {
-    return NextResponse.json({ error: "Not a space member" }, { status: 403 });
+    return rt.json({ error: "Not a space member" }, { status: 403 });
   }
 
-  const members = await getSpaceMembers(id);
-  return NextResponse.json(members);
+  const members = await rt.track("db_query", async () => getSpaceMembers(id));
+  return rt.json(members);
 }

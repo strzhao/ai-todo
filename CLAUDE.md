@@ -6,12 +6,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AI 驱动的个人 Todo 工具。自然语言录入 → DeepSeek 解析 → 预览确认 → 任务管理。
 
+## AI-First 操作原则
+
+**NLInput（AI 输入框）是所有任务操作的主入口**，用户通过自然语言完成全部操作：
+
+| 用户输入示例 | 操作类型 |
+|------------|---------|
+| 明天下午写周报 | 创建任务 |
+| 把写报告改成高优先级 | 更新任务 |
+| 完成调研任务 / 调研搞定了 | 标记完成 |
+| 删除/取消测试任务 | 删除任务 |
+| 给项目计划加进展：完成第一阶段 | 添加日报 |
+
+新功能设计时**优先考虑 AI 输入路径**，手动 UI 操作为辅助。`parse-task` API 返回 `{ actions: ParsedAction[] }`，前端统一通过 `ActionPreview` 组件预览并执行。
+
 ## 开发命令
 
 ```bash
 npm run dev    # 启动开发服务器（Turbopack）
 npm run build  # 构建生产版本
 npm run start  # 启动生产服务器
+npm test       # 运行单元测试（Vitest，54 个用例）
 ```
 
 ## 技术栈
@@ -98,9 +113,10 @@ app/
   api/
     auth/session/route.ts       # 写入本域 access_token/refresh_token
     auth/exchange/route.ts      # 服务端中转：转发 refresh 请求给认证服务器（避免 CORS）
-    parse-task/route.ts         # AI 解析自然语言 → { tasks: ParsedTask[] }（支持多任务拆分 + children 层级）
+    parse-task/route.ts         # AI 解析自然语言 → { actions: ParsedAction[] }（支持创建/更新/完成/删除/日报，附带 tasks 上下文）
     tasks/route.ts              # GET（列表/今日/已完成/空间/指派）+ POST（创建）
     tasks/[id]/route.ts         # PATCH（完成/更新）+ DELETE
+    tasks/[id]/logs/route.ts    # GET + POST 任务进展日报
     spaces/route.ts             # GET（我的空间列表）+ POST（创建空间）
     spaces/[id]/route.ts        # GET + PATCH + DELETE
     spaces/[id]/members/route.ts          # GET 成员列表
@@ -108,7 +124,10 @@ app/
     spaces/join/[code]/route.ts           # GET 预览 + POST 加入
 components/
   SpaceNav.tsx                  # 侧边栏导航（桌面）+ 底部 Tab（移动端）
-  NLInput.tsx                   # 自然语言输入框，Cmd+K 聚焦，@ 触发成员菜单
+  NLInput.tsx                   # 自然语言输入框，Cmd+K 聚焦，@ 触发成员菜单，传 tasks 上下文给 AI
+  ActionPreview.tsx             # 统一操作预览 + 执行（create/update/complete/delete/add_log）
+  GanttChart.tsx                # 甘特图（纯 CSS，按优先级着色，today 参考线，未排期列表）
+  TaskDetail.tsx                # 任务详情内联面板（描述编辑 + 日期 + 进展评论流）
   ParsePreviewCard.tsx          # AI 解析预览 + 确认创建（支持空间/负责人，单任务路径）
   MultiTaskPreview.tsx          # 多任务/层级任务预览 + 批量创建（先建父任务再建子任务）
   TaskItem.tsx                  # 单条任务行（内联编辑 + 键盘导航 + 子任务折叠展开）
@@ -117,13 +136,21 @@ components/
   TaskSkeleton.tsx              # 加载骨架屏（3 行）
   EmptyState.tsx                # 空状态展示组件
 lib/
-  types.ts                      # Task、ParsedTask、Space、SpaceMember 接口
-  llm-client.ts                 # DeepSeek 客户端
+  types.ts                      # Task、ParsedTask、ParsedAction、ActionResult、TaskLog 等接口
+  llm-client.ts                 # DeepSeek 客户端（55s 超时，AbortError 兜底）
+  task-utils.ts                 # 纯函数：buildTree（flat Task[] → 树形 TaskNode[]）
+  gantt-utils.ts                # 纯函数：daysBetween / addDays / formatAxisDate / getMemberName
+  parse-utils.ts                # 纯函数：parseItem / parseActions / cleanupCache（可测试）
+  route-timing.ts               # API 路由计时工具（createRouteTimer）
   auth.ts                       # JWT 验证（jose + JWKS）+ DEV_BYPASS 模式
   auth-config.ts                # 统一授权配置（authorize/callback）
   server-auth.ts                # Server Component 用 getServerUser()
   spaces.ts                     # 空间权限工具（requireSpaceMember/Owner）
-  db.ts                         # Vercel Postgres CRUD（tasks + spaces + members）
+  db.ts                         # Vercel Postgres CRUD（tasks + spaces + members + task_logs）
+__tests__/
+  task-utils.test.ts            # buildTree 单元测试
+  gantt-utils.test.ts           # 日期函数单元测试
+  parse-utils.test.ts           # parseItem / parseActions 单元测试（54 个用例）
 proxy.ts                        # 路由保护（未登录重定向到 /authorize）
 ```
 

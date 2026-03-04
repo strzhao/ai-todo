@@ -204,7 +204,7 @@ export async function proxy(req: NextRequest) {
   if (isProtectedPage) {
     const state = crypto.randomUUID();
     const nextPath = normalizeNextPath(`${pathname}${req.nextUrl.search}`);
-    const returnTo = new URL(CALLBACK_PATH, req.nextUrl.origin).toString();
+    const returnTo = buildCallbackUrl();
     const authorizeUrl = buildAuthorizeUrl(returnTo, state);
 
     const res = NextResponse.redirect(authorizeUrl);

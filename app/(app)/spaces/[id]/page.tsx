@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { NLInput } from "@/components/NLInput";
-import { MultiTaskPreview } from "@/components/MultiTaskPreview";
+import { ActionPreview } from "@/components/ActionPreview";
 import { TaskList } from "@/components/TaskList";
-import type { ParsedTask, Task, Space, SpaceMember } from "@/lib/types";
+import { GanttChart } from "@/components/GanttChart";
+import type { ParsedAction, Task, Space, SpaceMember, ActionResult } from "@/lib/types";
 
 interface SpacePageProps {
   params: Promise<{ id: string }>;
@@ -17,9 +18,10 @@ export default function SpacePage({ params }: SpacePageProps) {
   const [members, setMembers] = useState<SpaceMember[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
-  const [preview, setPreview] = useState<{ parsed: ParsedTask[]; raw: string } | null>(null);
+  const [preview, setPreview] = useState<{ actions: ParsedAction[]; raw: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [filterMember, setFilterMember] = useState<string>("all");
+  const [tab, setTab] = useState<"list" | "gantt">("list");
 
   useEffect(() => {
     params.then(({ id }) => {
@@ -32,11 +34,27 @@ export default function SpacePage({ params }: SpacePageProps) {
         setMembers(spaceData.members);
         setTasks(tasksData);
       }).finally(() => setLoading(false));
+
+      fetch(`/api/tasks?space_id=${id}&filter=completed`)
+        .then((r) => r.json())
+        .then((completedData: Task[]) => setCompletedTasks(Array.isArray(completedData) ? completedData : []))
+        .catch(() => setCompletedTasks([]));
     });
   }, [params]);
 
-  function handleConfirm(newTasks: Task[]) {
-    setTasks((prev) => [...newTasks, ...prev]);
+  function handleActionDone(result: ActionResult) {
+    if (result.created?.length) setTasks((prev) => [...result.created!, ...prev]);
+    if (result.updated?.length) setTasks((prev) => prev.map((t) => result.updated!.find((u) => u.id === t.id) ?? t));
+    if (result.completed?.length) {
+      for (const id of result.completed) {
+        const done = tasks.find((t) => t.id === id);
+        setTasks((prev) => prev.filter((t) => t.id !== id && t.parent_id !== id));
+        if (done) setCompletedTasks((prev) => [{ ...done, status: 2 as const }, ...prev].slice(0, 20));
+      }
+    }
+    if (result.deleted?.length) {
+      setTasks((prev) => prev.filter((t) => !result.deleted!.includes(t.id) && !result.deleted!.includes(t.parent_id ?? "")));
+    }
     setPreview(null);
   }
 
@@ -52,6 +70,14 @@ export default function SpacePage({ params }: SpacePageProps) {
 
   function handleUpdate(id: string, updates: Partial<Task>) {
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, ...updates } : t));
+  }
+
+  function handleGanttTaskClick(id: string) {
+    setTab("list");
+    setTimeout(() => {
+      const el = document.getElementById(`task-${id}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
   }
 
   const activeMembers = members.filter((m) => m.status === "active");
@@ -79,8 +105,10 @@ export default function SpacePage({ params }: SpacePageProps) {
     );
   }
 
+  const ganttTasks = [...tasks, ...completedTasks];
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className={`mx-auto px-4 py-8 ${tab === "gantt" ? "max-w-5xl" : "max-w-2xl"}`}>
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-xl font-semibold">{space.name}</h1>
         <Link href={`/spaces/${spaceId}/settings`} className="text-xs text-muted-foreground hover:text-foreground">
@@ -88,7 +116,6 @@ export default function SpacePage({ params }: SpacePageProps) {
         </Link>
       </div>
 
-      {/* Progress bar */}
       {totalCount > 0 && (
         <div className="mb-4">
           <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
@@ -96,65 +123,88 @@ export default function SpacePage({ params }: SpacePageProps) {
             <span>{completedCount}/{totalCount} 已完成（{progressPct}%）</span>
           </div>
           <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full transition-all"
-              style={{ width: `${progressPct}%` }}
-            />
+            <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${progressPct}%` }} />
           </div>
         </div>
       )}
 
-      {/* Member filter */}
-      {activeMembers.length > 1 && (
-        <div className="flex gap-1.5 mb-4 flex-wrap">
-          <button
-            onClick={() => setFilterMember("all")}
-            className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${filterMember === "all" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-foreground"}`}
-          >
-            全部
-          </button>
-          {activeMembers.map((m) => (
-            <button
-              key={m.user_id}
-              onClick={() => setFilterMember(m.user_id)}
-              className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${filterMember === m.user_id ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-foreground"}`}
-            >
-              {m.display_name || m.email.split("@")[0]}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="mb-4">
-        <NLInput
-          onParsed={(tasks, r) => setPreview({ parsed: tasks, raw: r })}
-          spaceId={spaceId}
-          members={members}
-        />
+      <div className="flex gap-1 mb-4">
+        <button
+          onClick={() => setTab("list")}
+          className={`text-xs px-3 py-1 rounded-md border transition-colors ${tab === "list" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-foreground"}`}
+        >
+          任务列表
+        </button>
+        <button
+          onClick={() => setTab("gantt")}
+          className={`text-xs px-3 py-1 rounded-md border transition-colors ${tab === "gantt" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-foreground"}`}
+        >
+          甘特图
+        </button>
       </div>
 
-      {preview && (
-        <div className="mb-4">
-          <MultiTaskPreview
-            tasks={preview.parsed}
-            raw={preview.raw}
-            onConfirm={handleConfirm}
-            onCancel={() => setPreview(null)}
-            spaceId={spaceId}
+      {tab === "list" && (
+        <>
+          {activeMembers.length > 1 && (
+            <div className="flex gap-1.5 mb-4 flex-wrap">
+              <button
+                onClick={() => setFilterMember("all")}
+                className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${filterMember === "all" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-foreground"}`}
+              >
+                全部
+              </button>
+              {activeMembers.map((m) => (
+                <button
+                  key={m.user_id}
+                  onClick={() => setFilterMember(m.user_id)}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${filterMember === m.user_id ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-foreground"}`}
+                >
+                  {m.display_name || m.email.split("@")[0]}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="mb-4">
+            <NLInput
+              onResult={(actions, r) => setPreview({ actions, raw: r })}
+              tasks={tasks}
+              spaceId={spaceId}
+              members={members}
+            />
+          </div>
+
+          {preview && (
+            <div className="mb-4">
+              <ActionPreview
+                actions={preview.actions}
+                raw={preview.raw}
+                allTasks={tasks}
+                spaceId={spaceId}
+                members={members}
+                onDone={handleActionDone}
+                onCancel={() => setPreview(null)}
+              />
+            </div>
+          )}
+
+          <TaskList
+            tasks={filteredTasks}
+            completedTasks={completedTasks}
+            loading={false}
+            onComplete={handleComplete}
+            onDelete={handleDelete}
+            onUpdate={handleUpdate}
+            emptyText="空间内暂无任务"
+            emptySubtext="输入一句话创建空间任务，支持 @成员 指派"
           />
-        </div>
+        </>
       )}
 
-      <TaskList
-        tasks={filteredTasks}
-        completedTasks={completedTasks}
-        loading={false}
-        onComplete={handleComplete}
-        onDelete={handleDelete}
-        onUpdate={handleUpdate}
-        emptyText="空间内暂无任务"
-        emptySubtext="输入一句话创建空间任务，支持 @成员 指派"
-      />
+      {tab === "gantt" && (
+        <GanttChart tasks={ganttTasks} members={members} onTaskClick={handleGanttTaskClick} />
+      )}
     </div>
   );
 }
+

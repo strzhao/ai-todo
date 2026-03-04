@@ -4,6 +4,7 @@ import { useState, useRef, KeyboardEvent } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AssigneeBadge } from "@/components/AssigneeBadge";
+import { TaskDetail } from "@/components/TaskDetail";
 import type { Task } from "@/lib/types";
 
 const PRIORITY_BADGES: Record<number, { label: string; cls: string }> = {
@@ -29,6 +30,7 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
   const [editTitle, setEditTitle] = useState(task.title);
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const p = PRIORITY_BADGES[task.priority] ?? PRIORITY_BADGES[2];
@@ -190,7 +192,25 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
         >
           ×
         </Button>
+
+        {/* Detail expand */}
+        <button
+          onClick={() => setDetailOpen((v) => !v)}
+          className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 flex items-center justify-center text-[11px] text-muted-foreground hover:text-foreground"
+          title="查看详情"
+          tabIndex={-1}
+          aria-label="展开详情"
+        >
+          {detailOpen ? "▲" : "…"}
+        </button>
       </div>
+
+      {/* Detail panel */}
+      {detailOpen && (
+        <div className="pl-7 pr-1 pb-3 border-t border-border/30 mt-0">
+          <TaskDetail task={task} currentUserEmail={currentUserEmail} onUpdate={onUpdate} />
+        </div>
+      )}
 
       {/* Subtasks (expanded) */}
       {expanded && hasSubtasks && (

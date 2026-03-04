@@ -1,13 +1,12 @@
 import { redirect } from "next/navigation";
 import { getServerUser } from "@/lib/server-auth";
-import { getSpacesByUser, initDb } from "@/lib/db";
+import { getSpacesByUser } from "@/lib/db";
 import { SpaceNav } from "@/components/SpaceNav";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getServerUser();
   if (!user) redirect("/auth/callback?error=unauthorized");
 
-  await initDb();
   const spaces = await getSpacesByUser(user.id);
 
   return (

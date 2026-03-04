@@ -1,5 +1,5 @@
 import { sql } from "@vercel/postgres";
-import type { Task, ParsedTask, Space, SpaceMember } from "./types";
+import type { Task, ParsedTask, Space, SpaceMember, TaskLog } from "./types";
 
 export async function initDb() {
   // 1. Spaces table (must exist before tasks references it)
@@ -60,6 +60,8 @@ export async function initDb() {
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS assignee_email TEXT`;
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS mentioned_emails TEXT[] DEFAULT '{}'`;
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES ai_todo_tasks(id) ON DELETE CASCADE`;
+  await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS start_date TIMESTAMPTZ`;
+  await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS end_date TIMESTAMPTZ`;
 
   // 5. Indexes
   await sql`CREATE INDEX IF NOT EXISTS idx_ai_todo_tasks_user_id ON ai_todo_tasks(user_id)`;
@@ -67,6 +69,26 @@ export async function initDb() {
   await sql`CREATE INDEX IF NOT EXISTS idx_tasks_space           ON ai_todo_tasks(space_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_tasks_assignee        ON ai_todo_tasks(assignee_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_tasks_parent          ON ai_todo_tasks(parent_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_tasks_dates           ON ai_todo_tasks(space_id, start_date, end_date)`;
+
+  // 6. Task logs table
+  await sql`
+    CREATE TABLE IF NOT EXISTS ai_todo_task_logs (
+      id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      task_id    UUID NOT NULL REFERENCES ai_todo_tasks(id) ON DELETE CASCADE,
+      user_id    TEXT NOT NULL,
+      user_email TEXT NOT NULL,
+      content    TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_task_logs_task ON ai_todo_task_logs(task_id)`;
+}
+
+// Deployment-time alias. Keep exports backward-compatible while runtime callers
+// are migrated away from request-path schema initialization.
+export async function migrateDb() {
+  await initDb();
 }
 
 // ─── Row mapping ─────────────────────────────────────────────────────────────
@@ -78,6 +100,8 @@ function rowToTask(row: Record<string, unknown>): Task {
     title: row.title as string,
     description: row.description as string | undefined,
     due_date: row.due_date ? (row.due_date as Date).toISOString() : undefined,
+    start_date: row.start_date ? (row.start_date as Date).toISOString() : undefined,
+    end_date: row.end_date ? (row.end_date as Date).toISOString() : undefined,
     priority: row.priority as Task["priority"],
     status: row.status as Task["status"],
     tags: (row.tags as string[]) ?? [],
@@ -228,13 +252,15 @@ export interface CreateTaskData extends ParsedTask {
   assigneeEmail?: string;
   mentionedEmails?: string[];
   parentId?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export async function createTask(userId: string, data: CreateTaskData): Promise<Task> {
   const { rows } = await sql.query(
     `INSERT INTO ai_todo_tasks
-       (user_id, title, description, due_date, priority, tags, space_id, assignee_id, assignee_email, mentioned_emails, parent_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       (user_id, title, description, due_date, priority, tags, space_id, assignee_id, assignee_email, mentioned_emails, parent_id, start_date, end_date)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
      RETURNING *`,
     [
       userId,
@@ -248,6 +274,8 @@ export async function createTask(userId: string, data: CreateTaskData): Promise<
       data.assigneeEmail ?? null,
       data.mentionedEmails ?? [],
       data.parentId ?? null,
+      data.startDate ?? data.start_date ?? null,
+      data.endDate ?? data.end_date ?? null,
     ]
   );
   return rowToTask(rows[0]);
@@ -294,7 +322,7 @@ export async function deleteTask(taskId: string, userId: string): Promise<void> 
 export async function updateTask(
   taskId: string,
   userId: string,
-  patch: Partial<ParsedTask> & { assigneeEmail?: string | null }
+  patch: Partial<ParsedTask> & { assigneeEmail?: string | null; start_date?: string | null; end_date?: string | null }
 ): Promise<Task | null> {
   const task = await getTaskForUser(taskId, userId);
   if (!task) return null;
@@ -312,6 +340,8 @@ export async function updateTask(
     fields.push(`assignee_email = $${idx++}`);
     values.push(patch.assigneeEmail ?? null);
   }
+  if (patch.start_date !== undefined) { fields.push(`start_date = $${idx++}`); values.push(patch.start_date); }
+  if (patch.end_date !== undefined) { fields.push(`end_date = $${idx++}`); values.push(patch.end_date); }
 
   if (fields.length === 0) return task;
 
@@ -463,4 +493,40 @@ export async function updateSpaceMember(
 
 export async function removeSpaceMember(spaceId: string, userId: string): Promise<void> {
   await sql`DELETE FROM ai_todo_space_members WHERE space_id = ${spaceId} AND user_id = ${userId}`;
+}
+
+// ─── Task Logs CRUD ───────────────────────────────────────────────────────────
+
+function rowToTaskLog(row: Record<string, unknown>): TaskLog {
+  return {
+    id: row.id as string,
+    task_id: row.task_id as string,
+    user_id: row.user_id as string,
+    user_email: row.user_email as string,
+    content: row.content as string,
+    created_at: (row.created_at as Date).toISOString(),
+  };
+}
+
+export async function getTaskLogs(taskId: string): Promise<TaskLog[]> {
+  const { rows } = await sql`
+    SELECT * FROM ai_todo_task_logs
+    WHERE task_id = ${taskId}
+    ORDER BY created_at ASC
+  `;
+  return rows.map(rowToTaskLog);
+}
+
+export async function addTaskLog(
+  taskId: string,
+  userId: string,
+  userEmail: string,
+  content: string
+): Promise<TaskLog> {
+  const { rows } = await sql.query(
+    `INSERT INTO ai_todo_task_logs (task_id, user_id, user_email, content)
+     VALUES ($1, $2, $3, $4) RETURNING *`,
+    [taskId, userId, userEmail, content]
+  );
+  return rowToTaskLog(rows[0]);
 }

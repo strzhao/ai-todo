@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { NLInput } from "@/components/NLInput";
-import { MultiTaskPreview } from "@/components/MultiTaskPreview";
+import { ActionPreview } from "@/components/ActionPreview";
 import { TaskList } from "@/components/TaskList";
-import type { ParsedTask, Task } from "@/lib/types";
+import type { ParsedAction, Task, ActionResult } from "@/lib/types";
 
 export default function AllTasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
-  const [preview, setPreview] = useState<{ parsed: ParsedTask[]; raw: string } | null>(null);
+  const [preview, setPreview] = useState<{ actions: ParsedAction[]; raw: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,8 +22,19 @@ export default function AllTasksPage() {
     }).finally(() => setLoading(false));
   }, []);
 
-  function handleConfirm(newTasks: Task[]) {
-    setTasks((prev) => [...newTasks, ...prev]);
+  function handleActionDone(result: ActionResult) {
+    if (result.created?.length) setTasks((prev) => [...result.created!, ...prev]);
+    if (result.updated?.length) setTasks((prev) => prev.map((t) => result.updated!.find((u) => u.id === t.id) ?? t));
+    if (result.completed?.length) {
+      for (const id of result.completed) {
+        const done = tasks.find((t) => t.id === id);
+        setTasks((prev) => prev.filter((t) => t.id !== id && t.parent_id !== id));
+        if (done) setCompletedTasks((prev) => [{ ...done, status: 2 as const }, ...prev].slice(0, 20));
+      }
+    }
+    if (result.deleted?.length) {
+      setTasks((prev) => prev.filter((t) => !result.deleted!.includes(t.id) && !result.deleted!.includes(t.parent_id ?? "")));
+    }
     setPreview(null);
   }
 
@@ -49,12 +60,21 @@ export default function AllTasksPage() {
       </div>
 
       <div className="mb-4">
-        <NLInput onParsed={(tasks, r) => setPreview({ parsed: tasks, raw: r })} />
+        <NLInput
+          onResult={(actions, r) => setPreview({ actions, raw: r })}
+          tasks={tasks}
+        />
       </div>
 
       {preview && (
         <div className="mb-4">
-          <MultiTaskPreview tasks={preview.parsed} raw={preview.raw} onConfirm={handleConfirm} onCancel={() => setPreview(null)} />
+          <ActionPreview
+            actions={preview.actions}
+            raw={preview.raw}
+            allTasks={tasks}
+            onDone={handleActionDone}
+            onCancel={() => setPreview(null)}
+          />
         </div>
       )}
 
@@ -71,3 +91,4 @@ export default function AllTasksPage() {
     </div>
   );
 }
+

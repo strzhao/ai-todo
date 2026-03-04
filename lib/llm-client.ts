@@ -18,7 +18,7 @@ export class LLMClient {
     this.apiKey = options.apiKey || process.env.DEEPSEEK_API_KEY || "";
     this.model = options.model || process.env.DEEPSEEK_MODEL || "deepseek-chat";
     this.baseUrl = (options.baseUrl || process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/$/, "");
-    this.timeoutMs = Math.max(1_000, Math.trunc((options.timeoutSeconds ?? 30) * 1_000));
+    this.timeoutMs = Math.max(1_000, Math.trunc((options.timeoutSeconds ?? 55) * 1_000));
 
     if (!this.apiKey) {
       throw new LLMError("Missing DEEPSEEK_API_KEY");
@@ -61,6 +61,14 @@ export class LLMClient {
         throw new LLMError(`Unexpected LLM response: ${text}`);
       }
       return content;
+    } catch (err) {
+      if (err instanceof LLMError) {
+        throw err;
+      }
+      if ((err as { name?: string }).name === "AbortError") {
+        throw new LLMError(`LLM request timeout after ${this.timeoutMs}ms`);
+      }
+      throw new LLMError(`LLM request failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       clearTimeout(timer);
     }

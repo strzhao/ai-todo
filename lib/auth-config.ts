@@ -1,16 +1,25 @@
 const DEFAULT_AUTH_ISSUER = "https://user.stringzhao.life";
 const DEFAULT_AUTH_SERVICE_ID = "base-account-client";
 const DEFAULT_APP_ORIGIN = "https://ai-todo.stringzhao.life";
+const DEFAULT_CALLBACK_PATH = "/auth/callback";
 
-export const CALLBACK_PATH = "/auth/callback";
+export const CALLBACK_PATH =
+  process.env.NEXT_PUBLIC_AUTH_CALLBACK_PATH ?? DEFAULT_CALLBACK_PATH;
 export const AUTH_STATE_COOKIE = "auth_state";
 export const AUTH_NEXT_COOKIE = "auth_next";
-export const AUTH_ISSUER = process.env.AUTH_ISSUER ?? DEFAULT_AUTH_ISSUER;
+export const AUTH_ISSUER =
+  process.env.AUTH_ISSUER ??
+  process.env.NEXT_PUBLIC_AUTH_ISSUER ??
+  DEFAULT_AUTH_ISSUER;
 export const AUTH_SERVICE_ID =
   process.env.AUTH_SERVICE_ID ??
   process.env.AUTH_AUDIENCE ??
+  process.env.NEXT_PUBLIC_AUTH_AUDIENCE ??
   DEFAULT_AUTH_SERVICE_ID;
-export const APP_ORIGIN = process.env.APP_ORIGIN ?? DEFAULT_APP_ORIGIN;
+export const APP_ORIGIN =
+  process.env.APP_ORIGIN ??
+  process.env.NEXT_PUBLIC_APP_ORIGIN ??
+  DEFAULT_APP_ORIGIN;
 
 export function normalizeNextPath(rawPath: string | null | undefined): string {
   if (!rawPath || !rawPath.startsWith("/") || rawPath.startsWith("//")) {

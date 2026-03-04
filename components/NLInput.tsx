@@ -3,15 +3,17 @@
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import type { ParsedTask, SpaceMember } from "@/lib/types";
+import type { ParsedAction, ParsedTask, Task, SpaceMember } from "@/lib/types";
 
 interface Props {
-  onParsed: (results: ParsedTask[], raw: string) => void;
+  onResult?: (actions: ParsedAction[], raw: string) => void;
+  onParsed?: (tasks: ParsedTask[], raw: string) => void;
+  tasks?: Task[];
   spaceId?: string;
   members?: SpaceMember[];
 }
 
-export function NLInput({ onParsed, spaceId, members }: Props) {
+export function NLInput({ onResult, onParsed, tasks, spaceId, members }: Props) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -35,6 +37,13 @@ export function NLInput({ onParsed, spaceId, members }: Props) {
     setMentionQuery(null);
 
     try {
+      const tasksCtx = tasks?.map((t) => ({
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        priority: t.priority,
+      })) ?? [];
+
       const res = await fetch("/api/parse-task", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -45,6 +54,7 @@ export function NLInput({ onParsed, spaceId, members }: Props) {
           ...(activeMembers.length > 0
             ? { members: activeMembers.map((m) => ({ email: m.email, display_name: m.display_name })) }
             : {}),
+          ...(tasksCtx.length > 0 ? { tasks: tasksCtx } : {}),
         }),
       });
 
@@ -54,8 +64,12 @@ export function NLInput({ onParsed, spaceId, members }: Props) {
         return;
       }
 
-      const data = await res.json() as { tasks: ParsedTask[] };
-      onParsed(data.tasks, text);
+      const data = await res.json() as { actions?: ParsedAction[]; tasks?: unknown[] };
+      // 兼容旧格式
+      const actions: ParsedAction[] = data.actions ?? [{ type: "create", tasks: (data.tasks ?? []) as import("@/lib/types").ParsedTask[] }];
+      const createdTasks = actions.flatMap((a) => a.type === "create" ? (a.tasks ?? []) : []);
+      if (onResult) onResult(actions, text);
+      if (onParsed) onParsed(createdTasks, text);
       setText("");
     } catch {
       setError("网络错误，请重试");
@@ -124,8 +138,8 @@ export function NLInput({ onParsed, spaceId, members }: Props) {
         ref={textareaRef}
         placeholder={
           spaceId
-            ? '用自然语言描述任务，支持 @成员 指派，例如："@alice 明天下午 review API 文档，高优"'
-            : '用自然语言描述任务，例如："明天下午三点和客户开会，优先级高"'
+            ? '描述任务或操作，支持 @成员 指派，例如："@alice 明天 review API 文档"、"完成调研任务"'
+            : '描述任务或操作，例如："明天三点开会"、"完成写报告"、"把调研改成高优"'
         }
         value={text}
         onChange={onTextChange}

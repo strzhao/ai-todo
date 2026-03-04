@@ -5,21 +5,7 @@ import { TaskItem } from "./TaskItem";
 import { TaskSkeleton } from "./TaskSkeleton";
 import { EmptyState } from "./EmptyState";
 import type { Task } from "@/lib/types";
-
-type TaskNode = Task & { subtasks: Task[] };
-
-function buildTree(tasks: Task[]): TaskNode[] {
-  const map = new Map<string, TaskNode>(tasks.map((t) => [t.id, { ...t, subtasks: [] }]));
-  const roots: TaskNode[] = [];
-  for (const t of tasks) {
-    if (t.parent_id && map.has(t.parent_id)) {
-      map.get(t.parent_id)!.subtasks.push(map.get(t.id)!);
-    } else {
-      roots.push(map.get(t.id)!);
-    }
-  }
-  return roots;
-}
+import { buildTree, type TaskNode } from "@/lib/task-utils";
 
 interface Props {
   tasks: Task[];

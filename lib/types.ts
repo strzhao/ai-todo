@@ -4,6 +4,8 @@ export interface Task {
   title: string;
   description?: string;
   due_date?: string; // ISO 8601
+  start_date?: string; // ISO 8601 计划开始时间
+  end_date?: string;   // ISO 8601 计划结束时间
   priority: 0 | 1 | 2 | 3; // 0=P0紧急 1=P1高 2=P2普通 3=P3低
   status: 0 | 2; // 0=待办 2=已完成
   tags: string[];
@@ -23,6 +25,8 @@ export interface ParsedTask {
   title: string;
   description?: string;
   due_date?: string;
+  start_date?: string;
+  end_date?: string;
   priority?: 0 | 1 | 2 | 3;
   tags?: string[];
   // Phase B: @mention
@@ -57,4 +61,47 @@ export interface SpaceMember {
   role: "owner" | "member";
   status: "active" | "pending";
   joined_at: string;
+}
+
+// Phase E: Task logs (progress updates)
+export interface TaskLog {
+  id: string;
+  task_id: string;
+  user_id: string;
+  user_email: string;
+  content: string;
+  created_at: string;
+}
+
+// Phase F: AI-First — all operations via NLInput
+export interface ParsedActionChanges {
+  title?: string;
+  description?: string;
+  priority?: 0 | 1 | 2 | 3;
+  due_date?: string;
+  start_date?: string;
+  end_date?: string;
+  tags?: string[];
+  assignee_email?: string | null;
+}
+
+export interface ParsedAction {
+  type: "create" | "update" | "complete" | "delete" | "add_log";
+  // For create
+  tasks?: ParsedTask[];
+  // For update/complete/delete/add_log
+  target_id?: string;    // AI 从 tasks 上下文匹配到的 UUID（优先）
+  target_title?: string; // 显示/客户端 fuzzy match 兜底
+  // For update
+  changes?: ParsedActionChanges;
+  // For add_log
+  log_content?: string;
+}
+
+export interface ActionResult {
+  created?: Task[];
+  updated?: Task[];
+  completed?: string[];  // task IDs
+  deleted?: string[];    // task IDs
+  logged?: Array<{ taskId: string }>;
 }
