@@ -61,7 +61,7 @@ export default function TodayPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="app-content">
       <div className="mb-6">
         <h1 className="text-xl font-semibold">今日待办</h1>
         <p className="text-sm text-muted-foreground mt-0.5">{todayText}</p>

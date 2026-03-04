@@ -18,14 +18,14 @@ export default function SpacesPage() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="app-content">
         <div className="text-sm text-muted-foreground">加载中...</div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="app-content">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">项目空间</h1>
         <Link href="/spaces/new">

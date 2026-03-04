@@ -111,7 +111,7 @@ export default function SpacePage({ params }: SpacePageProps) {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="app-content">
         <div className="text-sm text-muted-foreground">加载中...</div>
       </div>
     );
@@ -119,14 +119,14 @@ export default function SpacePage({ params }: SpacePageProps) {
 
   if (!space) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="app-content">
         <p className="text-sm text-muted-foreground">空间不存在或你没有访问权限</p>
       </div>
     );
   }
 
   return (
-    <div className={`mx-auto px-4 py-8 ${tab === "gantt" ? "max-w-5xl" : "max-w-2xl"}`}>
+    <div className={tab === "gantt" ? "app-content-wide" : "app-content"}>
       <div className="flex items-center justify-between mb-4">
         {focusedTask ? (
           <h1 className="text-xl font-semibold flex items-center gap-1.5 min-w-0">

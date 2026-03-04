@@ -71,6 +71,8 @@
 
 :root {
   --radius: 0.625rem;
+  --content-max: 56rem;
+  --content-wide-max: 64rem;
 
   --home-ink: oklch(0.155 0.006 95);
   --home-paper: oklch(0.975 0.010 95);
@@ -242,7 +244,23 @@
     @apply border-border outline-ring/50;
   }
 
+  html {
+    font-size: 18px;
+  }
+
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .app-content {
+    @apply mx-auto w-full px-4 py-8;
+    max-width: var(--content-max);
+  }
+
+  .app-content-wide {
+    @apply mx-auto w-full px-4 py-8;
+    max-width: var(--content-wide-max);
   }
 }
