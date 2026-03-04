@@ -14,13 +14,16 @@ interface SpaceTaskItem {
 interface Props {
   spaces: (Task & { name?: string })[];
   userEmail: string;
+  isDev?: boolean;
 }
 
-export function SpaceNav({ spaces, userEmail }: Props) {
+export function SpaceNav({ spaces, userEmail, isDev }: Props) {
   const pathname = usePathname();
   const [spaceTasks, setSpaceTasks] = useState<SpaceTaskItem[]>([]);
   const [openMenuSpaceId, setOpenMenuSpaceId] = useState<string | null>(null);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
 
   // Extract current space ID from pathname (e.g. /spaces/abc123 or /spaces/abc123/settings)
   const spaceMatch = pathname.match(/^\/spaces\/([^/]+)/);
@@ -48,6 +51,10 @@ export function SpaceNav({ spaces, userEmail }: Props) {
       .catch(() => {});
   }, [currentSpaceId, isValidSpaceId]);
 
+  function handleLogout() {
+    window.location.href = "/api/auth/logout";
+  }
+
   async function handleUnpin(spaceId: string) {
     await fetch(`/api/tasks/${spaceId}`, {
       method: "PATCH",
@@ -56,6 +63,17 @@ export function SpaceNav({ spaces, userEmail }: Props) {
     });
     window.location.reload();
   }
+
+  useEffect(() => {
+    if (!accountMenuOpen) return;
+    function handler(e: MouseEvent) {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target as Node)) {
+        setAccountMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [accountMenuOpen]);
 
   useEffect(() => {
     if (!openMenuSpaceId) return;
@@ -168,7 +186,31 @@ export function SpaceNav({ spaces, userEmail }: Props) {
         </div>
 
         <div className="px-3 pt-4 border-t border-border/60">
-          <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
+          <div className="group/account flex items-center gap-2 relative" ref={accountMenuRef}>
+            <p className="text-xs text-muted-foreground truncate flex-1">{userEmail}</p>
+            {isDev && (
+              <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200 shrink-0">
+                DEV
+              </span>
+            )}
+            <button
+              onClick={() => setAccountMenuOpen((v) => !v)}
+              className="opacity-0 group-hover/account:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:bg-muted text-xs shrink-0"
+              title="更多操作"
+            >
+              ⋯
+            </button>
+            {accountMenuOpen && (
+              <div className="absolute right-0 bottom-full mb-1 z-50 bg-popover border border-border rounded-md shadow-md min-w-[100px] py-1">
+                <button
+                  onClick={() => { setAccountMenuOpen(false); handleLogout(); }}
+                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted/60"
+                >
+                  退出登录
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </nav>
 

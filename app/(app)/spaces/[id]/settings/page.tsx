@@ -14,12 +14,23 @@ export default function SpaceSettingsPage({ params }: Props) {
   const [space, setSpace] = useState<Space | null>(null);
   const [members, setMembers] = useState<TaskMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const [origin, setOrigin] = useState("");
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [dissolveConfirm, setDissolveConfirm] = useState("");
   const [dissolving, setDissolving] = useState(false);
+
+  useEffect(() => {
+    // Read browser origin only after hydration to keep initial markup stable.
+    setOrigin(window.location.origin);
+  }, []);
+
+  function buildInviteLink(inviteCode?: string, baseOrigin = origin) {
+    if (!inviteCode) return "";
+    return baseOrigin ? `${baseOrigin}/join/${inviteCode}` : `/join/${inviteCode}`;
+  }
 
   useEffect(() => {
     params.then(({ id }) => {
@@ -47,8 +58,8 @@ export default function SpaceSettingsPage({ params }: Props) {
   }
 
   function copyInviteLink() {
-    if (!space) return;
-    const link = `${typeof window !== "undefined" ? window.location.origin : ""}/join/${space.invite_code}`;
+    if (!space?.invite_code) return;
+    const link = buildInviteLink(space.invite_code, window.location.origin);
     navigator.clipboard.writeText(link).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -98,7 +109,7 @@ export default function SpaceSettingsPage({ params }: Props) {
   const isOwner = space.my_role === "owner";
   const pendingMembers = members.filter((m) => m.status === "pending");
   const activeMembers = members.filter((m) => m.status === "active");
-  const inviteLink = `${typeof window !== "undefined" ? window.location.origin : ""}/join/${space.invite_code}`;
+  const inviteLink = buildInviteLink(space.invite_code);
 
   return (
     <div className="max-w-lg mx-auto px-4 py-8 space-y-8">

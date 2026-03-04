@@ -11,6 +11,7 @@ export default function TodayPage() {
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
   const [preview, setPreview] = useState<{ actions: ParsedAction[]; raw: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [todayText, setTodayText] = useState("今天");
 
   useEffect(() => {
     Promise.all([
@@ -20,6 +21,13 @@ export default function TodayPage() {
       setTasks(active);
       setCompletedTasks(Array.isArray(completed) ? completed.filter((t) => t.status === 2) : []);
     }).finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    // Compute locale-sensitive text after hydration to avoid SSR/CSR mismatch.
+    setTodayText(new Date().toLocaleDateString("zh-CN", {
+      month: "long", day: "numeric", weekday: "long",
+    }));
   }, []);
 
   function handleActionDone(result: ActionResult) {
@@ -52,15 +60,11 @@ export default function TodayPage() {
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, ...updates } : t));
   }
 
-  const today = new Date().toLocaleDateString("zh-CN", {
-    month: "long", day: "numeric", weekday: "long",
-  });
-
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <div className="mb-6">
         <h1 className="text-xl font-semibold">今日待办</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">{today}</p>
+        <p className="text-sm text-muted-foreground mt-0.5">{todayText}</p>
       </div>
 
       <div className="mb-4">
@@ -95,4 +99,3 @@ export default function TodayPage() {
     </div>
   );
 }
-

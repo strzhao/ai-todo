@@ -13,7 +13,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-background">
-      <SpaceNav spaces={spacesForNav} userEmail={user.email} />
+      <SpaceNav spaces={spacesForNav} userEmail={user.email} isDev={process.env.AUTH_DEV_BYPASS === "true"} />
       {/* Desktop: offset for sidebar; mobile: offset for bottom tab */}
       <main className="md:ml-52 pb-16 md:pb-0">
         {children}
