@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { NLInput } from "@/components/NLInput";
-import { ParsePreviewCard } from "@/components/ParsePreviewCard";
+import { MultiTaskPreview } from "@/components/MultiTaskPreview";
 import { TaskList } from "@/components/TaskList";
 import type { ParsedTask, Task } from "@/lib/types";
 
 export default function TodayPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
-  const [preview, setPreview] = useState<{ parsed: ParsedTask; raw: string } | null>(null);
+  const [preview, setPreview] = useState<{ parsed: ParsedTask[]; raw: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,19 +22,19 @@ export default function TodayPage() {
     }).finally(() => setLoading(false));
   }, []);
 
-  function handleConfirm(task: Task) {
-    setTasks((prev) => [task, ...prev]);
+  function handleConfirm(newTasks: Task[]) {
+    setTasks((prev) => [...newTasks, ...prev]);
     setPreview(null);
   }
 
   function handleComplete(id: string) {
     const completed = tasks.find((t) => t.id === id);
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+    setTasks((prev) => prev.filter((t) => t.id !== id && t.parent_id !== id));
     if (completed) setCompletedTasks((prev) => [{ ...completed, status: 2 as const }, ...prev].slice(0, 20));
   }
 
   function handleDelete(id: string) {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+    setTasks((prev) => prev.filter((t) => t.id !== id && t.parent_id !== id));
   }
 
   function handleUpdate(id: string, updates: Partial<Task>) {
@@ -53,12 +53,12 @@ export default function TodayPage() {
       </div>
 
       <div className="mb-4">
-        <NLInput onParsed={(p, r) => setPreview({ parsed: p, raw: r })} />
+        <NLInput onParsed={(tasks, r) => setPreview({ parsed: tasks, raw: r })} />
       </div>
 
       {preview && (
         <div className="mb-4">
-          <ParsePreviewCard parsed={preview.parsed} onConfirm={handleConfirm} onCancel={() => setPreview(null)} />
+          <MultiTaskPreview tasks={preview.parsed} raw={preview.raw} onConfirm={handleConfirm} onCancel={() => setPreview(null)} />
         </div>
       )}
 

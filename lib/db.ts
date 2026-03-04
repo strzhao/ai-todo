@@ -59,12 +59,14 @@ export async function initDb() {
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS assignee_id TEXT`;
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS assignee_email TEXT`;
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS mentioned_emails TEXT[] DEFAULT '{}'`;
+  await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES ai_todo_tasks(id) ON DELETE CASCADE`;
 
   // 5. Indexes
   await sql`CREATE INDEX IF NOT EXISTS idx_ai_todo_tasks_user_id ON ai_todo_tasks(user_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_ai_todo_tasks_due     ON ai_todo_tasks(user_id, due_date)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_tasks_space           ON ai_todo_tasks(space_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_tasks_assignee        ON ai_todo_tasks(assignee_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_tasks_parent          ON ai_todo_tasks(parent_id)`;
 }
 
 // ─── Row mapping ─────────────────────────────────────────────────────────────
@@ -86,6 +88,7 @@ function rowToTask(row: Record<string, unknown>): Task {
     assignee_id: (row.assignee_id as string) || undefined,
     assignee_email: (row.assignee_email as string) || undefined,
     mentioned_emails: (row.mentioned_emails as string[]) ?? [],
+    parent_id: (row.parent_id as string) || undefined,
   };
 }
 
@@ -224,13 +227,14 @@ export interface CreateTaskData extends ParsedTask {
   assigneeId?: string;
   assigneeEmail?: string;
   mentionedEmails?: string[];
+  parentId?: string;
 }
 
 export async function createTask(userId: string, data: CreateTaskData): Promise<Task> {
   const { rows } = await sql.query(
     `INSERT INTO ai_todo_tasks
-       (user_id, title, description, due_date, priority, tags, space_id, assignee_id, assignee_email, mentioned_emails)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       (user_id, title, description, due_date, priority, tags, space_id, assignee_id, assignee_email, mentioned_emails, parent_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
      RETURNING *`,
     [
       userId,
@@ -243,6 +247,7 @@ export async function createTask(userId: string, data: CreateTaskData): Promise<
       data.assigneeId ?? null,
       data.assigneeEmail ?? null,
       data.mentionedEmails ?? [],
+      data.parentId ?? null,
     ]
   );
   return rowToTask(rows[0]);
@@ -256,6 +261,11 @@ export async function completeTask(taskId: string, userId: string): Promise<Task
     UPDATE ai_todo_tasks SET status = 2, completed_at = NOW()
     WHERE id = ${taskId}
     RETURNING *
+  `;
+  // Cascade: complete all incomplete children
+  await sql`
+    UPDATE ai_todo_tasks SET status = 2, completed_at = NOW()
+    WHERE parent_id = ${taskId} AND status = 0
   `;
   return rowToTask(rows[0]);
 }

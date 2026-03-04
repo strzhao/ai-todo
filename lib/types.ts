@@ -15,6 +15,8 @@ export interface Task {
   assignee_id?: string;
   assignee_email?: string;
   mentioned_emails?: string[];
+  // Phase D: hierarchy (max 2 levels)
+  parent_id?: string;
 }
 
 export interface ParsedTask {
@@ -26,6 +28,8 @@ export interface ParsedTask {
   // Phase B: @mention
   assignee?: string;
   mentions?: string[];
+  // Phase D: hierarchy — subtasks (max 1 level deep in AI output)
+  children?: Omit<ParsedTask, "children">[];
 }
 
 // Phase C: Project Spaces

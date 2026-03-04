@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import type { ParsedTask, SpaceMember } from "@/lib/types";
 
 interface Props {
-  onParsed: (result: ParsedTask, raw: string) => void;
+  onParsed: (results: ParsedTask[], raw: string) => void;
   spaceId?: string;
   members?: SpaceMember[];
 }
@@ -54,8 +54,8 @@ export function NLInput({ onParsed, spaceId, members }: Props) {
         return;
       }
 
-      const parsed = await res.json() as ParsedTask;
-      onParsed(parsed, text);
+      const data = await res.json() as { tasks: ParsedTask[] };
+      onParsed(data.tasks, text);
       setText("");
     } catch {
       setError("网络错误，请重试");

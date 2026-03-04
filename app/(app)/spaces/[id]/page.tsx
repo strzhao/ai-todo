@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { NLInput } from "@/components/NLInput";
-import { ParsePreviewCard } from "@/components/ParsePreviewCard";
+import { MultiTaskPreview } from "@/components/MultiTaskPreview";
 import { TaskList } from "@/components/TaskList";
 import type { ParsedTask, Task, Space, SpaceMember } from "@/lib/types";
 
@@ -17,7 +17,7 @@ export default function SpacePage({ params }: SpacePageProps) {
   const [members, setMembers] = useState<SpaceMember[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
-  const [preview, setPreview] = useState<{ parsed: ParsedTask; raw: string } | null>(null);
+  const [preview, setPreview] = useState<{ parsed: ParsedTask[]; raw: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [filterMember, setFilterMember] = useState<string>("all");
 
@@ -35,19 +35,19 @@ export default function SpacePage({ params }: SpacePageProps) {
     });
   }, [params]);
 
-  function handleConfirm(task: Task) {
-    setTasks((prev) => [task, ...prev]);
+  function handleConfirm(newTasks: Task[]) {
+    setTasks((prev) => [...newTasks, ...prev]);
     setPreview(null);
   }
 
   function handleComplete(id: string) {
     const done = tasks.find((t) => t.id === id);
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+    setTasks((prev) => prev.filter((t) => t.id !== id && t.parent_id !== id));
     if (done) setCompletedTasks((prev) => [{ ...done, status: 2 as const }, ...prev].slice(0, 20));
   }
 
   function handleDelete(id: string) {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+    setTasks((prev) => prev.filter((t) => t.id !== id && t.parent_id !== id));
   }
 
   function handleUpdate(id: string, updates: Partial<Task>) {
@@ -127,7 +127,7 @@ export default function SpacePage({ params }: SpacePageProps) {
 
       <div className="mb-4">
         <NLInput
-          onParsed={(p, r) => setPreview({ parsed: p, raw: r })}
+          onParsed={(tasks, r) => setPreview({ parsed: tasks, raw: r })}
           spaceId={spaceId}
           members={members}
         />
@@ -135,8 +135,9 @@ export default function SpacePage({ params }: SpacePageProps) {
 
       {preview && (
         <div className="mb-4">
-          <ParsePreviewCard
-            parsed={preview.parsed}
+          <MultiTaskPreview
+            tasks={preview.parsed}
+            raw={preview.raw}
             onConfirm={handleConfirm}
             onCancel={() => setPreview(null)}
             spaceId={spaceId}

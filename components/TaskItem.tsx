@@ -15,21 +15,24 @@ const PRIORITY_BADGES: Record<number, { label: string; cls: string }> = {
 
 interface Props {
   task: Task;
+  subtasks?: Task[];
   onComplete: (id: string) => void;
   onDelete: (id: string) => void;
   onUpdate?: (id: string, updates: Partial<Task>) => void;
   currentUserEmail?: string;
 }
 
-export function TaskItem({ task, onComplete, onDelete, onUpdate, currentUserEmail }: Props) {
+export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, currentUserEmail }: Props) {
   const [completing, setCompleting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const [saving, setSaving] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const p = PRIORITY_BADGES[task.priority] ?? PRIORITY_BADGES[2];
+  const hasSubtasks = (subtasks?.length ?? 0) > 0;
 
   async function handleComplete() {
     if (completing) return;
@@ -110,72 +113,100 @@ export function TaskItem({ task, onComplete, onDelete, onUpdate, currentUserEmai
   const isAssignedToOther = task.assignee_email && task.assignee_email !== currentUserEmail;
 
   return (
-    <div
-      className={`flex items-start gap-3 py-3 px-1 group border-b last:border-0 border-border/50 transition-opacity focus-visible:outline-none focus-visible:bg-muted/40 rounded-sm ${completing ? "opacity-40" : ""}`}
-      tabIndex={0}
-      onKeyDown={onRowKeyDown}
-      aria-label={`任务: ${task.title}`}
-    >
-      {/* Checkbox */}
-      <button
-        onClick={handleComplete}
-        className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full border-2 border-muted-foreground/40 hover:border-primary transition-colors"
-        aria-label="完成任务"
-        tabIndex={-1}
-      />
+    <div className={`border-b last:border-0 border-border/50 ${completing ? "opacity-40" : ""}`}>
+      {/* Main task row */}
+      <div
+        className="flex items-start gap-3 py-3 px-1 group transition-opacity focus-visible:outline-none focus-visible:bg-muted/40 rounded-sm"
+        tabIndex={0}
+        onKeyDown={onRowKeyDown}
+        aria-label={`任务: ${task.title}`}
+      >
+        {/* Checkbox */}
+        <button
+          onClick={handleComplete}
+          className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full border-2 border-muted-foreground/40 hover:border-primary transition-colors"
+          aria-label="完成任务"
+          tabIndex={-1}
+        />
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        {editing ? (
-          <input
-            ref={inputRef}
-            value={editTitle}
-            onChange={(e) => setEditTitle(e.target.value)}
-            onBlur={saveEdit}
-            onKeyDown={onEditKeyDown}
-            disabled={saving}
-            className="w-full text-sm font-medium bg-transparent border-b-2 border-primary outline-none pb-0.5"
-          />
-        ) : (
-          <p
-            className="text-sm font-medium leading-5 truncate cursor-text hover:text-primary/80 transition-colors"
-            onClick={startEdit}
-            title="单击编辑"
-          >
-            {task.title}
-          </p>
-        )}
-        {task.description && (
-          <p className="text-xs text-muted-foreground mt-0.5 truncate">{task.description}</p>
-        )}
-        <div className="flex gap-1.5 mt-1.5 flex-wrap items-center">
-          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.cls}`}>
-            {p.label}
-          </Badge>
-          {task.due_date && (
-            <span className="text-[10px] text-muted-foreground">📅 {formatDue(task.due_date)}</span>
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          {editing ? (
+            <input
+              ref={inputRef}
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onBlur={saveEdit}
+              onKeyDown={onEditKeyDown}
+              disabled={saving}
+              className="w-full text-sm font-medium bg-transparent border-b-2 border-primary outline-none pb-0.5"
+            />
+          ) : (
+            <p
+              className="text-sm font-medium leading-5 truncate cursor-text hover:text-primary/80 transition-colors"
+              onClick={startEdit}
+              title="单击编辑"
+            >
+              {task.title}
+            </p>
           )}
-          {task.tags.map((tag) => (
-            <span key={tag} className="text-[10px] text-muted-foreground">#{tag}</span>
-          ))}
-          {isAssignedToOther && (
-            <AssigneeBadge email={task.assignee_email!} isMe={false} />
+          {task.description && (
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">{task.description}</p>
           )}
+          <div className="flex gap-1.5 mt-1.5 flex-wrap items-center">
+            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.cls}`}>
+              {p.label}
+            </Badge>
+            {task.due_date && (
+              <span className="text-[10px] text-muted-foreground">📅 {formatDue(task.due_date)}</span>
+            )}
+            {task.tags.map((tag) => (
+              <span key={tag} className="text-[10px] text-muted-foreground">#{tag}</span>
+            ))}
+            {isAssignedToOther && (
+              <AssigneeBadge email={task.assignee_email!} isMe={false} />
+            )}
+            {/* Subtask count toggle */}
+            {hasSubtasks && (
+              <button
+                onClick={() => setExpanded((v) => !v)}
+                className="text-[10px] px-1.5 py-0 rounded border border-border text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
+              >
+                {expanded ? "▼" : "▶"} {subtasks!.length} 子任务
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Delete */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+          onClick={handleDelete}
+          disabled={deleting}
+          aria-label="删除任务"
+          tabIndex={-1}
+        >
+          ×
+        </Button>
       </div>
 
-      {/* Delete */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-        onClick={handleDelete}
-        disabled={deleting}
-        aria-label="删除任务"
-        tabIndex={-1}
-      >
-        ×
-      </Button>
+      {/* Subtasks (expanded) */}
+      {expanded && hasSubtasks && (
+        <div className="pl-7 pb-1">
+          {subtasks!.map((sub) => (
+            <TaskItem
+              key={sub.id}
+              task={sub}
+              onComplete={onComplete}
+              onDelete={onDelete}
+              onUpdate={onUpdate}
+              currentUserEmail={currentUserEmail}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

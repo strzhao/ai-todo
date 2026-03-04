@@ -6,6 +6,21 @@ import { TaskSkeleton } from "./TaskSkeleton";
 import { EmptyState } from "./EmptyState";
 import type { Task } from "@/lib/types";
 
+type TaskNode = Task & { subtasks: Task[] };
+
+function buildTree(tasks: Task[]): TaskNode[] {
+  const map = new Map<string, TaskNode>(tasks.map((t) => [t.id, { ...t, subtasks: [] }]));
+  const roots: TaskNode[] = [];
+  for (const t of tasks) {
+    if (t.parent_id && map.has(t.parent_id)) {
+      map.get(t.parent_id)!.subtasks.push(map.get(t.id)!);
+    } else {
+      roots.push(map.get(t.id)!);
+    }
+  }
+  return roots;
+}
+
 interface Props {
   tasks: Task[];
   completedTasks?: Task[];
@@ -37,12 +52,15 @@ export function TaskList({
     return <EmptyState text={emptyText} subtext={emptySubtext} />;
   }
 
+  const tree = buildTree(tasks);
+
   return (
     <div>
-      {tasks.map((task) => (
+      {tree.map((node) => (
         <TaskItem
-          key={task.id}
-          task={task}
+          key={node.id}
+          task={node}
+          subtasks={node.subtasks}
           onComplete={onComplete}
           onDelete={onDelete}
           onUpdate={onUpdate}

@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
   await initDb();
 
-  const body = await req.json() as ParsedTask & { space_id?: string; assignee_email?: string };
+  const body = await req.json() as ParsedTask & { space_id?: string; assignee_email?: string; parent_id?: string };
   if (!body.title?.trim()) {
     return NextResponse.json({ error: "title is required" }, { status: 400 });
   }
@@ -51,6 +51,14 @@ export async function POST(req: NextRequest) {
     if (!member || member.status !== "active") {
       return NextResponse.json({ error: "Not a space member" }, { status: 403 });
     }
+  }
+
+  // Enforce max 2 levels: parent must be a root task (no parent_id)
+  if (body.parent_id) {
+    const { sql } = await import("@vercel/postgres");
+    const { rows } = await sql`SELECT parent_id FROM ai_todo_tasks WHERE id = ${body.parent_id}`;
+    if (!rows[0]) return NextResponse.json({ error: "父任务不存在" }, { status: 400 });
+    if (rows[0].parent_id) return NextResponse.json({ error: "最多支持 2 层任务" }, { status: 400 });
   }
 
   // Resolve assignee user_id from space members list
@@ -72,6 +80,7 @@ export async function POST(req: NextRequest) {
     assigneeId,
     assigneeEmail,
     mentionedEmails: body.mentions ?? [],
+    parentId: body.parent_id,
   });
 
   return NextResponse.json(task, { status: 201 });

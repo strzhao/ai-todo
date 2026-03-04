@@ -98,7 +98,7 @@ app/
   api/
     auth/session/route.ts       # 写入本域 access_token/refresh_token
     auth/exchange/route.ts      # 服务端中转：转发 refresh 请求给认证服务器（避免 CORS）
-    parse-task/route.ts         # AI 解析自然语言 → ParsedTask JSON（含 @mention）
+    parse-task/route.ts         # AI 解析自然语言 → { tasks: ParsedTask[] }（支持多任务拆分 + children 层级）
     tasks/route.ts              # GET（列表/今日/已完成/空间/指派）+ POST（创建）
     tasks/[id]/route.ts         # PATCH（完成/更新）+ DELETE
     spaces/route.ts             # GET（我的空间列表）+ POST（创建空间）
@@ -109,9 +109,10 @@ app/
 components/
   SpaceNav.tsx                  # 侧边栏导航（桌面）+ 底部 Tab（移动端）
   NLInput.tsx                   # 自然语言输入框，Cmd+K 聚焦，@ 触发成员菜单
-  ParsePreviewCard.tsx          # AI 解析预览 + 确认创建（支持空间/负责人）
-  TaskItem.tsx                  # 单条任务行（内联编辑 + 键盘导航 + AssigneeBadge）
-  TaskList.tsx                  # 任务列表（骨架屏 + 已完成折叠区域）
+  ParsePreviewCard.tsx          # AI 解析预览 + 确认创建（支持空间/负责人，单任务路径）
+  MultiTaskPreview.tsx          # 多任务/层级任务预览 + 批量创建（先建父任务再建子任务）
+  TaskItem.tsx                  # 单条任务行（内联编辑 + 键盘导航 + 子任务折叠展开）
+  TaskList.tsx                  # 任务列表（buildTree 组装父子关系 + 骨架屏 + 已完成折叠）
   AssigneeBadge.tsx             # 显示非自己的负责人徽章
   TaskSkeleton.tsx              # 加载骨架屏（3 行）
   EmptyState.tsx                # 空状态展示组件
@@ -141,3 +142,11 @@ proxy.ts                        # 路由保护（未登录重定向到 /authoriz
 |----|------|
 | 0  | 待办 |
 | 2  | 已完成 |
+
+## 任务层级
+
+- 最多 2 层：顶级任务（`parent_id IS NULL`）→ 子任务（`parent_id` 指向父任务 ID）
+- DB：`parent_id UUID REFERENCES ai_todo_tasks(id) ON DELETE CASCADE`（删父级联删子）
+- 完成父任务：`completeTask()` 同时将所有未完成子任务标记为 `status=2`（两条 UPDATE，非事务）
+- POST `/api/tasks` 携带 `parent_id` 时会校验父任务 `parent_id IS NULL`，防止超过 2 层
+- 客户端：`handleComplete/handleDelete` 用 `t.parent_id !== id` 同步移除子任务；`TaskList.buildTree()` 将 flat `Task[]` 组装为树传给 `TaskItem.subtasks`
