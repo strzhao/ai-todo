@@ -112,7 +112,7 @@ export default function JoinSpacePage({ params }: Props) {
             )}
 
             {status === "joined" && (
-              <div className="text-center text-sm text-green-600">
+              <div className="text-center text-sm text-sage">
                 ✓ 加入成功！正在跳转...
               </div>
             )}

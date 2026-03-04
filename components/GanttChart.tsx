@@ -10,17 +10,24 @@ interface Props {
 }
 
 const PRIORITY_COLORS: Record<number, string> = {
-  0: "bg-red-400",
-  1: "bg-orange-400",
-  2: "bg-blue-400",
-  3: "bg-gray-400",
+  0: "bg-danger",
+  1: "bg-warning",
+  2: "bg-info",
+  3: "bg-charcoal",
 };
 
 const PRIORITY_BORDER_COLORS: Record<number, string> = {
-  0: "border-red-500",
-  1: "border-orange-500",
-  2: "border-blue-500",
-  3: "border-gray-500",
+  0: "border-danger",
+  1: "border-warning",
+  2: "border-info",
+  3: "border-charcoal",
+};
+
+const PRIORITY_TEXT_COLORS: Record<number, string> = {
+  0: "text-danger-foreground",
+  1: "text-warning-foreground",
+  2: "text-info-foreground",
+  3: "text-paper",
 };
 
 export function GanttChart({ tasks, members, onTaskClick }: Props) {
@@ -130,7 +137,7 @@ export function GanttChart({ tasks, members, onTaskClick }: Props) {
               ))}
               {showTodayLine && (
                 <div
-                  className="absolute top-0 bottom-0 w-px bg-red-400/60 z-10"
+                  className="absolute top-0 bottom-0 w-px bg-warning opacity-60 z-10"
                   style={{ left: `${todayLeftPct}%` }}
                 />
               )}
@@ -157,6 +164,7 @@ export function GanttChart({ tasks, members, onTaskClick }: Props) {
 
               const colorClass = PRIORITY_COLORS[task.priority] ?? PRIORITY_COLORS[2];
               const borderClass = PRIORITY_BORDER_COLORS[task.priority] ?? PRIORITY_BORDER_COLORS[2];
+              const textClass = PRIORITY_TEXT_COLORS[task.priority] ?? PRIORITY_TEXT_COLORS[2];
 
               return (
                 <div
@@ -165,7 +173,7 @@ export function GanttChart({ tasks, members, onTaskClick }: Props) {
                 >
                   {showTodayLine && (
                     <div
-                      className="absolute top-0 bottom-0 w-px bg-red-400/20 z-0"
+                      className="absolute top-0 bottom-0 w-px bg-warning opacity-20 z-0"
                       style={{ left: `${todayLeftPct}%` }}
                     />
                   )}
@@ -181,7 +189,7 @@ export function GanttChart({ tasks, members, onTaskClick }: Props) {
                     onClick={() => onTaskClick?.(task.id)}
                   >
                     {!isDiamond && (
-                      <span className="absolute inset-0 flex items-center px-1.5 text-[9px] text-white font-medium truncate">
+                      <span className={`absolute inset-0 flex items-center px-1.5 text-[9px] ${textClass} font-medium truncate`}>
                         {task.assignee_email ? getMemberName(task.assignee_email, members) : ""}
                       </span>
                     )}

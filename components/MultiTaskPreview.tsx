@@ -10,10 +10,10 @@ import type { ParsedTask, Task } from "@/lib/types";
 
 const PRIORITY_LABELS: Record<number, string> = { 0: "P0", 1: "P1", 2: "P2", 3: "P3" };
 const PRIORITY_COLORS: Record<number, string> = {
-  0: "bg-red-100 text-red-700 border-red-200",
-  1: "bg-orange-100 text-orange-700 border-orange-200",
-  2: "bg-blue-100 text-blue-700 border-blue-200",
-  3: "bg-gray-100 text-gray-600 border-gray-200",
+  0: "bg-danger-soft text-danger border-danger/35",
+  1: "bg-warning-soft text-warning border-warning/40",
+  2: "bg-info-soft text-info border-info/35",
+  3: "bg-neutral-soft text-charcoal border-border/70",
 };
 
 interface Props {

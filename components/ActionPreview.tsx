@@ -46,7 +46,7 @@ function ActionRow({ action, allTasks }: { action: ParsedAction; allTasks: Task[
     const first = action.tasks?.[0];
     return (
       <div className="flex items-start gap-2 text-sm">
-        <span className="text-green-600 flex-shrink-0">＋</span>
+        <span className="text-sage flex-shrink-0">＋</span>
         <span>
           {count === 1 && first
             ? <>新建「<span className="font-medium">{first.title}</span>」{first.priority !== undefined && first.priority !== 2 ? ` · ${PRIORITY_LABELS[first.priority]}` : ""}{first.due_date ? ` · ${formatDate(first.due_date)}截止` : ""}</>
@@ -93,7 +93,7 @@ function ActionRow({ action, allTasks }: { action: ParsedAction; allTasks: Task[
     if (c.tags !== undefined) changeParts.push(`标签→[${c.tags.join(",")}]`);
     return (
       <div className={`flex items-start gap-2 text-sm ${notFound ? "text-destructive" : ""}`}>
-        <span className="flex-shrink-0 text-blue-500">↻</span>
+        <span className="flex-shrink-0 text-info">↻</span>
         <span>
           更新「<span className="font-medium">{displayTitle}</span>」：{changeParts.join("、") || "无变更"}
           {notFound && <span className="text-xs ml-1 text-destructive">（未找到匹配任务）</span>}

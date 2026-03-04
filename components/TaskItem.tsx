@@ -8,10 +8,10 @@ import { TaskDetail } from "@/components/TaskDetail";
 import type { Task } from "@/lib/types";
 
 const PRIORITY_BADGES: Record<number, { label: string; cls: string }> = {
-  0: { label: "P0", cls: "bg-red-100 text-red-700 border-red-200" },
-  1: { label: "P1", cls: "bg-orange-100 text-orange-700 border-orange-200" },
-  2: { label: "P2", cls: "bg-blue-100 text-blue-700 border-blue-200" },
-  3: { label: "P3", cls: "bg-gray-100 text-gray-500 border-gray-200" },
+  0: { label: "P0", cls: "bg-danger-soft text-danger border-danger/35" },
+  1: { label: "P1", cls: "bg-warning-soft text-warning border-warning/40" },
+  2: { label: "P2", cls: "bg-info-soft text-info border-info/35" },
+  3: { label: "P3", cls: "bg-neutral-soft text-charcoal border-border/70" },
 };
 
 interface Props {
