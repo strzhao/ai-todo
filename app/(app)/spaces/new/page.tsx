@@ -35,7 +35,9 @@ export default function NewSpacePage() {
       }
 
       const space = await res.json() as Space;
-      router.push(`/spaces/${space.id}`);
+      // 使用整页导航而非 router.push，确保 Server Component layout 重新执行
+      // getSpacesByUser()，新空间才会出现在侧边栏。
+      window.location.href = `/spaces/${space.id}`;
     } catch {
       setError("网络错误，请重试");
     } finally {

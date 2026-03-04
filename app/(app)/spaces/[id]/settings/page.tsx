@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Space, SpaceMember } from "@/lib/types";
@@ -11,7 +10,6 @@ interface Props {
 }
 
 export default function SpaceSettingsPage({ params }: Props) {
-  const router = useRouter();
   const [spaceId, setSpaceId] = useState("");
   const [space, setSpace] = useState<Space | null>(null);
   const [members, setMembers] = useState<SpaceMember[]>([]);
@@ -75,7 +73,7 @@ export default function SpaceSettingsPage({ params }: Props) {
     if (dissolveConfirm !== space?.name) return;
     setDissolving(true);
     await fetch(`/api/spaces/${spaceId}`, { method: "DELETE" });
-    router.push("/spaces");
+    window.location.href = "/spaces";
   }
 
   if (loading) {
