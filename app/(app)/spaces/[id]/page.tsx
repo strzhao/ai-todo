@@ -134,13 +134,13 @@ export default function SpacePage({ params }: SpacePageProps) {
               onClick={() => router.push(`/spaces/${spaceId}`)}
               className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
             >
-              {space.name}
+              {space.title}
             </button>
             <span className="text-muted-foreground/50 shrink-0">›</span>
             <span className="truncate">{focusedTask.title}</span>
           </h1>
         ) : (
-          <h1 className="text-xl font-semibold">{space.name}</h1>
+          <h1 className="text-xl font-semibold">{space.title}</h1>
         )}
         <Link href={`/spaces/${spaceId}/settings`} className="text-xs text-muted-foreground hover:text-foreground shrink-0 ml-2">
           设置

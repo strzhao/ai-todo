@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { Space, TaskMember } from "@/lib/types";
+import type { Space, TaskMember, SpaceMember } from "@/lib/types";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -29,7 +29,7 @@ export default function SpaceSettingsPage({ params }: Props) {
         .then((data: { space: Space; members: SpaceMember[] }) => {
           setSpace(data.space);
           setMembers(data.members);
-          setName(data.space.name);
+          setName(data.space.title);
         })
         .finally(() => setLoading(false));
     });
@@ -81,7 +81,7 @@ export default function SpaceSettingsPage({ params }: Props) {
   }
 
   async function dissolveSpace() {
-    if (dissolveConfirm !== space?.name) return;
+    if (dissolveConfirm !== space?.title) return;
     setDissolving(true);
     await fetch(`/api/spaces/${spaceId}`, { method: "DELETE" });
     window.location.href = "/spaces";
@@ -103,7 +103,7 @@ export default function SpaceSettingsPage({ params }: Props) {
   return (
     <div className="max-w-lg mx-auto px-4 py-8 space-y-8">
       <div>
-        <h1 className="text-xl font-semibold">{space.name} · 设置</h1>
+        <h1 className="text-xl font-semibold">{space.title} · 设置</h1>
       </div>
 
       {/* Basic Info */}
@@ -201,18 +201,18 @@ export default function SpaceSettingsPage({ params }: Props) {
           <h2 className="text-sm font-semibold text-destructive">危险操作</h2>
           <p className="text-xs text-muted-foreground">解散空间后，所有任务将归还到各成员的个人任务中，无法撤销。</p>
           <div className="space-y-2">
-            <label className="text-xs text-muted-foreground">输入空间名称确认：<strong>{space.name}</strong></label>
+            <label className="text-xs text-muted-foreground">输入空间名称确认：<strong>{space.title}</strong></label>
             <div className="flex gap-2">
               <Input
                 value={dissolveConfirm}
                 onChange={(e) => setDissolveConfirm(e.target.value)}
-                placeholder={space.name}
+                placeholder={space.title}
               />
               <Button
                 size="sm"
                 variant="destructive"
                 onClick={dissolveSpace}
-                disabled={dissolveConfirm !== space.name || dissolving}
+                disabled={dissolveConfirm !== space.title || dissolving}
               >
                 {dissolving ? "解散中..." : "解散空间"}
               </Button>

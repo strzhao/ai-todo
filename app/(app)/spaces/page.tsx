@@ -48,10 +48,10 @@ export default function SpacesPage() {
             <Link key={space.id} href={`/spaces/${space.id}`}>
               <div className="flex items-center gap-3 p-4 border border-border/60 rounded-lg hover:bg-muted/50 transition-colors">
                 <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary font-bold text-lg flex-shrink-0">
-                  {space.name[0]?.toUpperCase()}
+                  {space.title[0]?.toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{space.name}</p>
+                  <p className="text-sm font-medium">{space.title}</p>
                   {space.description && (
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">{space.description}</p>
                   )}
