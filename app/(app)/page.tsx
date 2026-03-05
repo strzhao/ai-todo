@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { NLInput } from "@/components/NLInput";
 import { ActionPreview } from "@/components/ActionPreview";
 import { TaskList } from "@/components/TaskList";
@@ -41,7 +40,6 @@ function sortTasksWithTodayFirst(items: Task[]) {
 }
 
 export default function TaskHomePage() {
-  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
   const [inputText, setInputText] = useState("");
@@ -85,7 +83,6 @@ export default function TaskHomePage() {
     );
     if (hasSuccess) {
       setInputText("");
-      router.refresh();
       window.dispatchEvent(new Event("tasks-changed"));
     }
     setPreview(null);
@@ -95,13 +92,11 @@ export default function TaskHomePage() {
     const completed = tasks.find((t) => t.id === id);
     setTasks((prev) => sortTasksWithTodayFirst(prev.filter((t) => t.id !== id && t.parent_id !== id)));
     if (completed) setCompletedTasks((prev) => [{ ...completed, status: 2 as const }, ...prev].slice(0, 20));
-    router.refresh();
     window.dispatchEvent(new Event("tasks-changed"));
   }
 
   function handleDelete(id: string) {
     setTasks((prev) => sortTasksWithTodayFirst(prev.filter((t) => t.id !== id && t.parent_id !== id)));
-    router.refresh();
     window.dispatchEvent(new Event("tasks-changed"));
   }
 

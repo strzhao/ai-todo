@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import type { Task } from "@/lib/types";
 import { buildTree, type TaskNode } from "@/lib/task-utils";
 
@@ -29,6 +29,7 @@ interface Props {
 export function SpaceNav({ spaces, userEmail, isDev }: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [spaceTasks, setSpaceTasks] = useState<SpaceTaskNode[]>([]);
   const [collapsedTaskIds, setCollapsedTaskIds] = useState<Record<string, boolean>>({});
   const [openMenuSpaceId, setOpenMenuSpaceId] = useState<string | null>(null);
@@ -92,7 +93,8 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "unpin" }),
     });
-    window.location.reload();
+    router.refresh();
+    window.dispatchEvent(new Event("tasks-changed"));
   }
 
   useEffect(() => {

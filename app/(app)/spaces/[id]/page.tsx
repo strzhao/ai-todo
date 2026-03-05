@@ -39,16 +39,13 @@ export default function SpacePage({ params }: SpacePageProps) {
       Promise.all([
         fetch(`/api/spaces/${id}`).then((r) => r.json()),
         fetch(`/api/tasks?space_id=${id}`).then((r) => r.json()),
-      ]).then(([spaceData, tasksData]: [{ space: Space; members: SpaceMember[] }, Task[]]) => {
+        fetch(`/api/tasks?space_id=${id}&filter=completed`).then((r) => r.json()).catch(() => []),
+      ]).then(([spaceData, tasksData, completedData]: [{ space: Space; members: SpaceMember[] }, Task[], Task[]]) => {
         setSpace(spaceData.space);
         setMembers(spaceData.members);
         setTasks(tasksData);
+        setCompletedTasks(Array.isArray(completedData) ? completedData : []);
       }).finally(() => setLoading(false));
-
-      fetch(`/api/tasks?space_id=${id}&filter=completed`)
-        .then((r) => r.json())
-        .then((completedData: Task[]) => setCompletedTasks(Array.isArray(completedData) ? completedData : []))
-        .catch(() => setCompletedTasks([]));
     });
   }, [params]);
 
@@ -74,7 +71,6 @@ export default function SpacePage({ params }: SpacePageProps) {
     );
     if (hasSuccess) {
       setInputText("");
-      router.refresh();
       window.dispatchEvent(new Event("tasks-changed"));
     }
     setPreview(null);
@@ -84,13 +80,11 @@ export default function SpacePage({ params }: SpacePageProps) {
     const done = tasks.find((t) => t.id === id);
     setTasks((prev) => prev.filter((t) => t.id !== id && t.parent_id !== id));
     if (done) setCompletedTasks((prev) => [{ ...done, status: 2 as const }, ...prev].slice(0, 20));
-    router.refresh();
     window.dispatchEvent(new Event("tasks-changed"));
   }
 
   function handleDelete(id: string) {
     setTasks((prev) => prev.filter((t) => t.id !== id && t.parent_id !== id));
-    router.refresh();
     window.dispatchEvent(new Event("tasks-changed"));
   }
 
@@ -266,6 +260,7 @@ export default function SpacePage({ params }: SpacePageProps) {
             onUpdate={handleUpdate}
             emptyText={focusedTaskId ? "该任务暂无子任务" : "空间内暂无任务"}
             emptySubtext={focusedTaskId ? "通过 AI 输入框为该任务添加子任务" : "输入一句话创建空间任务，支持 @成员 指派"}
+            members={members}
           />
         </>
       )}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import { useState, useRef, useEffect, memo, KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TaskDetail } from "@/components/TaskDetail";
@@ -22,9 +23,11 @@ interface Props {
   onUpdate?: (id: string, updates: Partial<Task>) => void;
   currentUserEmail?: string;
   highlightTodayDue?: boolean;
+  members?: TaskMember[];
 }
 
-export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, currentUserEmail, highlightTodayDue = false }: Props) {
+export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, currentUserEmail, highlightTodayDue = false, members: membersProp }: Props) {
+  const router = useRouter();
   const [completing, setCompleting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -58,14 +61,15 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
   useEffect(() => { setLocalProgress(task.progress); }, [task.progress]);
   useEffect(() => { setLocalTags(task.tags ?? []); }, [task.tags]);
 
-  // Fetch space members
+  // Use members from props if available, otherwise fetch
   useEffect(() => {
+    if (membersProp) { setMembers(membersProp); return; }
     if (!task.space_id) return;
     fetch(`/api/spaces/${task.space_id}/members`)
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setMembers(data); })
       .catch(() => {});
-  }, [task.space_id]);
+  }, [task.space_id, membersProp]);
 
   // Close popovers on outside click
   useEffect(() => {
@@ -139,7 +143,8 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "pin" }),
     });
-    window.location.reload();
+    router.refresh();
+    window.dispatchEvent(new Event("tasks-changed"));
   }
 
   async function handleUnpin() {
@@ -149,7 +154,8 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "unpin" }),
     });
-    window.location.reload();
+    router.refresh();
+    window.dispatchEvent(new Event("tasks-changed"));
   }
 
   // ─── Title editing ─────────────────────────────────────────────────
@@ -618,4 +624,4 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
       )}
     </div>
   );
-}
+});

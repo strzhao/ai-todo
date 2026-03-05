@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { TaskItem } from "./TaskItem";
 import { TaskSkeleton } from "./TaskSkeleton";
 import { EmptyState } from "./EmptyState";
-import type { Task } from "@/lib/types";
+import type { Task, TaskMember } from "@/lib/types";
 import { buildTree } from "@/lib/task-utils";
 
 interface Props {
@@ -21,6 +21,7 @@ interface Props {
   groupPinnedAtBottom?: boolean;
   pinnedSectionDefaultCollapsed?: boolean;
   pinnedSectionTitle?: string;
+  members?: TaskMember[];
 }
 
 export function TaskList({
@@ -37,6 +38,7 @@ export function TaskList({
   groupPinnedAtBottom = false,
   pinnedSectionDefaultCollapsed = false,
   pinnedSectionTitle = "置顶任务",
+  members,
 }: Props) {
   const [showCompleted, setShowCompleted] = useState(false);
   const [showPinned, setShowPinned] = useState(!pinnedSectionDefaultCollapsed);
@@ -47,7 +49,7 @@ export function TaskList({
     return <EmptyState text={emptyText} subtext={emptySubtext} />;
   }
 
-  const tree = buildTree(tasks);
+  const tree = useMemo(() => buildTree(tasks), [tasks]);
   const regularRoots = groupPinnedAtBottom ? tree.filter((node) => !node.pinned) : tree;
   const pinnedRoots = groupPinnedAtBottom ? tree.filter((node) => node.pinned) : [];
 
@@ -63,6 +65,7 @@ export function TaskList({
           onUpdate={onUpdate}
           currentUserEmail={currentUserEmail}
           highlightTodayDue={highlightTodayDue}
+          members={members}
         />
       ))}
 
@@ -89,6 +92,7 @@ export function TaskList({
                   onUpdate={onUpdate}
                   currentUserEmail={currentUserEmail}
                   highlightTodayDue={highlightTodayDue}
+                  members={members}
                 />
               ))}
             </div>

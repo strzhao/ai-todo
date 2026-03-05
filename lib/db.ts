@@ -8,7 +8,19 @@ export class TaskValidationError extends Error {
   }
 }
 
+let _dbReady = false;
+let _dbInitPromise: Promise<void> | null = null;
+
 export async function initDb() {
+  if (_dbReady) return;
+  if (_dbInitPromise) return _dbInitPromise;
+  _dbInitPromise = _doInitDb()
+    .then(() => { _dbReady = true; })
+    .finally(() => { _dbInitPromise = null; });
+  return _dbInitPromise;
+}
+
+async function _doInitDb() {
   // 1. Tasks table (core, must exist first for self-referencing FK)
   await sql`
     CREATE TABLE IF NOT EXISTS ai_todo_tasks (
@@ -471,28 +483,7 @@ export async function getPinnedTasksForUser(userId: string): Promise<Task[]> {
       t.*,
       my.role AS my_role,
       (SELECT COUNT(*) FROM ai_todo_task_members m WHERE m.task_id = t.id AND m.status = 'active') AS member_count,
-      (
-        SELECT COUNT(*)
-        FROM (
-          WITH RECURSIVE descendants AS (
-            SELECT id
-            FROM ai_todo_tasks
-            WHERE parent_id = t.id
-            UNION ALL
-            SELECT c.id
-            FROM ai_todo_tasks c
-            JOIN descendants d ON c.parent_id = d.id
-          )
-          SELECT id
-          FROM ai_todo_tasks c
-          WHERE c.space_id = t.id AND c.status != 2
-          UNION
-          SELECT d.id
-          FROM descendants d
-          JOIN ai_todo_tasks c ON c.id = d.id
-          WHERE c.status != 2
-        ) AS scoped
-      ) AS task_count
+      (SELECT COUNT(*) FROM ai_todo_tasks c WHERE c.space_id = t.id AND c.status != 2) AS task_count
     FROM ai_todo_tasks t
     JOIN ai_todo_task_members my ON my.task_id = t.id AND my.user_id = ${userId} AND my.status = 'active'
     WHERE t.pinned = TRUE
