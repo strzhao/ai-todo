@@ -227,21 +227,34 @@ export async function proxy(req: NextRequest) {
 
   const rawCookie = req.headers.get("cookie") ?? "";
   const shouldAttemptRefresh = hasRefreshTokenCookie(rawCookie);
-  if (shouldAttemptRefresh) {
-    console.info("[auth] refresh_attempt", { path: pathname });
-  }
+
+  console.warn("[auth] token_invalid", {
+    path: pathname,
+    hasAccessToken: !!token,
+    hasRefreshToken: shouldAttemptRefresh,
+  });
+
   const refreshResult = shouldAttemptRefresh ? await tryRefreshSession(rawCookie) : null;
   if (refreshResult?.ok) {
-    console.info("[auth] refresh_success", { path: pathname, status: refreshResult.status });
+    console.info("[auth] refresh_success", {
+      path: pathname,
+      hasNewToken: !!refreshResult.accessToken,
+      setCookieCount: refreshResult.setCookies.length,
+    });
     const requestHeaders = new Headers(req.headers);
     if (refreshResult.accessToken) {
       requestHeaders.set("authorization", `Bearer ${refreshResult.accessToken}`);
     }
 
     const res = NextResponse.next({ request: { headers: requestHeaders } });
-    appendSetCookieHeaders(res, refreshResult.setCookies);
 
-    // Override access_token cookie with extended TTL
+    // Only forward non-access_token Set-Cookie headers (e.g. refresh_token).
+    // We control access_token cookie ourselves to avoid conflicting maxAge.
+    const nonAccessCookies = refreshResult.setCookies.filter(
+      (v) => !v.trimStart().startsWith("access_token=")
+    );
+    appendSetCookieHeaders(res, nonAccessCookies);
+
     if (refreshResult.accessToken) {
       res.cookies.set("access_token", refreshResult.accessToken, {
         httpOnly: true,
@@ -284,6 +297,14 @@ export async function proxy(req: NextRequest) {
     const nextPath = normalizeNextPath(`${pathname}${req.nextUrl.search}`);
     const returnTo = buildCallbackUrl();
     const authorizeUrl = buildAuthorizeUrl(returnTo, state);
+
+    console.warn("[auth] redirect_to_login", {
+      path: pathname,
+      hasAccessToken: !!token,
+      hasRefreshToken: shouldAttemptRefresh,
+      refreshStatus: refreshResult && !refreshResult.ok ? refreshResult.status : null,
+      state,
+    });
 
     const res = NextResponse.redirect(authorizeUrl);
     if (shouldAttemptRefresh) {
