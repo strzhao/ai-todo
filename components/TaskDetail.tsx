@@ -131,7 +131,7 @@ export function TaskDetail({ task, currentUserEmail, onUpdate }: Props) {
                     </span>
                     <span className="text-xs text-muted-foreground/50">{formatRelativeTime(log.created_at)}</span>
                   </div>
-                  <p className="text-sm text-foreground/80 mt-0.5 break-words">{log.content}</p>
+                  <p className="text-sm text-foreground/80 mt-0.5 break-words whitespace-pre-wrap">{log.content}</p>
                 </div>
               </div>
             ))}
@@ -142,19 +142,19 @@ export function TaskDetail({ task, currentUserEmail, onUpdate }: Props) {
 
       {/* Add comment */}
       <div className="flex gap-2">
-        <input
-          type="text"
+        <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
-          placeholder="添加进展更新..."
+          onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); submitComment(); } }}
+          placeholder="添加进展更新…（⌘+Enter 发送）"
           disabled={submitting}
-          className="flex-1 text-sm bg-muted/40 border border-border/50 rounded-md px-3 py-1.5 outline-none focus:border-primary/50 placeholder:text-muted-foreground/50 transition-colors"
+          rows={2}
+          className="flex-1 text-sm bg-muted/40 border border-border/50 rounded-md px-3 py-2 resize-none outline-none focus:border-primary/50 placeholder:text-muted-foreground/50 transition-colors"
         />
         <button
           onClick={submitComment}
           disabled={!comment.trim() || submitting}
-          className="text-sm px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="text-sm px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors self-end"
         >
           发送
         </button>
