@@ -28,8 +28,11 @@ export function normalizeNextPath(rawPath: string | null | undefined): string {
   return rawPath;
 }
 
-export function buildCallbackUrl(): string {
+export function buildCallbackUrl(nextPath?: string): string {
   const callbackUrl = new URL(CALLBACK_PATH, APP_ORIGIN);
+  if (nextPath && nextPath !== "/") {
+    callbackUrl.searchParams.set("next", nextPath);
+  }
   return callbackUrl.toString();
 }
 

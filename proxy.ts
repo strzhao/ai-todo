@@ -298,7 +298,7 @@ export async function proxy(req: NextRequest) {
 
     const state = crypto.randomUUID();
     const nextPath = normalizeNextPath(`${pathname}${req.nextUrl.search}`);
-    const returnTo = buildCallbackUrl();
+    const returnTo = buildCallbackUrl(nextPath);
     const authorizeUrl = buildAuthorizeUrl(returnTo, state);
 
     console.warn("[auth] redirect_to_login", {
