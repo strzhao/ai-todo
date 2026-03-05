@@ -17,6 +17,7 @@ interface Props {
   emptyText?: string;
   emptySubtext?: string;
   currentUserEmail?: string;
+  highlightTodayDue?: boolean;
 }
 
 export function TaskList({
@@ -29,6 +30,7 @@ export function TaskList({
   emptyText = "暂无任务",
   emptySubtext,
   currentUserEmail,
+  highlightTodayDue = false,
 }: Props) {
   const [showCompleted, setShowCompleted] = useState(false);
 
@@ -51,6 +53,7 @@ export function TaskList({
           onDelete={onDelete}
           onUpdate={onUpdate}
           currentUserEmail={currentUserEmail}
+          highlightTodayDue={highlightTodayDue}
         />
       ))}
 

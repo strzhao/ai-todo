@@ -110,6 +110,11 @@
   --home-neutral-soft: oklch(0.928 0.005 95);
   --home-neutral-border: oklch(0.820 0.008 95);
 
+  --today-accent: #1aad19;
+  --today-accent-strong: #2ba245;
+  --today-accent-soft: rgb(26 173 25 / 0.12);
+  --today-accent-border: rgb(26 173 25 / 0.32);
+
   --warning: var(--home-warning);
   --warning-foreground: var(--home-warning-foreground);
   --warning-soft: var(--home-warning-soft);
@@ -193,6 +198,11 @@
   --home-neutral-soft: oklch(0.290 0.012 95 / 0.68);
   --home-neutral-border: oklch(0.470 0.012 95 / 0.64);
 
+  --today-accent: #91ed61;
+  --today-accent-strong: #91ed61;
+  --today-accent-soft: rgb(145 237 97 / 0.20);
+  --today-accent-border: rgb(145 237 97 / 0.42);
+
   --warning: var(--home-warning);
   --warning-foreground: var(--home-warning-foreground);
   --warning-soft: var(--home-warning-soft);
@@ -262,5 +272,36 @@
   .app-content-wide {
     @apply mx-auto w-full px-4 py-8;
     max-width: var(--content-wide-max);
+  }
+
+  .today-task-row {
+    background-color: var(--today-accent-soft);
+    border: 1px solid var(--today-accent-border);
+    border-left-width: 3px;
+    border-left-color: var(--today-accent);
+    border-radius: 0.5rem;
+    padding-left: 0.5rem;
+  }
+
+  .today-task-pill {
+    color: var(--today-accent-strong);
+    background-color: var(--today-accent-soft);
+    border: 1px solid var(--today-accent-border);
+    border-radius: 9999px;
+    font-size: 0.6875rem;
+    line-height: 1;
+    padding: 0.2rem 0.45rem;
+    font-weight: 600;
+  }
+
+  .today-count-chip {
+    color: var(--today-accent-strong);
+    background-color: var(--today-accent-soft);
+    border: 1px solid var(--today-accent-border);
+    border-radius: 9999px;
+    font-size: 0.6875rem;
+    line-height: 1;
+    padding: 0.25rem 0.45rem;
+    font-weight: 600;
   }
 }

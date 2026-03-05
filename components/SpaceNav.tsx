@@ -91,6 +91,8 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
     return pathname.startsWith(path);
   }
 
+  const isTasksHome = pathname === "/" || pathname === "/all";
+
   const navLinkCls = (active: boolean) =>
     `flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
       active
@@ -108,9 +110,7 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
 
         <div className="flex-1 space-y-0.5 overflow-y-auto">
           <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider px-3 mb-1">个人</p>
-          <Link href="/" className={navLinkCls(isActive("/") && pathname === "/")}>今日任务</Link>
-          <Link href="/all" className={navLinkCls(isActive("/all"))}>全部任务</Link>
-          <Link href="/all?filter=assigned" className={navLinkCls(false)}>指派给我</Link>
+          <Link href="/" className={navLinkCls(isTasksHome)}>全部任务</Link>
 
           <div className="pt-4">
             <div className="flex items-center justify-between px-3 mb-1">
@@ -216,11 +216,8 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
 
       {/* Mobile bottom tab bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border/60 z-10 flex">
-        <Link href="/" className={`flex-1 flex flex-col items-center py-3 text-xs gap-1 ${pathname === "/" ? "text-primary" : "text-muted-foreground"}`}>
-          <span className="text-base">☀️</span>今日
-        </Link>
-        <Link href="/all" className={`flex-1 flex flex-col items-center py-3 text-xs gap-1 ${pathname === "/all" ? "text-primary" : "text-muted-foreground"}`}>
-          <span className="text-base">📋</span>全部
+        <Link href="/" className={`flex-1 flex flex-col items-center py-3 text-xs gap-1 ${isTasksHome ? "text-primary" : "text-muted-foreground"}`}>
+          <span className="text-base">📋</span>任务
         </Link>
         <Link href="/spaces" className={`flex-1 flex flex-col items-center py-3 text-xs gap-1 ${pathname.startsWith("/spaces") ? "text-primary" : "text-muted-foreground"}`}>
           <span className="text-base">👥</span>空间

@@ -22,9 +22,10 @@ interface Props {
   onDelete: (id: string) => void;
   onUpdate?: (id: string, updates: Partial<Task>) => void;
   currentUserEmail?: string;
+  highlightTodayDue?: boolean;
 }
 
-export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, currentUserEmail }: Props) {
+export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, currentUserEmail, highlightTodayDue = false }: Props) {
   const [completing, setCompleting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -148,13 +149,22 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
       : d.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
   }
 
+  function isDateToday(iso?: string) {
+    if (!iso) return false;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return false;
+    return d.toDateString() === new Date().toDateString();
+  }
+
+  const dueText = formatDue(task.due_date);
+  const isDueToday = highlightTodayDue && isDateToday(task.due_date);
   const isAssignedToOther = task.assignee_email && task.assignee_email !== currentUserEmail;
 
   return (
     <div className={`border-b last:border-0 border-border/50 ${completing ? "opacity-40" : ""}`}>
       {/* Main task row */}
       <div
-        className="flex items-start gap-3 py-3 px-1 group transition-opacity focus-visible:outline-none focus-visible:bg-muted/40 rounded-sm"
+        className={`flex items-start gap-3 py-3 px-1 group transition-opacity focus-visible:outline-none focus-visible:bg-muted/40 rounded-sm ${isDueToday ? "today-task-row" : ""}`}
         tabIndex={0}
         onKeyDown={onRowKeyDown}
         aria-label={`任务: ${task.title}`}
@@ -195,8 +205,15 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
             <Badge variant="outline" className={`text-xs px-1.5 py-0 ${p.cls}`}>
               {p.label}
             </Badge>
-            {task.due_date && (
-              <span className="text-xs text-muted-foreground">📅 {formatDue(task.due_date)}</span>
+            {dueText && (
+              <span className={`text-xs ${isDueToday ? "text-[var(--today-accent-strong)] font-medium" : "text-muted-foreground"}`}>
+                📅 {dueText}
+              </span>
+            )}
+            {isDueToday && (
+              <span className="today-task-pill">
+                今日优先
+              </span>
             )}
             {task.tags.map((tag) => (
               <span key={tag} className="text-xs text-muted-foreground">#{tag}</span>
@@ -288,6 +305,7 @@ export function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, curre
               onDelete={onDelete}
               onUpdate={onUpdate}
               currentUserEmail={currentUserEmail}
+              highlightTodayDue={highlightTodayDue}
             />
           ))}
         </div>
