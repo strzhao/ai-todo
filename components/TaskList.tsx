@@ -42,6 +42,7 @@ export function TaskList({
 }: Props) {
   const [showCompleted, setShowCompleted] = useState(false);
   const [showPinned, setShowPinned] = useState(!pinnedSectionDefaultCollapsed);
+  const tree = useMemo(() => buildTree(tasks), [tasks]);
 
   if (loading) return <TaskSkeleton />;
 
@@ -49,7 +50,6 @@ export function TaskList({
     return <EmptyState text={emptyText} subtext={emptySubtext} />;
   }
 
-  const tree = useMemo(() => buildTree(tasks), [tasks]);
   const regularRoots = groupPinnedAtBottom ? tree.filter((node) => !node.pinned) : tree;
   const pinnedRoots = groupPinnedAtBottom ? tree.filter((node) => node.pinned) : [];
 
