@@ -41,7 +41,7 @@ function readCookie(name: string): string | null {
 }
 
 function clearCookie(name: string) {
-  document.cookie = `${name}=; Max-Age=0; Path=/auth/callback; Secure; SameSite=Lax`;
+  document.cookie = `${name}=; Max-Age=0; Path=/; Secure; SameSite=Lax`;
 }
 
 function safeDecode(value: string): string {
@@ -125,7 +125,7 @@ export default function AuthCallbackPage() {
       if (callbackError) {
         clearCookie("auth_next");
         if (!cancelled) {
-          setReloginPath(callbackError === "unauthorized" ? buildReloginPath(nextPath) : "/");
+          setReloginPath(buildReloginPath(nextPath));
           setError(ERROR_MESSAGES[callbackError] ?? "登录流程异常，请重试。");
         }
         return;

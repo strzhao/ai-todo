@@ -48,7 +48,7 @@ function setAuthFlowCookies(res: NextResponse, state: string, nextPath: string) 
     httpOnly: true,
     secure: true,
     sameSite: "lax",
-    path: CALLBACK_PATH,
+    path: "/",
     maxAge: 60 * 5,
   });
 
@@ -58,7 +58,7 @@ function setAuthFlowCookies(res: NextResponse, state: string, nextPath: string) 
     httpOnly: false,
     secure: true,
     sameSite: "lax",
-    path: CALLBACK_PATH,
+    path: "/",
     maxAge: 60 * 5,
   });
 }
@@ -70,7 +70,7 @@ function clearAuthStateCookie(res: NextResponse) {
     httpOnly: true,
     secure: true,
     sameSite: "lax",
-    path: CALLBACK_PATH,
+    path: "/",
     maxAge: 0,
   });
 }
@@ -83,7 +83,7 @@ function clearAuthFlowCookies(res: NextResponse) {
     httpOnly: false,
     secure: true,
     sameSite: "lax",
-    path: CALLBACK_PATH,
+    path: "/",
     maxAge: 0,
   });
 }
@@ -203,7 +203,10 @@ export async function proxy(req: NextRequest) {
 
     const code =
       authorized === "1" ? "state_mismatch" : "authorization_not_completed";
-    const res = NextResponse.redirect(buildCallbackErrorUrl(req, code));
+    const errorUrl = buildCallbackErrorUrl(req, code);
+    const nextParam = req.nextUrl.searchParams.get("next");
+    if (nextParam) errorUrl.searchParams.set("next", nextParam);
+    const res = NextResponse.redirect(errorUrl);
     clearAuthFlowCookies(res);
     return res;
   }
