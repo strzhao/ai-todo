@@ -294,6 +294,25 @@
     font-weight: 600;
   }
 
+  .prose-summary h2 {
+    @apply text-sm font-semibold text-foreground mt-4 mb-1.5;
+  }
+  .prose-summary h2:first-child {
+    @apply mt-0;
+  }
+  .prose-summary p {
+    @apply my-1 leading-relaxed;
+  }
+  .prose-summary ul {
+    @apply my-1 pl-4 list-disc;
+  }
+  .prose-summary li {
+    @apply my-0.5;
+  }
+  .prose-summary strong {
+    @apply text-foreground font-medium;
+  }
+
   .today-count-chip {
     color: var(--today-accent-strong);
     background-color: var(--today-accent-soft);

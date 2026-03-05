@@ -17,10 +17,16 @@ const DEV_USER: AuthUser = {
   email: process.env.AUTH_DEV_EMAIL ?? "dev@localhost",
 };
 
-const JWKS = createRemoteJWKSet(new URL(process.env.AUTH_JWKS_URL!));
+let _jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+function getJWKS() {
+  if (!_jwks) {
+    _jwks = createRemoteJWKSet(new URL(process.env.AUTH_JWKS_URL!));
+  }
+  return _jwks;
+}
 
 async function verifyToken(token: string): Promise<AuthUser> {
-  const { payload } = await jwtVerify(token, JWKS, {
+  const { payload } = await jwtVerify(token, getJWKS(), {
     issuer: process.env.AUTH_ISSUER,
     audience: process.env.AUTH_AUDIENCE,
   });

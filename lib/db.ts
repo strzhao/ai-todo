@@ -624,6 +624,41 @@ export async function getTaskLogs(taskId: string): Promise<TaskLog[]> {
   return rows.map(rowToTaskLog);
 }
 
+export async function getDescendantTasks(parentId: string): Promise<Task[]> {
+  const { rows } = await sql.query(
+    `WITH RECURSIVE descendants AS (
+       SELECT * FROM ai_todo_tasks WHERE parent_id = $1
+       UNION ALL
+       SELECT t.* FROM ai_todo_tasks t
+       JOIN descendants d ON t.parent_id = d.id
+     )
+     SELECT * FROM descendants
+     ORDER BY priority ASC, created_at DESC
+     LIMIT 500`,
+    [parentId]
+  );
+  return rows.map(rowToTask);
+}
+
+export async function getLogsForTasksByDate(
+  taskIds: string[],
+  date: string
+): Promise<TaskLog[]> {
+  if (taskIds.length === 0) return [];
+  const placeholders = taskIds.map((_, i) => `$${i + 1}`).join(",");
+  const dateIdx = taskIds.length + 1;
+  const { rows } = await sql.query(
+    `SELECT * FROM ai_todo_task_logs
+     WHERE task_id IN (${placeholders})
+       AND created_at >= $${dateIdx}::DATE
+       AND created_at < $${dateIdx}::DATE + INTERVAL '1 day'
+     ORDER BY created_at ASC
+     LIMIT 100`,
+    [...taskIds, date]
+  );
+  return rows.map(rowToTaskLog);
+}
+
 export async function addTaskLog(
   taskId: string,
   userId: string,

@@ -7,6 +7,7 @@ import { NLInput } from "@/components/NLInput";
 import { ActionPreview } from "@/components/ActionPreview";
 import { TaskList } from "@/components/TaskList";
 import { GanttChart } from "@/components/GanttChart";
+import { DailySummary } from "@/components/DailySummary";
 import type { ParsedAction, Task, Space, SpaceMember, ActionResult } from "@/lib/types";
 
 interface SpacePageProps {
@@ -23,11 +24,14 @@ export default function SpacePage({ params }: SpacePageProps) {
   const [preview, setPreview] = useState<{ actions: ParsedAction[]; raw: string; traceId?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [filterMember, setFilterMember] = useState<string>("all");
-  const [tab, setTab] = useState<"list" | "gantt">("list");
 
   const router = useRouter();
   const searchParams = useSearchParams();
   const focusedTaskId = searchParams.get("focus");
+
+  const [tab, setTab] = useState<"list" | "gantt">(
+    searchParams.get("tab") === "gantt" ? "gantt" : "list"
+  );
 
   useEffect(() => {
     params.then(({ id }) => {
@@ -259,7 +263,14 @@ export default function SpacePage({ params }: SpacePageProps) {
       )}
 
       {tab === "gantt" && (
-        <GanttChart tasks={ganttTasks} members={members} onTaskClick={handleGanttTaskClick} />
+        <>
+          <GanttChart tasks={ganttTasks} members={members} onTaskClick={handleGanttTaskClick} />
+          <DailySummary
+            taskId={focusedTaskId ?? spaceId}
+            taskTitle={focusedTask?.title ?? space?.title ?? ""}
+            autoTrigger={searchParams.get("summary") === "true"}
+          />
+        </>
       )}
     </div>
   );
