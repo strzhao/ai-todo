@@ -182,7 +182,7 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
   return (
     <>
       {/* Desktop sidebar */}
-      <nav className="hidden md:flex flex-col w-52 min-h-screen border-r border-border/60 bg-background fixed left-0 top-0 pt-6 pb-4 px-3 z-10">
+      <nav className="hidden md:flex flex-col w-52 h-screen border-r border-border/60 bg-background fixed left-0 top-0 pt-6 pb-4 px-3 z-10">
         <div className="flex items-center gap-2 px-3 mb-6">
           <span className="font-semibold text-base">AI Todo</span>
         </div>
