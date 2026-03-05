@@ -2,6 +2,112 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ReadmeTabs } from "@/components/readme-tabs";
+
+/* ─── CLI Tab Content ─── */
+
+const cliExamples = [
+  { cmd: "ai-todo login", desc: "浏览器授权登录" },
+  { cmd: "ai-todo whoami", desc: "查看当前登录用户" },
+  { cmd: "ai-todo tasks:list", desc: "列出所有待办任务" },
+  { cmd: "ai-todo tasks:list --filter today", desc: "列出今日任务" },
+  { cmd: "ai-todo tasks:create --title '写周报' --priority 1", desc: "创建高优任务" },
+  { cmd: "ai-todo tasks:create --title '子任务' --parent_id <id>", desc: "创建子任务" },
+  { cmd: "ai-todo tasks:update --id <id> --priority 0", desc: "更新优先级" },
+  { cmd: "ai-todo tasks:complete --id <id>", desc: "完成任务" },
+  { cmd: "ai-todo tasks:delete --id <id>", desc: "删除任务" },
+  { cmd: "ai-todo tasks:add-log --id <id> --content '完成第一阶段'", desc: "添加进展日志" },
+  { cmd: "ai-todo spaces:list", desc: "列出所有空间" },
+  { cmd: "ai-todo spaces:create --name '项目空间'", desc: "创建空间" },
+];
+
+function CLIContent() {
+  return (
+    <div className="space-y-6">
+      <Card className="border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/20">
+        <CardHeader>
+          <CardTitle className="text-base">AI-First 设计</CardTitle>
+          <CardDescription>
+            ai-todo CLI 是为 AI agent 设计的命令行工具。所有输出为结构化 JSON，命令从服务端动态发现，
+            旨在让 AI agent 直接管理任务，减少人的介入。人通过 AI agent 间接使用此工具。
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">安装</h2>
+        <Card>
+          <CardContent className="pt-6">
+            <code className="block rounded-md bg-muted px-4 py-3 text-sm">
+              npm install -g ai-todo-cli
+            </code>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">认证</h2>
+        <Card>
+          <CardContent className="pt-6 space-y-2 text-sm">
+            <p>首次使用需要登录，CLI 会打开浏览器完成 OAuth 授权：</p>
+            <code className="block rounded-md bg-muted px-4 py-3">ai-todo login</code>
+            <p className="text-muted-foreground">
+              Headless 环境可直接传入 JWT token：<code className="bg-muted px-1.5 py-0.5 rounded">ai-todo login --token &lt;jwt&gt;</code>
+            </p>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">动态命令发现</h2>
+        <Card>
+          <CardContent className="pt-6 space-y-2 text-sm">
+            <p>
+              CLI 的所有业务命令从服务端 <code className="bg-muted px-1.5 py-0.5 rounded">/api/manifest</code> 动态获取，
+              不写死在客户端。服务端新增能力后，CLI 无需更新即可使用。
+            </p>
+            <code className="block rounded-md bg-muted px-4 py-3">ai-todo --help</code>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">命令示例</h2>
+        <div className="grid gap-2">
+          {cliExamples.map((ex) => (
+            <div key={ex.cmd} className="flex items-start gap-3 rounded-lg border px-4 py-3">
+              <code className="text-sm font-mono shrink-0">{ex.cmd}</code>
+              <span className="text-sm text-muted-foreground">{ex.desc}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">AI Agent 集成</h2>
+        <Card>
+          <CardContent className="pt-6 space-y-2 text-sm text-foreground/90">
+            <p>
+              AI agent（如 Claude Code）可以通过以下方式集成 ai-todo CLI：
+            </p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>在 agent 的工具链中注册 <code className="bg-muted px-1.5 py-0.5 rounded">ai-todo</code> 命令</li>
+              <li>Agent 调用 <code className="bg-muted px-1.5 py-0.5 rounded">ai-todo tasks:list</code> 获取任务上下文</li>
+              <li>Agent 根据用户意图调用对应命令完成任务管理</li>
+              <li>所有响应为 JSON，agent 可直接解析</li>
+            </ul>
+            <p className="text-muted-foreground">
+              输出格式：成功返回数据 JSON，错误返回 <code className="bg-muted px-1.5 py-0.5 rounded">{`{"error": "...", "status": N}`}</code>，
+              退出码 0=成功 1=错误 2=需登录。
+            </p>
+          </CardContent>
+        </Card>
+      </section>
+    </div>
+  );
+}
+
+/* ─── Doc Tab Content (existing) ─── */
 
 const quickStartSteps = [
   {
@@ -21,7 +127,7 @@ const quickStartSteps = [
 const pinningHighlights = [
   {
     title: "置顶：任务秒变空间",
-    desc: "在任意顶层任务的「⋮」菜单点「置顶到侧边栏」，该任务会立刻进入“项目空间”。",
+    desc: "在任意顶层任务的「⋮」菜单点「置顶到侧边栏」，该任务会立刻进入「项目空间」。",
   },
   {
     title: "切换：无缝进入协作视角",
@@ -67,7 +173,7 @@ const actionExamples = [
 ];
 
 const collaborationTips = [
-  "任意顶层任务都支持置顶/取消置顶，可在“任务管理”和“项目空间”间快速切换。",
+  "任意顶层任务都支持置顶/取消置顶，可在「任务管理」和「项目空间」间快速切换。",
   "在项目空间中输入 `@成员邮箱` 可直接指派任务。",
   "空间页支持按成员筛选任务，快速看各自负责项。",
   "切换到甘特图可查看时间分布，点任务可回到列表定位。",
@@ -104,22 +210,10 @@ const faqs = [
   },
 ];
 
-export default function ReadmePage() {
+function DocContent() {
   return (
-    <div className="app-content space-y-8">
+    <div className="space-y-8">
       <section className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-2">
-            <h1 className="text-2xl font-semibold tracking-tight">使用文档</h1>
-            <p className="text-sm text-muted-foreground">
-              面向使用者的快速指南：用自然语言完成任务管理，并通过“置顶/取消置顶”在任务与空间间无缝切换。
-            </p>
-          </div>
-          <Button asChild size="sm" variant="outline">
-            <Link href="/">返回任务首页</Link>
-          </Button>
-        </div>
-
         <Card>
           <CardHeader>
             <CardTitle className="text-base">开箱即用</CardTitle>
@@ -218,6 +312,31 @@ export default function ReadmePage() {
           ))}
         </div>
       </section>
+    </div>
+  );
+}
+
+/* ─── Page ─── */
+
+export default function ReadmePage() {
+  return (
+    <div className="app-content space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight">使用文档</h1>
+          <p className="text-sm text-muted-foreground">
+            ai-todo 是为 AI agent 设计的任务管理工具，CLI 是核心接口。
+          </p>
+        </div>
+        <Button asChild size="sm" variant="outline">
+          <Link href="/">返回任务首页</Link>
+        </Button>
+      </div>
+
+      <ReadmeTabs
+        cliContent={<CLIContent />}
+        docContent={<DocContent />}
+      />
     </div>
   );
 }

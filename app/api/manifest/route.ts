@@ -1,0 +1,199 @@
+import { NextResponse } from "next/server";
+
+const manifest = {
+  version: "1",
+  base_url: "https://ai-todo.stringzhao.life",
+  auth: {
+    type: "bearer",
+    authorize_url: "https://user.stringzhao.life/authorize",
+    service_id: "base-account-client",
+    cli_auth_path: "/auth/cli",
+  },
+  operations: [
+    {
+      id: "list_tasks",
+      name: "tasks:list",
+      description: "List tasks with optional filters",
+      method: "GET",
+      path: "/api/tasks",
+      params: [
+        { name: "filter", in: "query", type: "string", enum: ["today", "assigned", "completed"], required: false, description: "Filter mode" },
+        { name: "space_id", in: "query", type: "string", required: false, description: "Filter by space ID" },
+      ],
+    },
+    {
+      id: "create_task",
+      name: "tasks:create",
+      description: "Create a new task",
+      method: "POST",
+      path: "/api/tasks",
+      params: [
+        { name: "title", in: "body", type: "string", required: true, description: "Task title" },
+        { name: "description", in: "body", type: "string", required: false, description: "Task description" },
+        { name: "priority", in: "body", type: "number", enum: [0, 1, 2, 3], required: false, description: "Priority: 0=P0 urgent, 1=P1 high, 2=P2 normal, 3=P3 low" },
+        { name: "due_date", in: "body", type: "string", required: false, description: "Due date (ISO 8601)" },
+        { name: "start_date", in: "body", type: "string", required: false, description: "Start date (ISO 8601)" },
+        { name: "end_date", in: "body", type: "string", required: false, description: "End date (ISO 8601)" },
+        { name: "tags", in: "body", type: "string[]", required: false, description: "Tags (comma-separated in CLI)" },
+        { name: "space_id", in: "body", type: "string", required: false, description: "Space ID to create task in" },
+        { name: "parent_id", in: "body", type: "string", required: false, description: "Parent task ID for subtask" },
+        { name: "assignee_email", in: "body", type: "string", required: false, description: "Assignee email (in space)" },
+      ],
+    },
+    {
+      id: "update_task",
+      name: "tasks:update",
+      description: "Update task fields",
+      method: "PATCH",
+      path: "/api/tasks/:id",
+      params: [
+        { name: "id", in: "path", type: "string", required: true, description: "Task ID" },
+        { name: "title", in: "body", type: "string", required: false, description: "New title" },
+        { name: "description", in: "body", type: "string", required: false, description: "New description" },
+        { name: "priority", in: "body", type: "number", enum: [0, 1, 2, 3], required: false, description: "New priority" },
+        { name: "due_date", in: "body", type: "string", required: false, description: "New due date (ISO 8601)" },
+        { name: "start_date", in: "body", type: "string", required: false, description: "New start date (ISO 8601)" },
+        { name: "end_date", in: "body", type: "string", required: false, description: "New end date (ISO 8601)" },
+        { name: "tags", in: "body", type: "string[]", required: false, description: "New tags" },
+        { name: "progress", in: "body", type: "number", required: false, description: "Progress 0-100" },
+        { name: "parent_id", in: "body", type: "string", required: false, description: "Move to new parent" },
+        { name: "assignee_email", in: "body", type: "string", required: false, description: "New assignee email" },
+      ],
+    },
+    {
+      id: "complete_task",
+      name: "tasks:complete",
+      description: "Mark a task as completed (also completes subtasks)",
+      method: "PATCH",
+      path: "/api/tasks/:id",
+      params: [
+        { name: "id", in: "path", type: "string", required: true, description: "Task ID" },
+      ],
+      fixed_body: { complete: true },
+    },
+    {
+      id: "delete_task",
+      name: "tasks:delete",
+      description: "Delete a task (cascades to subtasks)",
+      method: "DELETE",
+      path: "/api/tasks/:id",
+      params: [
+        { name: "id", in: "path", type: "string", required: true, description: "Task ID" },
+      ],
+    },
+    {
+      id: "pin_task",
+      name: "tasks:pin",
+      description: "Pin a task to sidebar (upgrade to space)",
+      method: "PATCH",
+      path: "/api/tasks/:id",
+      params: [
+        { name: "id", in: "path", type: "string", required: true, description: "Task ID" },
+      ],
+      fixed_body: { action: "pin" },
+    },
+    {
+      id: "unpin_task",
+      name: "tasks:unpin",
+      description: "Unpin a task from sidebar (downgrade from space)",
+      method: "PATCH",
+      path: "/api/tasks/:id",
+      params: [
+        { name: "id", in: "path", type: "string", required: true, description: "Task ID" },
+      ],
+      fixed_body: { action: "unpin" },
+    },
+    {
+      id: "get_task_logs",
+      name: "tasks:logs",
+      description: "Get progress logs for a task",
+      method: "GET",
+      path: "/api/tasks/:id/logs",
+      params: [
+        { name: "id", in: "path", type: "string", required: true, description: "Task ID" },
+      ],
+    },
+    {
+      id: "add_task_log",
+      name: "tasks:add-log",
+      description: "Add a progress log entry to a task",
+      method: "POST",
+      path: "/api/tasks/:id/logs",
+      params: [
+        { name: "id", in: "path", type: "string", required: true, description: "Task ID" },
+        { name: "content", in: "body", type: "string", required: true, description: "Log content" },
+      ],
+    },
+    {
+      id: "list_spaces",
+      name: "spaces:list",
+      description: "List all spaces (pinned tasks)",
+      method: "GET",
+      path: "/api/spaces",
+      params: [],
+    },
+    {
+      id: "create_space",
+      name: "spaces:create",
+      description: "Create a new space",
+      method: "POST",
+      path: "/api/spaces",
+      params: [
+        { name: "name", in: "body", type: "string", required: true, description: "Space name" },
+        { name: "description", in: "body", type: "string", required: false, description: "Space description" },
+        { name: "invite_mode", in: "body", type: "string", enum: ["open", "approval"], required: false, description: "Invite mode" },
+      ],
+    },
+    {
+      id: "list_members",
+      name: "spaces:members",
+      description: "List members of a space",
+      method: "GET",
+      path: "/api/spaces/:id/members",
+      params: [
+        { name: "id", in: "path", type: "string", required: true, description: "Space ID" },
+      ],
+    },
+    {
+      id: "update_member",
+      name: "spaces:update-member",
+      description: "Update a space member (role, status, display name)",
+      method: "PATCH",
+      path: "/api/spaces/:id/members/:uid",
+      params: [
+        { name: "id", in: "path", type: "string", required: true, description: "Space ID" },
+        { name: "uid", in: "path", type: "string", required: true, description: "Member user ID" },
+        { name: "status", in: "body", type: "string", enum: ["active", "pending"], required: false, description: "Member status" },
+        { name: "display_name", in: "body", type: "string", required: false, description: "Display name" },
+        { name: "role", in: "body", type: "string", enum: ["owner", "member"], required: false, description: "Member role" },
+      ],
+    },
+    {
+      id: "remove_member",
+      name: "spaces:remove-member",
+      description: "Remove a member from a space (or leave)",
+      method: "DELETE",
+      path: "/api/spaces/:id/members/:uid",
+      params: [
+        { name: "id", in: "path", type: "string", required: true, description: "Space ID" },
+        { name: "uid", in: "path", type: "string", required: true, description: "Member user ID" },
+      ],
+    },
+    {
+      id: "join_space",
+      name: "spaces:join",
+      description: "Join a space via invite code",
+      method: "POST",
+      path: "/api/spaces/join/:code",
+      params: [
+        { name: "code", in: "path", type: "string", required: true, description: "Invite code" },
+      ],
+    },
+  ],
+};
+
+export async function GET() {
+  return NextResponse.json(manifest, {
+    headers: { "Cache-Control": "public, max-age=300" },
+  });
+}
