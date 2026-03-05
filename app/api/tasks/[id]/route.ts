@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { completeTask, deleteTask, updateTask, pinTask, unpinTask, getTaskForUser } from "@/lib/db";
+import { completeTask, deleteTask, updateTask, pinTask, unpinTask, getTaskForUser, TaskValidationError } from "@/lib/db";
 import { createRouteTimer } from "@/lib/route-timing";
 import type { ParsedTask } from "@/lib/types";
 
@@ -12,7 +12,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!user) return rt.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const body = await req.json() as { complete?: boolean; action?: "pin" | "unpin"; invite_mode?: string } & Partial<ParsedTask> & { assignee_email?: string | null; start_date?: string | null; end_date?: string | null };
+  const body = await req.json() as { complete?: boolean; action?: "pin" | "unpin"; invite_mode?: string } & Partial<ParsedTask> & { assignee_email?: string | null; start_date?: string | null; end_date?: string | null; parent_id?: string | null };
 
   try {
     if (body.action === "pin") {
@@ -42,6 +42,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   } catch (e) {
     if (e instanceof Error && e.message === "Task not found") {
       return rt.json({ error: "Not found" }, { status: 404 });
+    }
+    if (e instanceof TaskValidationError) {
+      return rt.json({ error: e.message }, { status: 400 });
     }
     throw e;
   }

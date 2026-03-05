@@ -32,6 +32,20 @@ function resolveTask(action: ParsedAction, allTasks: Task[]): Task | null {
   return null;
 }
 
+function resolveParentTask(action: ParsedAction, allTasks: Task[]): Task | null {
+  if (action.to_parent_id) {
+    const exact = allTasks.find((t) => t.id === action.to_parent_id);
+    if (exact) return exact;
+  }
+  if (action.to_parent_title) {
+    const q = action.to_parent_title.toLowerCase();
+    return allTasks.find(
+      (t) => t.title.toLowerCase().includes(q) || q.includes(t.title.toLowerCase())
+    ) ?? null;
+  }
+  return null;
+}
+
 function formatDate(iso?: string | null): string {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
@@ -39,8 +53,10 @@ function formatDate(iso?: string | null): string {
 
 function ActionRow({ action, allTasks }: { action: ParsedAction; allTasks: Task[] }) {
   const task = action.type !== "create" ? resolveTask(action, allTasks) : null;
-  const notFound = action.type !== "create" && !task;
+  const parentTask = action.type === "move" ? resolveParentTask(action, allTasks) : null;
+  const notFound = (action.type !== "create" && !task) || (action.type === "move" && !parentTask);
   const displayTitle = task?.title ?? action.target_title ?? "未知任务";
+  const parentDisplayTitle = parentTask?.title ?? action.to_parent_title ?? "未知父任务";
 
   if (action.type === "create") {
     const count = action.tasks?.length ?? 0;
@@ -111,6 +127,20 @@ function ActionRow({ action, allTasks }: { action: ParsedAction; allTasks: Task[
           「<span className="font-medium">{displayTitle}</span>」添加进展：
           <span className="text-muted-foreground">「{action.log_content}」</span>
           {notFound && <span className="text-xs ml-1 text-destructive">（未找到匹配任务）</span>}
+        </span>
+      </div>
+    );
+  }
+
+  if (action.type === "move") {
+    const invalidSame = task && parentTask && task.id === parentTask.id;
+    return (
+      <div className={`flex items-start gap-2 text-sm ${(notFound || invalidSame) ? "text-destructive" : ""}`}>
+        <span className="flex-shrink-0 text-info">↳</span>
+        <span>
+          移动「<span className="font-medium">{displayTitle}</span>」到「<span className="font-medium">{parentDisplayTitle}</span>」下
+          {notFound && <span className="text-xs ml-1 text-destructive">（未找到匹配任务）</span>}
+          {invalidSame && <span className="text-xs ml-1 text-destructive">（目标父任务不能是自身）</span>}
         </span>
       </div>
     );
@@ -202,6 +232,17 @@ export function ActionPreview({ actions, raw, allTasks, spaceId, members, parent
           if (res.ok) result.updated = [...(result.updated ?? []), await res.json() as Task];
         }
 
+        if (action.type === "move") {
+          const parentTask = resolveParentTask(action, allTasks);
+          if (!parentTask || parentTask.id === task.id) continue;
+          const res = await fetch(`/api/tasks/${task.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ parent_id: parentTask.id }),
+          });
+          if (res.ok) result.updated = [...(result.updated ?? []), await res.json() as Task];
+        }
+
         if (action.type === "complete") {
           const res = await fetch(`/api/tasks/${task.id}`, {
             method: "PATCH",
@@ -233,10 +274,21 @@ export function ActionPreview({ actions, raw, allTasks, spaceId, members, parent
     onDone(result);
   }
 
-  const hasUnresolvable = nonCreateActions.some((a) => !resolveTask(a, allTasks));
+  const hasUnresolvable = nonCreateActions.some((a) => {
+    const task = resolveTask(a, allTasks);
+    if (!task) return true;
+    if (a.type !== "move") return false;
+    const parentTask = resolveParentTask(a, allTasks);
+    return !parentTask || parentTask.id === task.id;
+  });
   const executableCount = actions.reduce((n, a) => {
     if (a.type === "create") return n + (a.tasks?.length ?? 0);
-    return resolveTask(a, allTasks) ? n + 1 : n;
+    const task = resolveTask(a, allTasks);
+    if (!task) return n;
+    if (a.type !== "move") return n + 1;
+    const parentTask = resolveParentTask(a, allTasks);
+    if (!parentTask || parentTask.id === task.id) return n;
+    return n + 1;
   }, 0);
 
   return (

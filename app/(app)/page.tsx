@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { NLInput } from "@/components/NLInput";
 import { ActionPreview } from "@/components/ActionPreview";
 import { TaskList } from "@/components/TaskList";
+import { Button } from "@/components/ui/button";
 import type { ParsedAction, Task, ActionResult } from "@/lib/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -90,12 +92,17 @@ export default function TaskHomePage() {
 
   return (
     <div className="app-content">
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold">全部任务</h1>
-        <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-2">
-          <span>{tasks.length} 个待办</span>
-          <span className="today-count-chip">今日 {todayCount}</span>
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">全部任务</h1>
+          <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-2">
+            <span>{tasks.length} 个待办</span>
+            <span className="today-count-chip">今日 {todayCount}</span>
+          </p>
+        </div>
+        <Button asChild size="sm" variant="outline">
+          <Link href="/readme">使用文档</Link>
+        </Button>
       </div>
 
       <div className="mb-4">

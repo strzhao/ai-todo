@@ -82,16 +82,19 @@ export interface ParsedActionChanges {
 }
 
 export interface ParsedAction {
-  type: "create" | "update" | "complete" | "delete" | "add_log";
+  type: "create" | "update" | "complete" | "delete" | "add_log" | "move";
   // For create
   tasks?: ParsedTask[];
-  // For update/complete/delete/add_log
+  // For update/complete/delete/add_log/move
   target_id?: string;    // AI 从 tasks 上下文匹配到的 UUID（优先）
   target_title?: string; // 显示/客户端 fuzzy match 兜底
   // For update
   changes?: ParsedActionChanges;
   // For add_log
   log_content?: string;
+  // For move
+  to_parent_id?: string;
+  to_parent_title?: string;
 }
 
 export interface ActionResult {

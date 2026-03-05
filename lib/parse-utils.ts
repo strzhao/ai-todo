@@ -85,6 +85,11 @@ export function parseActions(result: Record<string, unknown>, fallbackText: stri
         action.log_content = String(a.log_content);
       }
 
+      if (type === "move") {
+        if (a.to_parent_id) action.to_parent_id = String(a.to_parent_id);
+        if (a.to_parent_title) action.to_parent_title = String(a.to_parent_title);
+      }
+
       return action;
     });
   }

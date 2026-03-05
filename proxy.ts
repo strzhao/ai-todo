@@ -10,7 +10,7 @@ import {
   normalizeNextPath,
 } from "@/lib/auth-config";
 
-const protectedPaths = ["/", "/all", "/spaces", "/join"];
+const protectedPaths = ["/", "/all", "/readme", "/spaces", "/join"];
 const protectedApiPaths = ["/api/tasks", "/api/parse-task", "/api/spaces"];
 
 type RefreshAttemptResult =

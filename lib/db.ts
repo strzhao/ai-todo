@@ -1,6 +1,13 @@
 import { sql } from "@vercel/postgres";
 import type { Task, ParsedTask, TaskMember, TaskLog } from "./types";
 
+export class TaskValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TaskValidationError";
+  }
+}
+
 export async function initDb() {
   // 1. Tasks table (core, must exist first for self-referencing FK)
   await sql`
@@ -294,7 +301,7 @@ export async function deleteTask(taskId: string, userId: string): Promise<void> 
 export async function updateTask(
   taskId: string,
   userId: string,
-  patch: Partial<ParsedTask> & { assigneeEmail?: string | null; start_date?: string | null; end_date?: string | null }
+  patch: Partial<ParsedTask> & { assigneeEmail?: string | null; start_date?: string | null; end_date?: string | null; parent_id?: string | null }
 ): Promise<Task | null> {
   const task = await getTaskForUser(taskId, userId);
   if (!task) return null;
@@ -314,6 +321,49 @@ export async function updateTask(
   }
   if (patch.start_date !== undefined) { fields.push(`start_date = $${idx++}`); values.push(patch.start_date); }
   if (patch.end_date !== undefined) { fields.push(`end_date = $${idx++}`); values.push(patch.end_date); }
+  if (patch.parent_id !== undefined) {
+    const nextParentId = patch.parent_id || null;
+
+    if (task.pinned) {
+      throw new TaskValidationError("Pinned task cannot be moved under another task");
+    }
+
+    if (nextParentId === task.id) {
+      throw new TaskValidationError("Task cannot be moved under itself");
+    }
+
+    if (nextParentId) {
+      const parentTask = await getTaskForUser(nextParentId, userId);
+      if (!parentTask) {
+        throw new TaskValidationError("Parent task not found");
+      }
+
+      const sourceScope = task.space_id ?? null;
+      const parentScope = parentTask.pinned ? parentTask.id : (parentTask.space_id ?? null);
+      if (sourceScope !== parentScope) {
+        throw new TaskValidationError("Cannot move task across spaces");
+      }
+
+      const { rows: cycleRows } = await sql.query(
+        `WITH RECURSIVE ancestors AS (
+           SELECT id, parent_id FROM ai_todo_tasks WHERE id = $1
+           UNION ALL
+           SELECT t.id, t.parent_id
+           FROM ai_todo_tasks t
+           JOIN ancestors a ON t.id = a.parent_id
+           WHERE a.parent_id IS NOT NULL
+         )
+         SELECT 1 FROM ancestors WHERE id = $2 LIMIT 1`,
+        [nextParentId, taskId]
+      );
+      if (cycleRows[0]) {
+        throw new TaskValidationError("Cannot move task under its own descendant");
+      }
+    }
+
+    fields.push(`parent_id = $${idx++}`);
+    values.push(nextParentId);
+  }
 
   if (fields.length === 0) return task;
 

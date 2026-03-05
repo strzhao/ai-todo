@@ -195,6 +195,41 @@ describe("parseActions - 新格式", () => {
     expect(actions[0].log_content).toBe("完成第一阶段");
   });
 
+  it("move action：正确提取 source 和目标父任务", () => {
+    const result = {
+      actions: [
+        {
+          type: "move",
+          target_id: "uuid-src",
+          target_title: "调研任务",
+          to_parent_id: "uuid-parent",
+          to_parent_title: "项目计划",
+        },
+      ],
+    };
+    const actions = parseActions(result, "");
+    expect(actions[0].type).toBe("move");
+    expect(actions[0].target_id).toBe("uuid-src");
+    expect(actions[0].to_parent_id).toBe("uuid-parent");
+    expect(actions[0].to_parent_title).toBe("项目计划");
+  });
+
+  it("move action：to_parent 缺失时不强制填充", () => {
+    const result = {
+      actions: [
+        {
+          type: "move",
+          target_id: "uuid-src",
+          target_title: "调研任务",
+        },
+      ],
+    };
+    const actions = parseActions(result, "");
+    expect(actions[0].type).toBe("move");
+    expect(actions[0].to_parent_id).toBeUndefined();
+    expect(actions[0].to_parent_title).toBeUndefined();
+  });
+
   it("混合 actions（create + complete）→ 返回 2 个 action", () => {
     const result = {
       actions: [
@@ -215,6 +250,21 @@ describe("parseActions - 新格式", () => {
     const actions = parseActions(result, "fallback");
     expect(actions[0].type).toBe("create");
     expect(actions[0].tasks).toHaveLength(0);
+  });
+
+  it("混合 actions（move + create + complete）顺序保持", () => {
+    const result = {
+      actions: [
+        { type: "move", target_id: "uuid-src", to_parent_id: "uuid-parent" },
+        { type: "create", tasks: [{ title: "新任务" }] },
+        { type: "complete", target_id: "uuid-done", target_title: "旧任务" },
+      ],
+    };
+    const actions = parseActions(result, "");
+    expect(actions).toHaveLength(3);
+    expect(actions[0].type).toBe("move");
+    expect(actions[1].type).toBe("create");
+    expect(actions[2].type).toBe("complete");
   });
 });
 
