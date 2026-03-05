@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookie } from "@/lib/auth";
+import { normalizeAccessTokenTtl } from "@/lib/auth-cookie";
 import {
   AUTH_NEXT_COOKIE,
   AUTH_ISSUER,
@@ -239,6 +240,19 @@ export async function proxy(req: NextRequest) {
 
     const res = NextResponse.next({ request: { headers: requestHeaders } });
     appendSetCookieHeaders(res, refreshResult.setCookies);
+
+    // Override access_token cookie with extended TTL
+    if (refreshResult.accessToken) {
+      res.cookies.set("access_token", refreshResult.accessToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+        domain: ".stringzhao.life",
+        maxAge: normalizeAccessTokenTtl(null),
+      });
+    }
+
     clearLocalRefreshCookie(res);
     return res;
   }
