@@ -217,7 +217,10 @@ export async function proxy(req: NextRequest) {
 
   if (!isProtectedPage && !isProtectedApi) return NextResponse.next();
 
-  const token = req.cookies.get("access_token")?.value;
+  const authHeader = req.headers.get("authorization");
+  const token = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : req.cookies.get("access_token")?.value;
   if (token) {
     const user = await getUserFromCookie(token);
     if (user) {
