@@ -42,6 +42,7 @@ function readCookie(name: string): string | null {
 
 function clearCookie(name: string) {
   document.cookie = `${name}=; Max-Age=0; Path=/; Secure; SameSite=Lax`;
+  document.cookie = `${name}=; Max-Age=0; Path=/auth/callback; Secure; SameSite=Lax`;
 }
 
 function safeDecode(value: string): string {
@@ -115,11 +116,10 @@ export default function AuthCallbackPage() {
       const callbackUrl = new URL(window.location.href);
       const callbackError = callbackUrl.searchParams.get("error");
       const authorized = callbackUrl.searchParams.get("authorized");
+      const nextFromUrl = callbackUrl.searchParams.get("next");
       const nextFromCookie = readCookie("auth_next");
       const nextPath = normalizeNextPath(
-        nextFromCookie
-          ? safeDecode(nextFromCookie)
-          : callbackUrl.searchParams.get("next")
+        nextFromUrl ?? (nextFromCookie ? safeDecode(nextFromCookie) : null)
       );
 
       if (callbackError) {
