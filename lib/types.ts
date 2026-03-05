@@ -39,6 +39,9 @@ export interface ParsedTask {
   // Phase B: @mention
   assignee?: string;
   mentions?: string[];
+  // Existing parent target for create action
+  parent_target_id?: string;
+  parent_target_title?: string;
   // Phase D: hierarchy — subtasks (max 1 level deep in AI output)
   children?: Omit<ParsedTask, "children">[];
 }

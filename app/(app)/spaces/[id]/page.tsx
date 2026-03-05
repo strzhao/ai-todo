@@ -19,7 +19,8 @@ export default function SpacePage({ params }: SpacePageProps) {
   const [members, setMembers] = useState<SpaceMember[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
-  const [preview, setPreview] = useState<{ actions: ParsedAction[]; raw: string } | null>(null);
+  const [inputText, setInputText] = useState("");
+  const [preview, setPreview] = useState<{ actions: ParsedAction[]; raw: string; traceId?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [filterMember, setFilterMember] = useState<string>("all");
   const [tab, setTab] = useState<"list" | "gantt">("list");
@@ -60,6 +61,14 @@ export default function SpacePage({ params }: SpacePageProps) {
     if (result.deleted?.length) {
       setTasks((prev) => prev.filter((t) => !result.deleted!.includes(t.id) && !result.deleted!.includes(t.parent_id ?? "")));
     }
+    const hasSuccess = Boolean(
+      result.created?.length ||
+      result.updated?.length ||
+      result.completed?.length ||
+      result.deleted?.length ||
+      result.logged?.length
+    );
+    if (hasSuccess) setInputText("");
     setPreview(null);
   }
 
@@ -90,8 +99,19 @@ export default function SpacePage({ params }: SpacePageProps) {
     ? tasks
     : tasks.filter((t) => t.assignee_id === filterMember || t.user_id === filterMember);
 
-  // When a task is focused, show only its subtasks directly
   const focusedTask = focusedTaskId ? tasks.find((t) => t.id === focusedTaskId) : null;
+
+  // Current focus layer (for AI parse + action resolution): only direct children, unfinished
+  const focusLayerTasks = focusedTaskId
+    ? tasks.filter((t) => t.parent_id === focusedTaskId)
+    : tasks.filter((t) => !t.parent_id);
+
+  // Add current container node (space root or focused parent) for expressions like "在 X 下新增..."
+  const aiContextTasks: Task[] = focusedTaskId
+    ? (focusedTask ? [focusedTask, ...focusLayerTasks] : focusLayerTasks)
+    : (space ? [space, ...focusLayerTasks] : focusLayerTasks);
+
+  // When a task is focused, show only its subtasks directly
   const displayTasks = focusedTaskId
     ? filteredTasks.filter((t) => t.parent_id === focusedTaskId)
     : filteredTasks;
@@ -198,12 +218,14 @@ export default function SpacePage({ params }: SpacePageProps) {
 
           <div className="mb-4">
             <NLInput
-              onResult={(actions, r) => setPreview({ actions, raw: r })}
-              tasks={focusedTaskId ? displayTasks : tasks}
+              onResult={(actions, r, traceId) => setPreview({ actions, raw: r, traceId })}
+              tasks={aiContextTasks}
               spaceId={spaceId}
               members={members}
               parentTaskId={focusedTaskId ?? undefined}
               parentTaskTitle={focusedTask?.title}
+              value={inputText}
+              onValueChange={setInputText}
             />
           </div>
 
@@ -212,10 +234,11 @@ export default function SpacePage({ params }: SpacePageProps) {
               <ActionPreview
                 actions={preview.actions}
                 raw={preview.raw}
-                allTasks={tasks}
+                allTasks={aiContextTasks}
                 spaceId={spaceId}
                 members={members}
                 parentTaskId={focusedTaskId ?? undefined}
+                traceId={preview.traceId}
                 onDone={handleActionDone}
                 onCancel={() => setPreview(null)}
               />

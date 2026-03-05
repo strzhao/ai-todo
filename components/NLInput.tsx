@@ -3,25 +3,34 @@
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { aiFlowLog, createAiTraceId, summarizeParsedActions } from "@/lib/ai-flow-log";
 import type { ParsedAction, ParsedTask, Task, SpaceMember } from "@/lib/types";
 
 interface Props {
-  onResult?: (actions: ParsedAction[], raw: string) => void;
+  onResult?: (actions: ParsedAction[], raw: string, traceId?: string) => void;
   onParsed?: (tasks: ParsedTask[], raw: string) => void;
   tasks?: Task[];
   spaceId?: string;
   members?: SpaceMember[];
   parentTaskId?: string;
   parentTaskTitle?: string;
+  value?: string;
+  onValueChange?: (value: string) => void;
 }
 
-export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTaskId, parentTaskTitle }: Props) {
-  const [text, setText] = useState("");
+export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTaskId, parentTaskTitle, value, onValueChange }: Props) {
+  const [internalText, setInternalText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const text = value ?? internalText;
+
+  function setTextValue(next: string) {
+    if (onValueChange) onValueChange(next);
+    if (value === undefined) setInternalText(next);
+  }
 
   const activeMembers = members?.filter((m) => m.status === "active") ?? [];
 
@@ -47,6 +56,7 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
     setLoading(true);
     setError("");
     setMentionQuery(null);
+    const traceId = createAiTraceId();
 
     try {
       const tasksCtx = tasks?.map((t) => ({
@@ -56,9 +66,19 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
         priority: t.priority,
       })) ?? [];
 
+      aiFlowLog("NLInput.parse.request", {
+        trace_id: traceId,
+        text,
+        space_id: spaceId ?? null,
+        parent_task: parentTaskId ? { id: parentTaskId, title: parentTaskTitle ?? "" } : null,
+        tasks_ctx_count: tasksCtx.length,
+        tasks_ctx: tasksCtx.map((t) => ({ id: t.id, title: t.title, status: t.status })),
+        members_count: activeMembers.length,
+      });
+
       const res = await fetch("/api/parse-task", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-ai-trace-id": traceId },
         body: JSON.stringify({
           text,
           now: new Date().toISOString(),
@@ -73,6 +93,11 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
 
       if (!res.ok) {
         const d = await res.json() as { error?: string };
+        aiFlowLog("NLInput.parse.failed", {
+          trace_id: traceId,
+          status: res.status,
+          error: d.error ?? "解析失败",
+        });
         setError(d.error || "解析失败");
         return;
       }
@@ -80,11 +105,19 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
       const data = await res.json() as { actions?: ParsedAction[]; tasks?: unknown[] };
       // 兼容旧格式
       const actions: ParsedAction[] = data.actions ?? [{ type: "create", tasks: (data.tasks ?? []) as import("@/lib/types").ParsedTask[] }];
+      aiFlowLog("NLInput.parse.response", {
+        trace_id: traceId,
+        actions_count: actions.length,
+        actions: summarizeParsedActions(actions),
+      });
       const createdTasks = actions.flatMap((a) => a.type === "create" ? (a.tasks ?? []) : []);
-      if (onResult) onResult(actions, text);
+      if (onResult) onResult(actions, text, traceId);
       if (onParsed) onParsed(createdTasks, text);
-      setText("");
-    } catch {
+    } catch (err) {
+      aiFlowLog("NLInput.parse.error", {
+        trace_id: traceId,
+        error: err instanceof Error ? err.message : String(err),
+      });
       setError("网络错误，请重试");
     } finally {
       setLoading(false);
@@ -105,7 +138,7 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
 
   function onTextChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const val = e.target.value;
-    setText(val);
+    setTextValue(val);
     setError("");
 
     if (activeMembers.length > 0) {
@@ -124,7 +157,7 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
     const after = text.slice(cursor);
     const atIdx = before.lastIndexOf("@");
     const newText = before.slice(0, atIdx) + `@${member.email} ` + after;
-    setText(newText);
+    setTextValue(newText);
     setMentionQuery(null);
     setTimeout(() => {
       const pos = atIdx + member.email.length + 2;

@@ -12,6 +12,8 @@ describe("parseItem", () => {
         priority: 1,
         tags: ["工作", "写作"],
         assignee: "alice@example.com",
+        parent_target_id: "parent-uuid",
+        parent_target_title: "项目计划",
         mentions: ["bob@example.com"],
         due_date: "2026-03-20T00:00:00Z",
       },
@@ -22,6 +24,8 @@ describe("parseItem", () => {
     expect(result.priority).toBe(1);
     expect(result.tags).toEqual(["工作", "写作"]);
     expect(result.assignee).toBe("alice@example.com");
+    expect(result.parent_target_id).toBe("parent-uuid");
+    expect(result.parent_target_title).toBe("项目计划");
     expect(result.mentions).toEqual(["bob@example.com"]);
     expect(result.due_date).toBe("2026-03-20T00:00:00Z");
   });
@@ -184,6 +188,26 @@ describe("parseActions - 新格式", () => {
     expect(actions[0].changes?.tags).toEqual(["工作", "重要"]);
   });
 
+  it("update changes.assignee_email 为字符串 → 正确提取", () => {
+    const result = {
+      actions: [
+        { type: "update", target_id: "id1", changes: { assignee_email: "alice@example.com" } },
+      ],
+    };
+    const actions = parseActions(result, "");
+    expect(actions[0].changes?.assignee_email).toBe("alice@example.com");
+  });
+
+  it("update changes.assignee_email 为 null → 正确提取为 null", () => {
+    const result = {
+      actions: [
+        { type: "update", target_id: "id1", changes: { assignee_email: null } },
+      ],
+    };
+    const actions = parseActions(result, "");
+    expect(actions[0].changes?.assignee_email).toBeNull();
+  });
+
   it("add_log action：含 log_content", () => {
     const result = {
       actions: [
@@ -228,6 +252,20 @@ describe("parseActions - 新格式", () => {
     expect(actions[0].type).toBe("move");
     expect(actions[0].to_parent_id).toBeUndefined();
     expect(actions[0].to_parent_title).toBeUndefined();
+  });
+
+  it("create 支持 parent_target 字段", () => {
+    const result = {
+      actions: [
+        {
+          type: "create",
+          tasks: [{ title: "接口联调", parent_target_id: "uuid-parent", parent_target_title: "项目计划" }],
+        },
+      ],
+    };
+    const actions = parseActions(result, "");
+    expect(actions[0].tasks?.[0].parent_target_id).toBe("uuid-parent");
+    expect(actions[0].tasks?.[0].parent_target_title).toBe("项目计划");
   });
 
   it("混合 actions（create + complete）→ 返回 2 个 action", () => {

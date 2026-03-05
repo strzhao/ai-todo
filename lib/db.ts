@@ -301,7 +301,7 @@ export async function deleteTask(taskId: string, userId: string): Promise<void> 
 export async function updateTask(
   taskId: string,
   userId: string,
-  patch: Partial<ParsedTask> & { assigneeEmail?: string | null; start_date?: string | null; end_date?: string | null; parent_id?: string | null }
+  patch: Partial<ParsedTask> & { assignee_email?: string | null; assigneeEmail?: string | null; start_date?: string | null; end_date?: string | null; parent_id?: string | null }
 ): Promise<Task | null> {
   const task = await getTaskForUser(taskId, userId);
   if (!task) return null;
@@ -315,9 +315,36 @@ export async function updateTask(
   if (patch.due_date !== undefined) { fields.push(`due_date = $${idx++}`); values.push(patch.due_date); }
   if (patch.priority !== undefined) { fields.push(`priority = $${idx++}`); values.push(patch.priority); }
   if (patch.tags !== undefined) { fields.push(`tags = $${idx++}`); values.push(patch.tags); }
-  if ("assigneeEmail" in patch) {
-    fields.push(`assignee_email = $${idx++}`);
-    values.push(patch.assigneeEmail ?? null);
+  const nextAssigneeEmail = ("assignee_email" in patch)
+    ? patch.assignee_email
+    : ("assigneeEmail" in patch ? patch.assigneeEmail : undefined);
+  if (nextAssigneeEmail !== undefined) {
+    if (nextAssigneeEmail === null || String(nextAssigneeEmail).trim() === "") {
+      fields.push(`assignee_email = $${idx++}`);
+      values.push(null);
+      fields.push(`assignee_id = $${idx++}`);
+      values.push(null);
+    } else {
+      const normalizedEmail = String(nextAssigneeEmail).trim().toLowerCase();
+      let assigneeId: string | null = null;
+      if (task.space_id) {
+        const { rows: memberRows } = await sql.query(
+          `SELECT user_id
+           FROM ai_todo_task_members
+           WHERE task_id = $1 AND status = 'active' AND LOWER(email) = LOWER($2)
+           LIMIT 1`,
+          [task.space_id, normalizedEmail]
+        );
+        if (!memberRows[0]) {
+          throw new TaskValidationError("Assignee must be an active space member");
+        }
+        assigneeId = memberRows[0].user_id as string;
+      }
+      fields.push(`assignee_email = $${idx++}`);
+      values.push(normalizedEmail);
+      fields.push(`assignee_id = $${idx++}`);
+      values.push(assigneeId);
+    }
   }
   if (patch.start_date !== undefined) { fields.push(`start_date = $${idx++}`); values.push(patch.start_date); }
   if (patch.end_date !== undefined) { fields.push(`end_date = $${idx++}`); values.push(patch.end_date); }

@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { aiFlowLog } from "@/lib/ai-flow-log";
 import type { ParsedTask, Task } from "@/lib/types";
 
 const PRIORITY_LABELS: Record<number, string> = { 0: "P0 紧急", 1: "P1 高", 2: "P2 普通", 3: "P3 低" };
@@ -21,9 +22,11 @@ interface Props {
   onCancel: () => void;
   spaceId?: string;
   parentTaskId?: string;
+  parentTaskTitle?: string;
+  traceId?: string;
 }
 
-export function ParsePreviewCard({ parsed, onConfirm, onCancel, spaceId, parentTaskId }: Props) {
+export function ParsePreviewCard({ parsed, onConfirm, onCancel, spaceId, parentTaskId, parentTaskTitle, traceId }: Props) {
   const [form, setForm] = useState<ParsedTask>({ ...parsed });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -46,9 +49,16 @@ export function ParsePreviewCard({ parsed, onConfirm, onCancel, spaceId, parentT
         ...(form.assignee ? { assignee_email: form.assignee } : {}),
         ...(parentTaskId ? { parent_id: parentTaskId } : {}),
       };
+      aiFlowLog("ParsePreviewCard.post-task", {
+        trace_id: traceId ?? null,
+        title: body.title,
+        parent_id: body.parent_id ?? null,
+        space_id: body.space_id ?? null,
+        assignee_email: body.assignee_email ?? null,
+      });
       const res = await fetch("/api/tasks", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(traceId ? { "x-ai-trace-id": traceId } : {}) },
         body: JSON.stringify(body),
       });
       if (!res.ok) {
@@ -81,7 +91,24 @@ export function ParsePreviewCard({ parsed, onConfirm, onCancel, spaceId, parentT
           />
         </div>
 
-        {/* 负责人（有 assignee 时显示） */}
+        {/* 父任务（放在新建任务左上方） */}
+        {(parentTaskId || form.parent_target_id || form.parent_target_title) && (
+          <div className="space-y-1">
+            {parentTaskId ? (
+              <div className="inline-flex items-center gap-2 rounded-md border border-primary/45 bg-primary/12 px-2.5 py-1.5 text-primary shadow-sm max-w-[320px]">
+                <span className="text-[10px] font-semibold tracking-wide">父任务</span>
+                <span className="text-sm font-semibold truncate">{parentTaskTitle ?? "当前父任务"}</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 rounded-md border border-destructive/55 bg-destructive/10 px-2.5 py-1.5 text-destructive shadow-sm max-w-[320px]">
+                <span className="text-[10px] font-semibold tracking-wide">父任务未匹配</span>
+                <span className="text-sm font-semibold truncate">{form.parent_target_title ?? form.parent_target_id}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 负责人 */}
         {form.assignee && (
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">负责人</span>

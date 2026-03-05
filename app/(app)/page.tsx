@@ -42,7 +42,8 @@ function sortTasksWithTodayFirst(items: Task[]) {
 export default function TaskHomePage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
-  const [preview, setPreview] = useState<{ actions: ParsedAction[]; raw: string } | null>(null);
+  const [inputText, setInputText] = useState("");
+  const [preview, setPreview] = useState<{ actions: ParsedAction[]; raw: string; traceId?: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -73,6 +74,14 @@ export default function TaskHomePage() {
     if (result.deleted?.length) {
       setTasks((prev) => sortTasksWithTodayFirst(prev.filter((t) => !result.deleted!.includes(t.id) && !result.deleted!.includes(t.parent_id ?? ""))));
     }
+    const hasSuccess = Boolean(
+      result.created?.length ||
+      result.updated?.length ||
+      result.completed?.length ||
+      result.deleted?.length ||
+      result.logged?.length
+    );
+    if (hasSuccess) setInputText("");
     setPreview(null);
   }
 
@@ -107,8 +116,10 @@ export default function TaskHomePage() {
 
       <div className="mb-4">
         <NLInput
-          onResult={(actions, r) => setPreview({ actions, raw: r })}
+          onResult={(actions, r, traceId) => setPreview({ actions, raw: r, traceId })}
           tasks={tasks}
+          value={inputText}
+          onValueChange={setInputText}
         />
       </div>
 
@@ -118,6 +129,7 @@ export default function TaskHomePage() {
             actions={preview.actions}
             raw={preview.raw}
             allTasks={tasks}
+            traceId={preview.traceId}
             onDone={handleActionDone}
             onCancel={() => setPreview(null)}
           />

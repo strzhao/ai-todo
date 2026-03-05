@@ -38,6 +38,8 @@ export function parseItem(item: Record<string, unknown>, fallbackTitle: string):
       : 2,
     tags: Array.isArray(item.tags) ? item.tags.map(String) : [],
     ...(item.assignee ? { assignee: String(item.assignee) } : {}),
+    ...(item.parent_target_id ? { parent_target_id: String(item.parent_target_id) } : {}),
+    ...(item.parent_target_title ? { parent_target_title: String(item.parent_target_title) } : {}),
     ...(Array.isArray(item.mentions) && item.mentions.length > 0
       ? { mentions: (item.mentions as unknown[]).map(String) }
       : {}),
@@ -78,6 +80,9 @@ export function parseActions(result: Record<string, unknown>, fallbackText: stri
           ...(c.start_date ? { start_date: String(c.start_date) } : {}),
           ...(c.end_date ? { end_date: String(c.end_date) } : {}),
           ...(Array.isArray(c.tags) ? { tags: c.tags.map(String) } : {}),
+          ...("assignee_email" in c && c.assignee_email !== undefined
+            ? { assignee_email: c.assignee_email === null ? null : String(c.assignee_email) }
+            : {}),
         };
       }
 

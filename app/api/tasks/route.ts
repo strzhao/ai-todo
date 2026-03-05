@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { getTasks, getTodayTasks, getCompletedTasks, createTask, getTaskMemberRecord } from "@/lib/db";
+import { aiFlowLog, getAiTraceIdFromHeaders } from "@/lib/ai-flow-log";
 import { createRouteTimer } from "@/lib/route-timing";
 import type { ParsedTask } from "@/lib/types";
 
@@ -36,11 +37,19 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const traceId = getAiTraceIdFromHeaders(req.headers);
   const rt = createRouteTimer(req);
   const user = await rt.track("auth", async () => getUserFromRequest(req));
   if (!user) return rt.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json() as ParsedTask & { space_id?: string; assignee_email?: string; parent_id?: string };
+  aiFlowLog("tasks.post.request", {
+    trace_id: traceId ?? null,
+    title: body.title,
+    parent_id: body.parent_id ?? null,
+    space_id: body.space_id ?? null,
+    assignee_email: body.assignee_email ?? body.assignee ?? null,
+  });
   if (!body.title?.trim()) {
     return rt.json({ error: "title is required" }, { status: 400 });
   }
@@ -65,6 +74,15 @@ export async function POST(req: NextRequest) {
     if (rows[0]) assigneeId = rows[0].user_id as string;
   }
 
+  aiFlowLog("tasks.post.resolved-payload", {
+    trace_id: traceId ?? null,
+    title: body.title,
+    parent_id: body.parent_id ?? null,
+    space_id: body.space_id ?? null,
+    assignee_email: assigneeEmail ?? null,
+    assignee_id: assigneeId ?? null,
+  });
+
   const task = await rt.track("db_query", async () => createTask(user.id, {
     ...body,
     spaceId: body.space_id,
@@ -73,6 +91,14 @@ export async function POST(req: NextRequest) {
     mentionedEmails: body.mentions ?? [],
     parentId: body.parent_id,
   }));
+
+  aiFlowLog("tasks.post.created", {
+    trace_id: traceId ?? null,
+    task_id: task.id,
+    title: task.title,
+    parent_id: task.parent_id ?? null,
+    space_id: task.space_id ?? null,
+  });
 
   return rt.json(task, { status: 201 });
 }
