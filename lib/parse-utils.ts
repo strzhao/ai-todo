@@ -83,6 +83,9 @@ export function parseActions(result: Record<string, unknown>, fallbackText: stri
           ...("assignee_email" in c && c.assignee_email !== undefined
             ? { assignee_email: c.assignee_email === null ? null : String(c.assignee_email) }
             : {}),
+          ...(typeof c.progress === "number" && c.progress >= 0 && c.progress <= 100
+            ? { progress: c.progress }
+            : {}),
         };
       }
 

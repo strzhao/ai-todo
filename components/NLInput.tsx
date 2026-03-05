@@ -192,7 +192,7 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
 
       {/* @mention dropdown */}
       {mentionQuery !== null && filteredMembers.length > 0 && (
-        <div className="absolute z-50 bottom-full mb-1 left-0 w-72 bg-popover border border-border rounded-md shadow-md overflow-hidden">
+        <div className="absolute z-50 bottom-full mb-1 left-0 w-72 bg-background border border-border rounded-md shadow-lg overflow-hidden">
           {filteredMembers.slice(0, 6).map((m) => (
             <button
               key={m.user_id}

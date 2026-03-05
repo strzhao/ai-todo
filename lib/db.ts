@@ -37,6 +37,7 @@ export async function initDb() {
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS pinned BOOLEAN DEFAULT FALSE`;
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS invite_code TEXT`;
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS invite_mode TEXT DEFAULT 'open'`;
+  await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS progress SMALLINT DEFAULT 0`;
 
   // 3. Indexes on tasks
   await sql`CREATE INDEX IF NOT EXISTS idx_ai_todo_tasks_user_id ON ai_todo_tasks(user_id)`;
@@ -105,6 +106,7 @@ function rowToTask(row: Record<string, unknown>): Task {
     assignee_id: (row.assignee_id as string) || undefined,
     assignee_email: (row.assignee_email as string) || undefined,
     mentioned_emails: (row.mentioned_emails as string[]) ?? [],
+    progress: row.progress != null ? Number(row.progress) : 0,
     parent_id: (row.parent_id as string) || undefined,
     pinned: (row.pinned as boolean) || undefined,
     invite_code: (row.invite_code as string) || undefined,
@@ -290,8 +292,8 @@ export interface CreateTaskData extends ParsedTask {
 export async function createTask(userId: string, data: CreateTaskData): Promise<Task> {
   const { rows } = await sql.query(
     `INSERT INTO ai_todo_tasks
-       (user_id, title, description, due_date, priority, tags, space_id, assignee_id, assignee_email, mentioned_emails, parent_id, start_date, end_date)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+       (user_id, title, description, due_date, priority, tags, space_id, assignee_id, assignee_email, mentioned_emails, parent_id, start_date, end_date, progress)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
      RETURNING *`,
     [
       userId,
@@ -307,6 +309,7 @@ export async function createTask(userId: string, data: CreateTaskData): Promise<
       data.parentId ?? null,
       data.startDate ?? data.start_date ?? null,
       data.endDate ?? data.end_date ?? null,
+      data.progress ?? 0,
     ]
   );
   return rowToTask(rows[0]);
@@ -351,7 +354,7 @@ export async function deleteTask(taskId: string, userId: string): Promise<void> 
 export async function updateTask(
   taskId: string,
   userId: string,
-  patch: Partial<ParsedTask> & { assignee_email?: string | null; assigneeEmail?: string | null; start_date?: string | null; end_date?: string | null; parent_id?: string | null }
+  patch: Partial<ParsedTask> & { assignee_email?: string | null; assigneeEmail?: string | null; start_date?: string | null; end_date?: string | null; parent_id?: string | null; progress?: number }
 ): Promise<Task | null> {
   const task = await getTaskForUser(taskId, userId);
   if (!task) return null;
@@ -398,6 +401,7 @@ export async function updateTask(
   }
   if (patch.start_date !== undefined) { fields.push(`start_date = $${idx++}`); values.push(patch.start_date); }
   if (patch.end_date !== undefined) { fields.push(`end_date = $${idx++}`); values.push(patch.end_date); }
+  if (patch.progress !== undefined) { fields.push(`progress = $${idx++}`); values.push(patch.progress); }
   if (patch.parent_id !== undefined) {
     const nextParentId = patch.parent_id || null;
 

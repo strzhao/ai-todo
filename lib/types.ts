@@ -19,6 +19,8 @@ export interface Task {
   mentioned_emails?: string[];
   // Phase D: hierarchy (arbitrary depth)
   parent_id?: string;
+  // Progress percentage (0-100)
+  progress: number;
   // Pinned task = acts as a "space" (sidebar entry + members + invite)
   pinned?: boolean;
   invite_code?: string;
@@ -42,6 +44,7 @@ export interface ParsedTask {
   // Existing parent target for create action
   parent_target_id?: string;
   parent_target_title?: string;
+  progress?: number;
   // Phase D: hierarchy — subtasks (max 1 level deep in AI output)
   children?: Omit<ParsedTask, "children">[];
 }
@@ -82,6 +85,7 @@ export interface ParsedActionChanges {
   end_date?: string;
   tags?: string[];
   assignee_email?: string | null;
+  progress?: number;
 }
 
 export interface ParsedAction {

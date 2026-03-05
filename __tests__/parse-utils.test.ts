@@ -290,6 +290,36 @@ describe("parseActions - 新格式", () => {
     expect(actions[0].tasks).toHaveLength(0);
   });
 
+  it("update changes 包含 progress 字段", () => {
+    const result = {
+      actions: [
+        { type: "update", target_id: "uuid-1", target_title: "写报告", changes: { progress: 60 } },
+      ],
+    };
+    const actions = parseActions(result, "");
+    expect(actions[0].changes?.progress).toBe(60);
+  });
+
+  it("update changes progress 超出范围时被忽略", () => {
+    const result = {
+      actions: [
+        { type: "update", target_id: "uuid-1", changes: { progress: 150 } },
+      ],
+    };
+    const actions = parseActions(result, "");
+    expect(actions[0].changes?.progress).toBeUndefined();
+  });
+
+  it("update changes progress 为 0 时正确保留", () => {
+    const result = {
+      actions: [
+        { type: "update", target_id: "uuid-1", changes: { progress: 0 } },
+      ],
+    };
+    const actions = parseActions(result, "");
+    expect(actions[0].changes?.progress).toBe(0);
+  });
+
   it("混合 actions（move + create + complete）顺序保持", () => {
     const result = {
       actions: [

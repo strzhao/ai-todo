@@ -153,6 +153,7 @@ function ActionRow({ action, allTasks, parentTaskId }: { action: ParsedAction; a
     if (c.description !== undefined) changeParts.push("更新描述");
     if (c.tags !== undefined) changeParts.push(`标签→[${c.tags.join(",")}]`);
     if (c.assignee_email !== undefined) changeParts.push(c.assignee_email ? `经办人→${c.assignee_email}` : "经办人→未指派");
+    if (c.progress !== undefined) changeParts.push(`进度→${c.progress}%`);
     return (
       <div className={`flex items-start gap-2 text-sm ${notFound ? "text-destructive" : ""}`}>
         <span className="flex-shrink-0 text-info">↻</span>

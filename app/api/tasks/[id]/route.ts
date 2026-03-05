@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { completeTask, deleteTask, updateTask, pinTask, unpinTask, getTaskForUser, TaskValidationError } from "@/lib/db";
+import { initDb, completeTask, deleteTask, updateTask, pinTask, unpinTask, getTaskForUser, TaskValidationError } from "@/lib/db";
 import { aiFlowLog, getAiTraceIdFromHeaders } from "@/lib/ai-flow-log";
 import { createRouteTimer } from "@/lib/route-timing";
 import type { ParsedTask } from "@/lib/types";
@@ -13,8 +13,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const user = await rt.track("auth", async () => getUserFromRequest(req));
   if (!user) return rt.json({ error: "Unauthorized" }, { status: 401 });
 
+  await initDb();
   const { id } = await params;
-  const body = await req.json() as { complete?: boolean; action?: "pin" | "unpin"; invite_mode?: string } & Partial<ParsedTask> & { assignee_email?: string | null; assigneeEmail?: string | null; start_date?: string | null; end_date?: string | null; parent_id?: string | null };
+  const body = await req.json() as { complete?: boolean; action?: "pin" | "unpin"; invite_mode?: string } & Partial<ParsedTask> & { assignee_email?: string | null; assigneeEmail?: string | null; start_date?: string | null; end_date?: string | null; parent_id?: string | null; progress?: number };
   aiFlowLog("tasks.patch.request", {
     trace_id: traceId ?? null,
     task_id: id,

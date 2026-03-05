@@ -313,6 +313,19 @@
     @apply text-foreground font-medium;
   }
 
+  /* Date input styling */
+  input[type="date"] {
+    color-scheme: light dark;
+    font-family: inherit;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0.5;
+    cursor: pointer;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 0.8;
+  }
+
   .today-count-chip {
     color: var(--today-accent-strong);
     background-color: var(--today-accent-soft);

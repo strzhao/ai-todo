@@ -20,11 +20,6 @@ function formatRelativeTime(iso: string): string {
   return `${days} 天前`;
 }
 
-function formatDate(iso?: string): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
-}
-
 export function TaskDetail({ task, currentUserEmail, onUpdate }: Props) {
   const [logs, setLogs] = useState<TaskLog[]>([]);
   const [logsLoaded, setLogsLoaded] = useState(false);
@@ -83,8 +78,6 @@ export function TaskDetail({ task, currentUserEmail, onUpdate }: Props) {
     }
   }
 
-  const hasDateRange = task.start_date || task.end_date;
-
   return (
     <div className="p-4 space-y-4">
       {/* Description */}
@@ -99,16 +92,6 @@ export function TaskDetail({ task, currentUserEmail, onUpdate }: Props) {
           className="w-full text-sm bg-muted/40 border border-border/50 rounded-md px-3 py-2 resize-none outline-none focus:border-primary/50 placeholder:text-muted-foreground/50 transition-colors min-h-[72px]"
         />
       </div>
-
-      {/* Date range */}
-      {hasDateRange && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>⏱</span>
-          {task.start_date && <span>开始: {formatDate(task.start_date)}</span>}
-          {task.start_date && task.end_date && <span className="text-muted-foreground/40">→</span>}
-          {task.end_date && <span>结束: {formatDate(task.end_date)}</span>}
-        </div>
-      )}
 
       {/* Logs */}
       <div>
