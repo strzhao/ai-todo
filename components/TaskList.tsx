@@ -5,7 +5,7 @@ import { TaskItem } from "./TaskItem";
 import { TaskSkeleton } from "./TaskSkeleton";
 import { EmptyState } from "./EmptyState";
 import type { Task } from "@/lib/types";
-import { buildTree, type TaskNode } from "@/lib/task-utils";
+import { buildTree } from "@/lib/task-utils";
 
 interface Props {
   tasks: Task[];
@@ -18,6 +18,9 @@ interface Props {
   emptySubtext?: string;
   currentUserEmail?: string;
   highlightTodayDue?: boolean;
+  groupPinnedAtBottom?: boolean;
+  pinnedSectionDefaultCollapsed?: boolean;
+  pinnedSectionTitle?: string;
 }
 
 export function TaskList({
@@ -31,8 +34,12 @@ export function TaskList({
   emptySubtext,
   currentUserEmail,
   highlightTodayDue = false,
+  groupPinnedAtBottom = false,
+  pinnedSectionDefaultCollapsed = false,
+  pinnedSectionTitle = "置顶任务",
 }: Props) {
   const [showCompleted, setShowCompleted] = useState(false);
+  const [showPinned, setShowPinned] = useState(!pinnedSectionDefaultCollapsed);
 
   if (loading) return <TaskSkeleton />;
 
@@ -41,10 +48,12 @@ export function TaskList({
   }
 
   const tree = buildTree(tasks);
+  const regularRoots = groupPinnedAtBottom ? tree.filter((node) => !node.pinned) : tree;
+  const pinnedRoots = groupPinnedAtBottom ? tree.filter((node) => node.pinned) : [];
 
   return (
     <div>
-      {tree.map((node) => (
+      {regularRoots.map((node) => (
         <TaskItem
           key={node.id}
           task={node}
@@ -56,6 +65,36 @@ export function TaskList({
           highlightTodayDue={highlightTodayDue}
         />
       ))}
+
+      {/* Pinned tasks section (bottom of active tasks) */}
+      {groupPinnedAtBottom && pinnedRoots.length > 0 && (
+        <div className="mt-4">
+          <button
+            onClick={() => setShowPinned((v) => !v)}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
+          >
+            <span className="text-[10px]">{showPinned ? "▼" : "▶"}</span>
+            <span>{pinnedSectionTitle} ({pinnedRoots.length})</span>
+          </button>
+
+          {showPinned && (
+            <div className="mt-1 border-t border-border/30 pt-1">
+              {pinnedRoots.map((node) => (
+                <TaskItem
+                  key={node.id}
+                  task={node}
+                  subtasks={node.subtasks}
+                  onComplete={onComplete}
+                  onDelete={onDelete}
+                  onUpdate={onUpdate}
+                  currentUserEmail={currentUserEmail}
+                  highlightTodayDue={highlightTodayDue}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Completed tasks section */}
       {completedTasks && completedTasks.length > 0 && (

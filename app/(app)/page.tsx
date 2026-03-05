@@ -127,6 +127,9 @@ export default function TaskHomePage() {
         emptyText="还没有任务"
         emptySubtext="试着输入一句话"
         highlightTodayDue
+        groupPinnedAtBottom
+        pinnedSectionDefaultCollapsed
+        pinnedSectionTitle="置顶任务"
       />
     </div>
   );
