@@ -148,11 +148,28 @@ export async function getTasks(userId: string, options: GetTasksOptions = {}): P
   }
 
   if (spaceId) {
-    const { rows } = await sql`
-      SELECT * FROM ai_todo_tasks
-      WHERE space_id = ${spaceId} AND status != 2
-      ORDER BY priority ASC, created_at DESC
-    `;
+    const { rows } = await sql.query(
+      `WITH RECURSIVE descendants AS (
+         SELECT id
+         FROM ai_todo_tasks
+         WHERE parent_id = $1
+         UNION ALL
+         SELECT t.id
+         FROM ai_todo_tasks t
+         JOIN descendants d ON t.parent_id = d.id
+       ),
+       scoped AS (
+         SELECT id FROM ai_todo_tasks WHERE space_id = $1
+         UNION
+         SELECT id FROM descendants
+       )
+       SELECT t.*
+       FROM ai_todo_tasks t
+       JOIN scoped s ON s.id = t.id
+       WHERE t.status != 2
+       ORDER BY t.priority ASC, t.created_at DESC`,
+      [spaceId]
+    );
     return rows.map(rowToTask);
   }
 
@@ -166,14 +183,30 @@ export async function getTasks(userId: string, options: GetTasksOptions = {}): P
 
 export async function getTodayTasks(userId: string, spaceId?: string): Promise<Task[]> {
   if (spaceId) {
-    const { rows } = await sql`
-      SELECT * FROM ai_todo_tasks
-      WHERE space_id = ${spaceId}
-        AND status != 2
-        AND due_date >= NOW()::DATE
-        AND due_date < NOW()::DATE + INTERVAL '1 day'
-      ORDER BY priority ASC, due_date ASC
-    `;
+    const { rows } = await sql.query(
+      `WITH RECURSIVE descendants AS (
+         SELECT id
+         FROM ai_todo_tasks
+         WHERE parent_id = $1
+         UNION ALL
+         SELECT t.id
+         FROM ai_todo_tasks t
+         JOIN descendants d ON t.parent_id = d.id
+       ),
+       scoped AS (
+         SELECT id FROM ai_todo_tasks WHERE space_id = $1
+         UNION
+         SELECT id FROM descendants
+       )
+       SELECT t.*
+       FROM ai_todo_tasks t
+       JOIN scoped s ON s.id = t.id
+       WHERE t.status != 2
+         AND t.due_date >= NOW()::DATE
+         AND t.due_date < NOW()::DATE + INTERVAL '1 day'
+       ORDER BY t.priority ASC, t.due_date ASC`,
+      [spaceId]
+    );
     return rows.map(rowToTask);
   }
 
@@ -191,12 +224,29 @@ export async function getTodayTasks(userId: string, spaceId?: string): Promise<T
 
 export async function getCompletedTasks(userId: string, spaceId?: string): Promise<Task[]> {
   if (spaceId) {
-    const { rows } = await sql`
-      SELECT * FROM ai_todo_tasks
-      WHERE space_id = ${spaceId} AND status = 2
-      ORDER BY completed_at DESC
-      LIMIT 20
-    `;
+    const { rows } = await sql.query(
+      `WITH RECURSIVE descendants AS (
+         SELECT id
+         FROM ai_todo_tasks
+         WHERE parent_id = $1
+         UNION ALL
+         SELECT t.id
+         FROM ai_todo_tasks t
+         JOIN descendants d ON t.parent_id = d.id
+       ),
+       scoped AS (
+         SELECT id FROM ai_todo_tasks WHERE space_id = $1
+         UNION
+         SELECT id FROM descendants
+       )
+       SELECT t.*
+       FROM ai_todo_tasks t
+       JOIN scoped s ON s.id = t.id
+       WHERE t.status = 2
+       ORDER BY t.completed_at DESC
+       LIMIT 20`,
+      [spaceId]
+    );
     return rows.map(rowToTask);
   }
 
@@ -417,7 +467,28 @@ export async function getPinnedTasksForUser(userId: string): Promise<Task[]> {
       t.*,
       my.role AS my_role,
       (SELECT COUNT(*) FROM ai_todo_task_members m WHERE m.task_id = t.id AND m.status = 'active') AS member_count,
-      (SELECT COUNT(*) FROM ai_todo_tasks c WHERE c.space_id = t.id AND c.status != 2) AS task_count
+      (
+        SELECT COUNT(*)
+        FROM (
+          WITH RECURSIVE descendants AS (
+            SELECT id
+            FROM ai_todo_tasks
+            WHERE parent_id = t.id
+            UNION ALL
+            SELECT c.id
+            FROM ai_todo_tasks c
+            JOIN descendants d ON c.parent_id = d.id
+          )
+          SELECT id
+          FROM ai_todo_tasks c
+          WHERE c.space_id = t.id AND c.status != 2
+          UNION
+          SELECT d.id
+          FROM descendants d
+          JOIN ai_todo_tasks c ON c.id = d.id
+          WHERE c.status != 2
+        ) AS scoped
+      ) AS task_count
     FROM ai_todo_tasks t
     JOIN ai_todo_task_members my ON my.task_id = t.id AND my.user_id = ${userId} AND my.status = 'active'
     WHERE t.pinned = TRUE
@@ -437,6 +508,23 @@ export async function pinTask(
   email: string,
   opts: PinTaskOptions = {}
 ): Promise<Task> {
+  const task = await getTaskForUser(taskId, userId);
+  if (!task) throw new Error("Task not found");
+
+  if (task.parent_id) {
+    throw new TaskValidationError("Only top-level tasks can be pinned");
+  }
+
+  if (task.pinned) {
+    await sql.query(
+      `INSERT INTO ai_todo_task_members (task_id, user_id, email, role, status)
+       VALUES ($1, $2, $3, 'owner', 'active')
+       ON CONFLICT (task_id, user_id) DO NOTHING`,
+      [taskId, userId, email]
+    );
+    return task;
+  }
+
   let inviteCode = generateInviteCode();
   // Ensure uniqueness
   const { rows: existing } = await sql`SELECT 1 FROM ai_todo_tasks WHERE invite_code = ${inviteCode}`;
@@ -449,6 +537,7 @@ export async function pinTask(
      RETURNING *`,
     [inviteCode, opts.invite_mode ?? "open", taskId]
   );
+  if (!rows[0]) throw new Error("Task not found");
 
   await sql.query(
     `INSERT INTO ai_todo_task_members (task_id, user_id, email, role, status)
@@ -462,11 +551,12 @@ export async function pinTask(
 
 // Unpin a task (removes collaboration, keeps task and its children)
 export async function unpinTask(taskId: string): Promise<void> {
-  await sql`
-    UPDATE ai_todo_tasks
-    SET pinned = FALSE, invite_code = NULL, invite_mode = 'open'
-    WHERE id = ${taskId}
-  `;
+  await sql.query(
+    `UPDATE ai_todo_tasks
+     SET pinned = FALSE, invite_code = NULL, invite_mode = 'open'
+     WHERE id = $1`,
+    [taskId]
+  );
 }
 
 // Create a brand-new pinned task (equivalent of old createSpace)

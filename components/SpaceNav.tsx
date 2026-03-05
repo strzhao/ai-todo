@@ -2,13 +2,22 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import type { Task } from "@/lib/types";
+import { buildTree, type TaskNode } from "@/lib/task-utils";
 
-interface SpaceTaskItem {
+interface SpaceTaskNode {
   id: string;
   title: string;
-  subtask_count: number;
+  subtasks: SpaceTaskNode[];
+}
+
+function toSpaceTaskNode(node: TaskNode): SpaceTaskNode {
+  return {
+    id: node.id,
+    title: node.title,
+    subtasks: node.subtasks.map(toSpaceTaskNode),
+  };
 }
 
 interface Props {
@@ -19,7 +28,9 @@ interface Props {
 
 export function SpaceNav({ spaces, userEmail, isDev }: Props) {
   const pathname = usePathname();
-  const [spaceTasks, setSpaceTasks] = useState<SpaceTaskItem[]>([]);
+  const searchParams = useSearchParams();
+  const [spaceTasks, setSpaceTasks] = useState<SpaceTaskNode[]>([]);
+  const [collapsedTaskIds, setCollapsedTaskIds] = useState<Record<string, boolean>>({});
   const [openMenuSpaceId, setOpenMenuSpaceId] = useState<string | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -29,26 +40,30 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
   const spaceMatch = pathname.match(/^\/spaces\/([^/]+)/);
   const currentSpaceId = spaceMatch?.[1];
   const isValidSpaceId = currentSpaceId && currentSpaceId !== "new";
+  const focusedTaskId = searchParams.get("focus");
 
   useEffect(() => {
     if (!isValidSpaceId) {
       setSpaceTasks([]);
+      setCollapsedTaskIds({});
       return;
     }
     fetch(`/api/tasks?space_id=${currentSpaceId}`)
       .then((r) => r.json())
-      .then((data: { id: string; title: string; parent_id?: string }[]) => {
-        if (!Array.isArray(data)) return;
-        const topLevel = data.filter((t) => !t.parent_id);
-        setSpaceTasks(
-          topLevel.map((t) => ({
-            id: t.id,
-            title: t.title,
-            subtask_count: data.filter((s) => s.parent_id === t.id).length,
-          }))
-        );
+      .then((data: Task[]) => {
+        if (!Array.isArray(data)) {
+          setSpaceTasks([]);
+          setCollapsedTaskIds({});
+          return;
+        }
+        const tree = buildTree(data);
+        setSpaceTasks(tree.map(toSpaceTaskNode));
+        setCollapsedTaskIds({});
       })
-      .catch(() => {});
+      .catch(() => {
+        setSpaceTasks([]);
+        setCollapsedTaskIds({});
+      });
   }, [currentSpaceId, isValidSpaceId]);
 
   function handleLogout() {
@@ -99,6 +114,52 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
         ? "bg-primary/10 text-primary font-medium"
         : "text-muted-foreground hover:text-foreground hover:bg-muted"
     }`;
+
+  function toggleTaskCollapse(taskId: string) {
+    setCollapsedTaskIds((prev) => ({ ...prev, [taskId]: !prev[taskId] }));
+  }
+
+  function renderSpaceTaskTree(spaceId: string, nodes: SpaceTaskNode[]) {
+    return nodes.map((node) => {
+      const hasChildren = node.subtasks.length > 0;
+      const collapsed = Boolean(collapsedTaskIds[node.id]);
+      const isFocused = focusedTaskId === node.id;
+
+      return (
+        <div key={node.id} className="space-y-0.5">
+          <div className="flex items-center gap-1 min-w-0">
+            {hasChildren ? (
+              <button
+                type="button"
+                onClick={() => toggleTaskCollapse(node.id)}
+                className="w-4 h-4 rounded text-[10px] leading-none flex items-center justify-center text-muted-foreground hover:bg-muted/60 hover:text-foreground shrink-0"
+                aria-label={collapsed ? "展开子任务" : "收起子任务"}
+              >
+                {collapsed ? "▶" : "▼"}
+              </button>
+            ) : (
+              <span className="w-4 h-4 shrink-0" />
+            )}
+            <Link
+              href={`/spaces/${spaceId}?focus=${node.id}`}
+              className={`min-w-0 flex-1 py-1 px-2 rounded text-xs transition-colors ${
+                isFocused
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              }`}
+            >
+              <span className="truncate block">{node.title}</span>
+            </Link>
+          </div>
+          {hasChildren && !collapsed && (
+            <div className="ml-3 border-l border-border/40 pl-2 space-y-0.5">
+              {renderSpaceTaskTree(spaceId, node.subtasks)}
+            </div>
+          )}
+        </div>
+      );
+    });
+  }
 
   return (
     <>
@@ -159,20 +220,7 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
                 {/* Task directory for current active space */}
                 {currentSpaceId === space.id && spaceTasks.length > 0 && (
                   <div className="ml-5 mt-0.5 mb-1 border-l border-border/50 pl-2 space-y-0.5">
-                    {spaceTasks.map((t) => (
-                      <Link
-                        key={t.id}
-                        href={`/spaces/${space.id}?focus=${t.id}`}
-                        className="flex items-center gap-1 py-1 px-2 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                      >
-                        <span className="truncate flex-1">{t.title}</span>
-                        {t.subtask_count > 0 && (
-                          <span className="flex-shrink-0 text-[10px] text-muted-foreground/60 bg-muted rounded px-1">
-                            {t.subtask_count}
-                          </span>
-                        )}
-                      </Link>
-                    ))}
+                    {renderSpaceTaskTree(space.id, spaceTasks)}
                   </div>
                 )}
               </div>
