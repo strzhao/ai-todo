@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookie } from "@/lib/auth";
+import { normalizeAccessTokenTtl } from "@/lib/auth-cookie";
 
-const THIRTY_DAYS_SECONDS = 60 * 60 * 24 * 30;
 export const preferredRegion = "hkg1";
 
 type SessionPayload = {
@@ -10,22 +10,11 @@ type SessionPayload = {
   expiresIn?: number;
 };
 
-function normalizeAccessTokenTtl(expiresIn: unknown): number {
-  if (typeof expiresIn !== "number" || !Number.isFinite(expiresIn)) {
-    return 60 * 15;
-  }
-  const rounded = Math.floor(expiresIn);
-  if (rounded < 60) return 60;
-  if (rounded > 60 * 60) return 60 * 60;
-  return rounded;
-}
-
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as SessionPayload;
   const accessToken = body.accessToken ?? "";
-  const refreshToken = body.refreshToken ?? "";
 
-  if (!accessToken || !refreshToken) {
+  if (!accessToken) {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
   }
 
@@ -49,12 +38,12 @@ export async function POST(req: NextRequest) {
 
   res.cookies.set({
     name: "refresh_token",
-    value: refreshToken,
+    value: "",
     httpOnly: true,
     secure: true,
     sameSite: "lax",
     path: "/",
-    maxAge: THIRTY_DAYS_SECONDS,
+    maxAge: 0,
   });
 
   return res;

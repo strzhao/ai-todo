@@ -13,6 +13,18 @@ import {
 const protectedPaths = ["/", "/all", "/spaces", "/join"];
 const protectedApiPaths = ["/api/tasks", "/api/parse-task", "/api/spaces"];
 
+type RefreshAttemptResult =
+  | {
+      ok: true;
+      status: number;
+      accessToken: string | null;
+      setCookies: string[];
+    }
+  | {
+      ok: false;
+      status: number | null;
+    };
+
 function getSetCookieValues(headers: Headers): string[] {
   const headerBag = headers as Headers & { getSetCookie?: () => string[] };
   const setCookies = headerBag.getSetCookie?.() ?? [];
@@ -75,6 +87,24 @@ function clearAuthFlowCookies(res: NextResponse) {
   });
 }
 
+function clearLocalRefreshCookie(res: NextResponse) {
+  // We no longer persist a host-only refresh_token in this app.
+  // Clearing it prevents collisions with the shared-domain refresh cookie.
+  res.cookies.set({
+    name: "refresh_token",
+    value: "",
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
+}
+
+function hasRefreshTokenCookie(cookieHeader: string): boolean {
+  return /(?:^|;\s*)refresh_token=/.test(cookieHeader);
+}
+
 function getAccessTokenFromSetCookie(values: string[]): string | null {
   for (const value of values) {
     const firstPart = value.split(";")[0];
@@ -91,36 +121,33 @@ function getAccessTokenFromSetCookie(values: string[]): string | null {
   return null;
 }
 
-async function tryRefreshSession(req: NextRequest): Promise<{
-  accessToken: string | null;
-  setCookies: string[];
-} | null> {
-  if (!req.cookies.get("refresh_token")?.value) return null;
+async function tryRefreshSession(cookie: string): Promise<RefreshAttemptResult> {
+  const headers: HeadersInit = { "Content-Type": "application/json", cookie };
 
-  const headers: HeadersInit = { "Content-Type": "application/json" };
-  const cookie = req.headers.get("cookie");
-  if (cookie) {
-    headers.cookie = cookie;
+  try {
+    const refreshRes = await fetch(new URL("/api/auth/refresh", AUTH_ISSUER), {
+      method: "POST",
+      headers,
+      body: "{}",
+      cache: "no-store",
+    });
+
+    if (!refreshRes.ok) {
+      return { ok: false, status: refreshRes.status };
+    }
+
+    const data = await refreshRes.json().catch(() => ({}));
+    const setCookies = getSetCookieValues(refreshRes.headers);
+    const bodyToken =
+      (typeof data.accessToken === "string" && data.accessToken) ||
+      (typeof data.access_token === "string" && data.access_token) ||
+      null;
+    const accessToken = bodyToken ?? getAccessTokenFromSetCookie(setCookies);
+
+    return { ok: true, status: refreshRes.status, accessToken, setCookies };
+  } catch {
+    return { ok: false, status: null };
   }
-
-  const refreshRes = await fetch(new URL("/api/auth/refresh", AUTH_ISSUER), {
-    method: "POST",
-    headers,
-    body: "{}",
-    cache: "no-store",
-  });
-
-  if (!refreshRes.ok) return null;
-
-  const data = await refreshRes.json().catch(() => ({}));
-  const setCookies = getSetCookieValues(refreshRes.headers);
-  const bodyToken =
-    (typeof data.accessToken === "string" && data.accessToken) ||
-    (typeof data.access_token === "string" && data.access_token) ||
-    null;
-  const accessToken = bodyToken ?? getAccessTokenFromSetCookie(setCookies);
-
-  return { accessToken, setCookies };
 }
 
 function buildCallbackErrorUrl(req: NextRequest, code: string): URL {
@@ -197,8 +224,14 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  const refreshResult = await tryRefreshSession(req);
-  if (refreshResult) {
+  const rawCookie = req.headers.get("cookie") ?? "";
+  const shouldAttemptRefresh = hasRefreshTokenCookie(rawCookie);
+  if (shouldAttemptRefresh) {
+    console.info("[auth] refresh_attempt", { path: pathname });
+  }
+  const refreshResult = shouldAttemptRefresh ? await tryRefreshSession(rawCookie) : null;
+  if (refreshResult?.ok) {
+    console.info("[auth] refresh_success", { path: pathname, status: refreshResult.status });
     const requestHeaders = new Headers(req.headers);
     if (refreshResult.accessToken) {
       requestHeaders.set("authorization", `Bearer ${refreshResult.accessToken}`);
@@ -206,11 +239,19 @@ export async function proxy(req: NextRequest) {
 
     const res = NextResponse.next({ request: { headers: requestHeaders } });
     appendSetCookieHeaders(res, refreshResult.setCookies);
+    clearLocalRefreshCookie(res);
     return res;
+  }
+  if (refreshResult && !refreshResult.ok) {
+    console.warn("[auth] refresh_failed", { path: pathname, status: refreshResult.status });
   }
 
   if (isProtectedApi) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const res = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (shouldAttemptRefresh) {
+      clearLocalRefreshCookie(res);
+    }
+    return res;
   }
 
   if (isProtectedPage) {
@@ -218,7 +259,11 @@ export async function proxy(req: NextRequest) {
     // auth server, otherwise the fetch follows cross-origin redirect and hits CORS.
     // Return 401 so the client aborts these background requests silently.
     if (isRscPrefetchRequest(req)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      const res = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      if (shouldAttemptRefresh) {
+        clearLocalRefreshCookie(res);
+      }
+      return res;
     }
 
     const state = crypto.randomUUID();
@@ -227,6 +272,9 @@ export async function proxy(req: NextRequest) {
     const authorizeUrl = buildAuthorizeUrl(returnTo, state);
 
     const res = NextResponse.redirect(authorizeUrl);
+    if (shouldAttemptRefresh) {
+      clearLocalRefreshCookie(res);
+    }
     setAuthFlowCookies(res, state, nextPath);
     return res;
   }

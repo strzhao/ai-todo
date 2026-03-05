@@ -167,13 +167,21 @@ export default function AuthCallbackPage() {
         exchangeErrorMessage = "认证服务暂时不可用，请稍后重试。";
       }
 
-      if (accessToken && refreshToken) {
+      if (accessToken) {
         // Write tokens to our domain so the proxy can verify them.
-        await fetch("/api/auth/session", {
+        // refreshToken is optional now: refresh flow relies on shared-domain cookie.
+        const sessionRes = await fetch("/api/auth/session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ accessToken, refreshToken, expiresIn }),
-        }).catch(() => undefined);
+        }).catch(() => null);
+
+        if ((!sessionRes || !sessionRes.ok) && !cancelled) {
+          clearCookie("auth_next");
+          setReloginPath(buildReloginPath(nextPath));
+          setError("写入登录会话失败，请重新登录。");
+          return;
+        }
       } else if (!cancelled) {
         clearCookie("auth_next");
         setReloginPath(forceRelogin ? buildReloginPath(nextPath) : "/");
