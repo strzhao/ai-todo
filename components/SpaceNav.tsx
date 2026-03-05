@@ -66,6 +66,22 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
       });
   }, [currentSpaceId, isValidSpaceId]);
 
+  // Re-fetch space task tree when tasks are mutated elsewhere
+  useEffect(() => {
+    function onTasksChanged() {
+      if (!isValidSpaceId) return;
+      fetch(`/api/tasks?space_id=${currentSpaceId}`)
+        .then((r) => r.json())
+        .then((data: Task[]) => {
+          if (Array.isArray(data)) {
+            setSpaceTasks(buildTree(data).map(toSpaceTaskNode));
+          }
+        });
+    }
+    window.addEventListener("tasks-changed", onTasksChanged);
+    return () => window.removeEventListener("tasks-changed", onTasksChanged);
+  }, [currentSpaceId, isValidSpaceId]);
+
   function handleLogout() {
     window.location.href = "/api/auth/logout";
   }

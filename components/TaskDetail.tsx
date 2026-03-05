@@ -87,7 +87,7 @@ export function TaskDetail({ task, currentUserEmail, onUpdate }: Props) {
           onChange={(e) => setDescription(e.target.value)}
           onBlur={saveDescription}
           disabled={savingDesc}
-          placeholder="添加描述..."
+          placeholder="添加描述（AI 会参考描述来理解任务，建议填写）"
           rows={2}
           className="w-full text-sm bg-muted/40 border border-border/50 rounded-md px-3 py-2 resize-none outline-none focus:border-primary/50 placeholder:text-muted-foreground/50 transition-colors min-h-[72px]"
         />

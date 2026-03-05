@@ -72,7 +72,11 @@ export default function SpacePage({ params }: SpacePageProps) {
       result.deleted?.length ||
       result.logged?.length
     );
-    if (hasSuccess) setInputText("");
+    if (hasSuccess) {
+      setInputText("");
+      router.refresh();
+      window.dispatchEvent(new Event("tasks-changed"));
+    }
     setPreview(null);
   }
 
@@ -80,10 +84,14 @@ export default function SpacePage({ params }: SpacePageProps) {
     const done = tasks.find((t) => t.id === id);
     setTasks((prev) => prev.filter((t) => t.id !== id && t.parent_id !== id));
     if (done) setCompletedTasks((prev) => [{ ...done, status: 2 as const }, ...prev].slice(0, 20));
+    router.refresh();
+    window.dispatchEvent(new Event("tasks-changed"));
   }
 
   function handleDelete(id: string) {
     setTasks((prev) => prev.filter((t) => t.id !== id && t.parent_id !== id));
+    router.refresh();
+    window.dispatchEvent(new Event("tasks-changed"));
   }
 
   function handleUpdate(id: string, updates: Partial<Task>) {

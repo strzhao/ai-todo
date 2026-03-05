@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
     text: string;
     now: string;
     members?: Array<{ email: string; display_name?: string }>;
-    tasks?: Array<{ id: string; title: string; status: number; priority: number }>;
+    tasks?: Array<{ id: string; title: string; status: number; priority: number; description?: string }>;
     parent_task?: { id: string; title: string };
   };
 
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
     : "";
 
   const tasksContext = tasksCtx?.length
-    ? `\n\n当前任务列表（用于匹配操作目标）：\n${tasksCtx.map((t) => `- id:${t.id} 标题:${t.title} 状态:${t.status === 2 ? "已完成" : "待办"} 优先级:P${t.priority}`).join("\n")}`
+    ? `\n\n当前任务列表（用于匹配操作目标）：\n${tasksCtx.map((t) => `- id:${t.id} 标题:${t.title}${t.description ? ` 描述:${t.description}` : ""} 状态:${t.status === 2 ? "已完成" : "待办"} 优先级:P${t.priority}`).join("\n")}`
     : "";
 
   const parentContext = parent_task

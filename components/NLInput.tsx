@@ -64,6 +64,7 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
         title: t.title,
         status: t.status,
         priority: t.priority,
+        ...(t.description ? { description: t.description } : {}),
       })) ?? [];
 
       aiFlowLog("NLInput.parse.request", {
