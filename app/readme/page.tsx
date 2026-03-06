@@ -51,7 +51,7 @@ function CLIContent() {
           <CardContent className="pt-6 space-y-2 text-sm">
             <p>在 Claude Code 中安装 ai-todo skill，让 AI agent 自动管理任务：</p>
             <code className="block rounded-md bg-muted px-4 py-3">
-              npx skills add stringzhao/ai-todo-cli
+              npx skills add strzhao/ai-todo-cli
             </code>
             <p className="text-muted-foreground">
               安装后，AI agent 会自动识别任务相关意图并调用 ai-todo CLI。
