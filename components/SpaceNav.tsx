@@ -30,8 +30,9 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [spaceTasks, setSpaceTasks] = useState<SpaceTaskNode[]>([]);
+  const [spaceTasksMap, setSpaceTasksMap] = useState<Record<string, SpaceTaskNode[]>>({});
   const [collapsedTaskIds, setCollapsedTaskIds] = useState<Record<string, boolean>>({});
+  const [expandedSpaceIds, setExpandedSpaceIds] = useState<Set<string>>(new Set());
   const [openMenuSpaceId, setOpenMenuSpaceId] = useState<string | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -43,45 +44,51 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
   const isValidSpaceId = currentSpaceId && currentSpaceId !== "new";
   const focusedTaskId = searchParams.get("focus");
 
+  // Auto-expand the current space from URL
   useEffect(() => {
-    if (!isValidSpaceId) {
-      setSpaceTasks([]);
-      setCollapsedTaskIds({});
-      return;
+    if (isValidSpaceId && currentSpaceId) {
+      setExpandedSpaceIds((prev) => {
+        if (prev.has(currentSpaceId)) return prev;
+        const next = new Set(prev);
+        next.add(currentSpaceId);
+        return next;
+      });
     }
-    fetch(`/api/tasks?space_id=${currentSpaceId}`)
+  }, [currentSpaceId, isValidSpaceId]);
+
+  function fetchSpaceTasks(spaceId: string) {
+    fetch(`/api/tasks?space_id=${spaceId}`)
       .then((r) => r.json())
       .then((data: Task[]) => {
-        if (!Array.isArray(data)) {
-          setSpaceTasks([]);
-          setCollapsedTaskIds({});
-          return;
+        if (Array.isArray(data)) {
+          setSpaceTasksMap((prev) => ({
+            ...prev,
+            [spaceId]: buildTree(data).map(toSpaceTaskNode),
+          }));
         }
-        const tree = buildTree(data);
-        setSpaceTasks(tree.map(toSpaceTaskNode));
-        setCollapsedTaskIds({});
       })
-      .catch(() => {
-        setSpaceTasks([]);
-        setCollapsedTaskIds({});
-      });
-  }, [currentSpaceId, isValidSpaceId]);
+      .catch(() => {});
+  }
+
+  // Fetch tasks for all expanded spaces
+  useEffect(() => {
+    expandedSpaceIds.forEach((spaceId) => {
+      if (!spaceTasksMap[spaceId]) {
+        fetchSpaceTasks(spaceId);
+      }
+    });
+  }, [expandedSpaceIds]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-fetch space task tree when tasks are mutated elsewhere
   useEffect(() => {
     function onTasksChanged() {
-      if (!isValidSpaceId) return;
-      fetch(`/api/tasks?space_id=${currentSpaceId}`)
-        .then((r) => r.json())
-        .then((data: Task[]) => {
-          if (Array.isArray(data)) {
-            setSpaceTasks(buildTree(data).map(toSpaceTaskNode));
-          }
-        });
+      expandedSpaceIds.forEach((spaceId) => {
+        fetchSpaceTasks(spaceId);
+      });
     }
     window.addEventListener("tasks-changed", onTasksChanged);
     return () => window.removeEventListener("tasks-changed", onTasksChanged);
-  }, [currentSpaceId, isValidSpaceId]);
+  }, [expandedSpaceIds]);
 
   function handleLogout() {
     window.location.href = "/api/auth/logout";
@@ -196,13 +203,31 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
               <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">项目空间</p>
               <Link href="/spaces/new" className="text-xs text-muted-foreground hover:text-foreground">+</Link>
             </div>
-            {spaces.map((space) => (
+            {spaces.map((space) => {
+              const isExpanded = expandedSpaceIds.has(space.id);
+              const spaceTasks = spaceTasksMap[space.id] ?? [];
+
+              return (
               <div key={space.id}>
                 <div className="group/space relative">
                   <Link
                     href={`/spaces/${space.id}`}
+                    onClick={(e) => {
+                      if (currentSpaceId === space.id) {
+                        e.preventDefault();
+                        setExpandedSpaceIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(space.id)) next.delete(space.id);
+                          else next.add(space.id);
+                          return next;
+                        });
+                      }
+                    }}
                     className={navLinkCls(isActive(`/spaces/${space.id}`))}
                   >
+                    <span className={`text-[10px] text-muted-foreground shrink-0 transition-transform ${isExpanded ? "" : "-rotate-90"}`}>
+                      ▼
+                    </span>
                     <span className="w-5 h-5 rounded bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary flex-shrink-0">
                       {(space.name ?? space.title)[0]?.toUpperCase()}
                     </span>
@@ -235,14 +260,15 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
                   </div>
                 </div>
 
-                {/* Task directory for current active space */}
-                {currentSpaceId === space.id && spaceTasks.length > 0 && (
+                {/* Task directory - toggleable per space */}
+                {isExpanded && spaceTasks.length > 0 && (
                   <div className="ml-5 mt-0.5 mb-1 border-l border-border/50 pl-2 space-y-0.5">
                     {renderSpaceTaskTree(space.id, spaceTasks)}
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
             {spaces.length === 0 && (
               <Link href="/spaces/new" className={navLinkCls(false)}>
                 <span className="text-muted-foreground">+ 创建空间</span>
