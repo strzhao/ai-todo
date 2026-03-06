@@ -744,6 +744,23 @@ export async function getLogsForTasksByDate(
   return rows.map(rowToTaskLog);
 }
 
+export async function getLogsForTasks(
+  taskIds: string[],
+  limit = 500
+): Promise<TaskLog[]> {
+  if (taskIds.length === 0) return [];
+  const placeholders = taskIds.map((_, i) => `$${i + 1}`).join(",");
+  const limitIdx = taskIds.length + 1;
+  const { rows } = await sql.query(
+    `SELECT * FROM ai_todo_task_logs
+     WHERE task_id IN (${placeholders})
+     ORDER BY created_at ASC
+     LIMIT $${limitIdx}`,
+    [...taskIds, limit]
+  );
+  return rows.map(rowToTaskLog);
+}
+
 export async function addTaskLog(
   taskId: string,
   userId: string,

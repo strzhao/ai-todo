@@ -29,9 +29,12 @@ export default function SpacePage({ params }: SpacePageProps) {
   const searchParams = useSearchParams();
   const focusedTaskId = searchParams.get("focus");
 
-  const [tab, setTab] = useState<"list" | "gantt">(
-    searchParams.get("tab") === "gantt" ? "gantt" : "list"
-  );
+  const [tab, setTab] = useState<"list" | "gantt" | "summary">(() => {
+    const t = searchParams.get("tab");
+    if (t === "gantt") return "gantt";
+    if (t === "summary") return "summary";
+    return "list";
+  });
 
   useEffect(() => {
     params.then(({ id }) => {
@@ -198,6 +201,12 @@ export default function SpacePage({ params }: SpacePageProps) {
         >
           甘特图
         </button>
+        <button
+          onClick={() => setTab("summary")}
+          className={`text-xs px-3 py-1 rounded-md border transition-colors ${tab === "summary" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-foreground"}`}
+        >
+          AI 总结
+        </button>
       </div>
 
       {tab === "list" && (
@@ -266,14 +275,15 @@ export default function SpacePage({ params }: SpacePageProps) {
       )}
 
       {tab === "gantt" && (
-        <>
-          <GanttChart tasks={ganttTasks} members={members} onTaskClick={handleGanttTaskClick} />
-          <DailySummary
-            taskId={focusedTaskId ?? spaceId}
-            taskTitle={focusedTask?.title ?? space?.title ?? ""}
-            autoTrigger={searchParams.get("summary") === "true"}
-          />
-        </>
+        <GanttChart tasks={ganttTasks} members={members} onTaskClick={handleGanttTaskClick} />
+      )}
+
+      {tab === "summary" && (
+        <DailySummary
+          taskId={focusedTaskId ?? spaceId}
+          taskTitle={focusedTask?.title ?? space?.title ?? ""}
+          autoTrigger
+        />
       )}
     </div>
   );

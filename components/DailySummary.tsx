@@ -56,7 +56,8 @@ export function DailySummary({ taskId, taskTitle, autoTrigger }: Props) {
   }, [taskId]);
 
   useEffect(() => {
-    if (autoTrigger && !triggered.current) {
+    triggered.current = false;
+    if (autoTrigger) {
       triggered.current = true;
       generateSummary();
     }
@@ -67,10 +68,10 @@ export function DailySummary({ taskId, taskTitle, autoTrigger }: Props) {
   }, []);
 
   return (
-    <div className="mt-6 pt-4 border-t border-border/30">
+    <div className="mt-2">
       <div className="flex items-center justify-between mb-3">
         <p className="text-xs font-medium text-muted-foreground">
-          AI 每日总结
+          AI 今日总结
           {taskTitle && (
             <span className="text-muted-foreground/50 ml-1.5">· {taskTitle}</span>
           )}
