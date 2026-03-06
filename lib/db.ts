@@ -712,7 +712,7 @@ export async function getTaskLogs(taskId: string): Promise<TaskLog[]> {
 export async function getDescendantTasks(parentId: string): Promise<Task[]> {
   const { rows } = await sql.query(
     `WITH RECURSIVE descendants AS (
-       SELECT * FROM ai_todo_tasks WHERE parent_id = $1
+       SELECT * FROM ai_todo_tasks WHERE parent_id = $1 OR space_id = $1
        UNION ALL
        SELECT t.* FROM ai_todo_tasks t
        JOIN descendants d ON t.parent_id = d.id
