@@ -1,13 +1,12 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { NextRequest } from "next/server";
+import { readGatewaySessionFromRequest } from "@/lib/auth-gateway-session";
 
 interface AuthUser {
   id: string;
   email: string;
 }
 
-// 本地开发 bypass：设置 AUTH_DEV_BYPASS=true 跳过认证，使用固定开发用户。
-// 生产环境永远不应设置此变量。
 const DEV_BYPASS =
   process.env.AUTH_DEV_BYPASS === "true" &&
   process.env.NODE_ENV !== "production";
@@ -39,18 +38,23 @@ async function verifyToken(token: string): Promise<AuthUser> {
 export async function getUserFromRequest(req: NextRequest): Promise<AuthUser | null> {
   if (DEV_BYPASS) return DEV_USER;
 
+  // Path 1: Bearer token (CLI / API clients)
   const authHeader = req.headers.get("authorization");
-  const token = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice(7)
-    : req.cookies.get("access_token")?.value;
-
-  if (!token) return null;
-
-  try {
-    return await verifyToken(token);
-  } catch {
-    return null;
+  if (authHeader?.startsWith("Bearer ")) {
+    try {
+      return await verifyToken(authHeader.slice(7));
+    } catch {
+      return null;
+    }
   }
+
+  // Path 2: Gateway session cookie (browser)
+  const session = readGatewaySessionFromRequest(req);
+  if (session) {
+    return { id: session.userId, email: session.email };
+  }
+
+  return null;
 }
 
 export async function getUserFromCookie(cookieValue: string): Promise<AuthUser | null> {

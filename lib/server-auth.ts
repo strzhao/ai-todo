@@ -1,5 +1,8 @@
 import { cookies } from "next/headers";
-import { getUserFromCookie } from "./auth";
+import {
+  GATEWAY_SESSION_COOKIE_NAME,
+  verifyGatewaySessionCookieValue,
+} from "@/lib/auth-gateway-session";
 
 export interface AuthUser {
   id: string;
@@ -18,7 +21,11 @@ export async function getServerUser(): Promise<AuthUser | null> {
     };
   }
   const cookieStore = await cookies();
-  const token = cookieStore.get("access_token")?.value;
-  if (!token) return null;
-  return getUserFromCookie(token);
+  const raw = cookieStore.get(GATEWAY_SESSION_COOKIE_NAME)?.value;
+  if (!raw) return null;
+
+  const session = verifyGatewaySessionCookieValue(raw);
+  if (!session) return null;
+
+  return { id: session.userId, email: session.email };
 }

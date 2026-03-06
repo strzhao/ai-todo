@@ -5,8 +5,6 @@ const DEFAULT_CALLBACK_PATH = "/auth/callback";
 
 export const CALLBACK_PATH =
   process.env.NEXT_PUBLIC_AUTH_CALLBACK_PATH ?? DEFAULT_CALLBACK_PATH;
-export const AUTH_STATE_COOKIE = "auth_state";
-export const AUTH_NEXT_COOKIE = "auth_next";
 export const AUTH_ISSUER =
   process.env.AUTH_ISSUER ??
   process.env.NEXT_PUBLIC_AUTH_ISSUER ??
@@ -44,10 +42,3 @@ export function buildAuthorizeUrl(returnTo: string, state: string): string {
   return authorizeUrl.toString();
 }
 
-export function buildLoginUrl(returnTo: string, state: string): string {
-  const loginUrl = new URL("/login", AUTH_ISSUER);
-  loginUrl.searchParams.set("service", AUTH_SERVICE_ID);
-  loginUrl.searchParams.set("return_to", returnTo);
-  loginUrl.searchParams.set("state", state);
-  return loginUrl.toString();
-}
