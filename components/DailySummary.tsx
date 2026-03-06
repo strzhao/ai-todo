@@ -3,6 +3,53 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 
+const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
+
+interface CacheEntry {
+  content: string;
+  timestamp: number;
+  date: string;
+}
+
+function getCacheKey(taskId: string) {
+  return `ai-summary-${taskId}`;
+}
+
+function getCache(taskId: string): CacheEntry | null {
+  try {
+    const raw = localStorage.getItem(getCacheKey(taskId));
+    if (!raw) return null;
+    const entry: CacheEntry = JSON.parse(raw);
+    const today = new Date().toISOString().slice(0, 10);
+    if (entry.date !== today) return null;
+    if (Date.now() - entry.timestamp > CACHE_TTL) return null;
+    return entry;
+  } catch {
+    return null;
+  }
+}
+
+function setCache(taskId: string, content: string) {
+  try {
+    const entry: CacheEntry = {
+      content,
+      timestamp: Date.now(),
+      date: new Date().toISOString().slice(0, 10),
+    };
+    localStorage.setItem(getCacheKey(taskId), JSON.stringify(entry));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function formatTimeAgo(timestamp: number): string {
+  const minutes = Math.floor((Date.now() - timestamp) / 60000);
+  if (minutes < 1) return "刚刚生成";
+  if (minutes < 60) return `${minutes} 分钟前生成`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours} 小时前生成`;
+}
+
 interface Props {
   taskId: string;
   taskTitle: string;
@@ -13,6 +60,7 @@ export function DailySummary({ taskId, taskTitle, autoTrigger }: Props) {
   const [summary, setSummary] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cachedAt, setCachedAt] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const triggered = useRef(false);
 
@@ -24,6 +72,7 @@ export function DailySummary({ taskId, taskTitle, autoTrigger }: Props) {
     setLoading(true);
     setError(null);
     setSummary("");
+    setCachedAt(null);
 
     try {
       const res = await fetch(`/api/tasks/${taskId}/summary`, {
@@ -40,13 +89,18 @@ export function DailySummary({ taskId, taskTitle, autoTrigger }: Props) {
 
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
+      let full = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
-        setSummary((prev) => prev + chunk);
+        full += chunk;
+        setSummary(full);
       }
+
+      setCache(taskId, full);
+      setCachedAt(Date.now());
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
       setError(err instanceof Error ? err.message : "生成失败");
@@ -58,10 +112,17 @@ export function DailySummary({ taskId, taskTitle, autoTrigger }: Props) {
   useEffect(() => {
     triggered.current = false;
     if (autoTrigger) {
+      const cached = getCache(taskId);
+      if (cached) {
+        setSummary(cached.content);
+        setCachedAt(cached.timestamp);
+        triggered.current = true;
+        return;
+      }
       triggered.current = true;
       generateSummary();
     }
-  }, [autoTrigger, generateSummary]);
+  }, [autoTrigger, generateSummary, taskId]);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
@@ -74,6 +135,9 @@ export function DailySummary({ taskId, taskTitle, autoTrigger }: Props) {
           AI 今日总结
           {taskTitle && (
             <span className="text-muted-foreground/50 ml-1.5">· {taskTitle}</span>
+          )}
+          {cachedAt && !loading && (
+            <span className="text-muted-foreground/40 ml-1.5">· {formatTimeAgo(cachedAt)}</span>
           )}
         </p>
         <button
