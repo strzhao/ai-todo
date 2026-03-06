@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
   const accessMaxAge = normalizeAccessTokenTtl(body.expiresIn);
   const res = NextResponse.json({ success: true });
 
+  // Set access_token on shared domain so all *.stringzhao.life apps see it
   res.cookies.set({
     name: "access_token",
     value: accessToken,
@@ -33,8 +34,15 @@ export async function POST(req: NextRequest) {
     secure: true,
     sameSite: "lax",
     path: "/",
+    domain: ".stringzhao.life",
     maxAge: accessMaxAge,
   });
+
+  // Clear host-only access_token to avoid duplicate-cookie ambiguity
+  res.headers.append(
+    "set-cookie",
+    "access_token=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax"
+  );
 
   res.cookies.set({
     name: "refresh_token",
