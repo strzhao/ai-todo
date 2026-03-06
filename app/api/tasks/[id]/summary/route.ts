@@ -13,13 +13,14 @@ const SUMMARY_SYSTEM_PROMPT = `你是一个项目管理助手，为 PM 生成简
 
 输出格式（Markdown），严格按以下顺序：
 
-## 今日进展
-按重要性列出今日有实际更新的任务（基于今日进展日志）。每条包含：
+## 近期进展
+优先展示今日进展日志。如果今日无进展，则展示最近 3 天内的进展日志。每条包含：
 - 任务名称（父任务 › 子任务）
 - 具体进展
 - 负责人（如有）
+- 日期（非今日的标注具体日期）
 
-如果今日无进展日志，说明"今日暂无进展更新"。
+如果近 3 天内都无进展日志，说明"近期暂无进展更新"。
 
 ## 风险
 - 已逾期或 3 天内到期的任务（标注天数）
@@ -81,7 +82,6 @@ function buildUserMessage(
   parentTask: Task,
   descendants: Task[],
   allLogs: TaskLog[],
-  todayLogs: TaskLog[],
   date: string
 ): string {
   const allTasks = [parentTask, ...descendants];
@@ -90,15 +90,26 @@ function buildUserMessage(
   const childrenTree = buildTaskTreeText(allTasks, parentTask.id, 1);
   const fullTree = `- [${parentTask.status === 2 ? "已完成" : "待办"}][P${parentTask.priority}] ${parentTask.title}\n${childrenTree}`;
 
-  const allLogsText =
-    allLogs.length > 0
-      ? formatLogs(allLogs, taskIdToTitle)
-      : "暂无进展日志";
+  // Split logs into today and recent 3 days
+  const todayDate = new Date(date);
+  const threeDaysAgo = new Date(date);
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+  const todayLogs = allLogs.filter((l) => l.created_at.slice(0, 10) === date);
+  const recentLogs = allLogs.filter((l) => {
+    const d = new Date(l.created_at);
+    return d >= threeDaysAgo && d < todayDate;
+  });
 
   const todayLogsText =
     todayLogs.length > 0
       ? formatLogs(todayLogs, taskIdToTitle)
       : "今日暂无进展日志";
+
+  const recentLogsText =
+    recentLogs.length > 0
+      ? formatLogs(recentLogs, taskIdToTitle)
+      : "近 3 天暂无进展日志";
 
   const totalCount = allTasks.length;
   const completedCount = allTasks.filter((t) => t.status === 2).length;
@@ -111,11 +122,14 @@ function buildUserMessage(
 ## 任务结构
 ${fullTree}
 
-## 全部进展日志（共 ${allLogs.length} 条）
-${allLogsText}
-
 ## 今日进展日志
-${todayLogsText}`;
+${todayLogsText}
+
+## 近 3 天进展日志
+${recentLogsText}
+
+## 全部进展日志（共 ${allLogs.length} 条）
+${allLogs.length > 0 ? formatLogs(allLogs, taskIdToTitle) : "暂无进展日志"}`;
 }
 
 export async function POST(
@@ -139,13 +153,12 @@ export async function POST(
   const descendants = await getDescendantTasks(id);
   const allTaskIds = [id, ...descendants.map((t) => t.id)];
   const allLogs = await getLogsForTasks(allTaskIds, 500);
-  const todayLogs = allLogs.filter((l) => l.created_at.slice(0, 10) === date);
 
   const llm = new LLMClient();
 
   // Try with full data first; fallback to recent-only if too large
   async function tryGenerate(logs: TaskLog[]): Promise<ReadableStream<string>> {
-    const userMessage = buildUserMessage(task!, descendants, logs, todayLogs, date);
+    const userMessage = buildUserMessage(task!, descendants, logs, date);
     return llm.chatStream(
       [
         { role: "system", content: SUMMARY_SYSTEM_PROMPT },
