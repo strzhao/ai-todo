@@ -44,7 +44,9 @@ const SUMMARY_SYSTEM_PROMPT = `你是一个项目管理助手，为 PM 生成简
 
 function buildTaskTreeText(allTasks: Task[], parentId: string | undefined, indent: number): string {
   const children = allTasks.filter((t) =>
-    parentId ? t.parent_id === parentId : t.id === allTasks[0]?.id
+    parentId
+      ? t.parent_id === parentId || (t.space_id === parentId && !t.parent_id)
+      : t.id === allTasks[0]?.id
   );
   return children
     .map((t) => {
