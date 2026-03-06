@@ -312,6 +312,16 @@
   .prose-summary strong {
     @apply text-foreground font-medium;
   }
+  .prose-summary table {
+    @apply w-full my-2 text-xs;
+    border-collapse: collapse;
+  }
+  .prose-summary th {
+    @apply text-left font-medium text-muted-foreground py-1 px-2 border-b border-border;
+  }
+  .prose-summary td {
+    @apply py-1 px-2 border-b border-border/50;
+  }
 
   /* Date input styling */
   input[type="date"] {
