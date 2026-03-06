@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
 
@@ -160,7 +161,7 @@ export function DailySummary({ taskId, taskTitle, autoTrigger }: Props) {
 
       {summary && (
         <div className="prose-summary text-sm text-foreground/80">
-          <ReactMarkdown>{summary}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
         </div>
       )}
     </div>
