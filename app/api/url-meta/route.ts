@@ -39,11 +39,63 @@ function decodeEntities(str: string): string {
     .replace(/&nbsp;/g, " ");
 }
 
-function extractTitle(html: string): string | null {
-  const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-  if (!match) return null;
-  const raw = decodeEntities(match[1]).replace(/\s+/g, " ").trim();
+function extractMeta(html: string, attr: string): string | null {
+  // Match <meta property="og:title" content="..."> or <meta name="title" content="...">
+  const re = new RegExp(`<meta\\s+(?:[^>]*?(?:property|name)=["']${attr}["'][^>]*?content=["']([^"']*?)["']|[^>]*?content=["']([^"']*?)["'][^>]*?(?:property|name)=["']${attr}["'])`, "i");
+  const m = html.match(re);
+  if (!m) return null;
+  const raw = decodeEntities(m[1] || m[2]).replace(/\s+/g, " ").trim();
   return raw || null;
+}
+
+function extractTitle(html: string): string | null {
+  // 1. <title> tag
+  const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  if (titleMatch) {
+    const raw = decodeEntities(titleMatch[1]).replace(/\s+/g, " ").trim();
+    if (raw) return raw;
+  }
+  // 2. og:title
+  const ogTitle = extractMeta(html, "og:title");
+  if (ogTitle) return ogTitle;
+  // 3. <meta name="title">
+  const metaTitle = extractMeta(html, "title");
+  if (metaTitle) return metaTitle;
+  // 4. <meta name="description"> as last resort (truncated)
+  const desc = extractMeta(html, "description");
+  if (desc) return desc.length > 80 ? desc.slice(0, 77) + "..." : desc;
+  return null;
+}
+
+// Generate a readable name from URL when no title is found (SPA pages etc.)
+function friendlyName(url: string): string | null {
+  try {
+    const { hostname, pathname } = new URL(url);
+    // Use the domain's readable part (e.g., "docs.popo.netease.com" → "Popo Docs")
+    const parts = hostname.replace(/^www\./, "").split(".");
+    // Find the meaningful subdomain or domain name
+    const meaningful = parts.length >= 3 ? parts.slice(0, -2) : [parts[0]];
+    const name = meaningful
+      .reverse()
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+      .join(" ");
+    // Add path hint if it looks like a doc/page
+    const pathParts = pathname.split("/").filter(Boolean);
+    const lastSegment = pathParts[pathParts.length - 1];
+    if (lastSegment && !/^[a-f0-9]{20,}$/i.test(lastSegment)) {
+      // If last path segment is readable (not a hash ID), include it
+      const decoded = decodeURIComponent(lastSegment).replace(/[-_]/g, " ");
+      return `${name} - ${decoded}`;
+    }
+    if (pathParts.length > 0) {
+      // Include the first path segment as category hint
+      const category = decodeURIComponent(pathParts[0]).replace(/[-_]/g, " ");
+      return `${name} - ${category}`;
+    }
+    return name;
+  } catch {
+    return null;
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -86,7 +138,7 @@ export async function GET(req: NextRequest) {
 
     const decoder = new TextDecoder("utf-8", { fatal: false });
     const html = decoder.decode(Buffer.concat(chunks));
-    const title = extractTitle(html);
+    const title = extractTitle(html) || friendlyName(url);
 
     return NextResponse.json(
       { title },
