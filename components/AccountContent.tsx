@@ -58,7 +58,7 @@ export function AccountContent({ userEmail, isDev }: Props) {
     window.location.href = "/api/auth/switch-account";
   }
 
-  const codes = inviteData?.codes ?? [];
+  const codes = (inviteData?.codes ?? []).filter((c) => c.status !== "REVOKED");
   const redeemedCount = codes.filter((c) => c.status === "REDEEMED").length;
 
   return (
