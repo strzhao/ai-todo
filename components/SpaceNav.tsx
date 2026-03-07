@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import type { Task } from "@/lib/types";
 import { buildTree, type TaskNode } from "@/lib/task-utils";
-import { InvitePanel } from "@/components/InvitePanel";
 
 interface SpaceTaskNode {
   id: string;
@@ -35,11 +34,7 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
   const [collapsedTaskIds, setCollapsedTaskIds] = useState<Record<string, boolean>>({});
   const [expandedSpaceIds, setExpandedSpaceIds] = useState<Set<string>>(new Set());
   const [openMenuSpaceId, setOpenMenuSpaceId] = useState<string | null>(null);
-  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const [invitePanelOpen, setInvitePanelOpen] = useState(false);
-  const invitePanelRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const accountMenuRef = useRef<HTMLDivElement>(null);
 
   // Extract current space ID from pathname (e.g. /spaces/abc123 or /spaces/abc123/settings)
   const spaceMatch = pathname.match(/^\/spaces\/([^/]+)/);
@@ -93,10 +88,6 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
     return () => window.removeEventListener("tasks-changed", onTasksChanged);
   }, [expandedSpaceIds]);
 
-  function handleSwitchAccount() {
-    window.location.href = "/api/auth/switch-account";
-  }
-
   async function handleUnpin(spaceId: string) {
     await fetch(`/api/tasks/${spaceId}`, {
       method: "PATCH",
@@ -106,28 +97,6 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
     router.refresh();
     window.dispatchEvent(new Event("tasks-changed"));
   }
-
-  useEffect(() => {
-    if (!accountMenuOpen) return;
-    function handler(e: MouseEvent) {
-      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target as Node)) {
-        setAccountMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [accountMenuOpen]);
-
-  useEffect(() => {
-    if (!invitePanelOpen) return;
-    function handler(e: MouseEvent) {
-      if (invitePanelRef.current && !invitePanelRef.current.contains(e.target as Node)) {
-        setInvitePanelOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [invitePanelOpen]);
 
   useEffect(() => {
     if (!openMenuSpaceId) return;
@@ -291,43 +260,18 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
           </div>
         </div>
 
-        <div className="px-3 pt-4 border-t border-border/60 space-y-2">
-          <div className="relative" ref={invitePanelRef}>
-            <button
-              onClick={() => setInvitePanelOpen((v) => !v)}
-              className="w-full text-left px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
-              邀请好友
-            </button>
-            {invitePanelOpen && (
-              <InvitePanel onClose={() => setInvitePanelOpen(false)} />
-            )}
-          </div>
-          <div className="group/account flex items-center gap-2 relative" ref={accountMenuRef}>
-            <p className="text-xs text-muted-foreground truncate flex-1">{userEmail}</p>
+        <div className="px-3 pt-4 border-t border-border/60">
+          <Link
+            href="/account"
+            className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <span className="truncate flex-1">{userEmail}</span>
             {isDev && (
               <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200 shrink-0">
                 DEV
               </span>
             )}
-            <button
-              onClick={() => setAccountMenuOpen((v) => !v)}
-              className="opacity-0 group-hover/account:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:bg-muted text-xs shrink-0"
-              title="更多操作"
-            >
-              ⋯
-            </button>
-            {accountMenuOpen && (
-              <div className="absolute right-0 bottom-full mb-1 z-50 bg-popover border border-border rounded-md shadow-md min-w-[100px] py-1">
-                <button
-                  onClick={() => { setAccountMenuOpen(false); handleSwitchAccount(); }}
-                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted/60"
-                >
-                  切换账号
-                </button>
-              </div>
-            )}
-          </div>
+          </Link>
         </div>
       </nav>
 
@@ -338,6 +282,9 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
         </Link>
         <Link href="/spaces" className={`flex-1 flex flex-col items-center py-3 text-xs gap-1 ${pathname.startsWith("/spaces") ? "text-primary" : "text-muted-foreground"}`}>
           <span className="text-base">👥</span>空间
+        </Link>
+        <Link href="/account" className={`flex-1 flex flex-col items-center py-3 text-xs gap-1 ${pathname.startsWith("/account") ? "text-primary" : "text-muted-foreground"}`}>
+          <span className="text-base">⚙️</span>我的
         </Link>
       </nav>
     </>
