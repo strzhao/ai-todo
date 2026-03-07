@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { TaskItem } from "./TaskItem";
+import { TaskDetail } from "./TaskDetail";
 import { TaskSkeleton } from "./TaskSkeleton";
 import { EmptyState } from "./EmptyState";
 import type { Task, TaskMember } from "@/lib/types";
@@ -41,6 +42,7 @@ export function TaskList({
   members,
 }: Props) {
   const [showCompleted, setShowCompleted] = useState(false);
+  const [expandedCompletedId, setExpandedCompletedId] = useState<string | null>(null);
   const [showPinned, setShowPinned] = useState(!pinnedSectionDefaultCollapsed);
   const tree = useMemo(() => buildTree(tasks), [tasks]);
 
@@ -113,21 +115,35 @@ export function TaskList({
 
           {showCompleted && (
             <div className="mt-1 opacity-60">
-              {completedTasks.map((task) => (
-                <div key={task.id} className="flex items-start gap-3 py-2 px-1 border-b last:border-0 border-border/30">
-                  <div className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full bg-muted-foreground/20 flex items-center justify-center">
-                    <span className="text-[8px] text-muted-foreground">✓</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm line-through text-muted-foreground truncate">{task.title}</p>
-                    {task.completed_at && (
-                      <p className="text-[10px] text-muted-foreground/60 mt-0.5">
-                        {new Date(task.completed_at).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                      </p>
+              {completedTasks.map((task) => {
+                const isExpanded = expandedCompletedId === task.id;
+                return (
+                  <div key={task.id}>
+                    <div
+                      onClick={() => setExpandedCompletedId(isExpanded ? null : task.id)}
+                      className="flex items-start gap-3 py-2 px-1 border-b last:border-0 border-border/30 cursor-pointer hover:bg-muted/30 transition-colors"
+                    >
+                      <div className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full bg-muted-foreground/20 flex items-center justify-center">
+                        <span className="text-[8px] text-muted-foreground">✓</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm line-through text-muted-foreground truncate">{task.title}</p>
+                        {task.completed_at && (
+                          <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                            {new Date(task.completed_at).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground/40 mt-1 flex-shrink-0">{isExpanded ? "▲" : "▼"}</span>
+                    </div>
+                    {isExpanded && (
+                      <div className="mx-1 mb-2 mt-1 border border-border/40 rounded-lg bg-muted/20 overflow-hidden">
+                        <TaskDetail task={task} currentUserEmail={currentUserEmail} readonly />
+                      </div>
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

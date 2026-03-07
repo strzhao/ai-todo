@@ -7,6 +7,7 @@ interface Props {
   task: Task;
   currentUserEmail?: string;
   onUpdate?: (id: string, updates: Partial<Task>) => void;
+  readonly?: boolean;
 }
 
 function formatRelativeTime(iso: string): string {
@@ -20,7 +21,7 @@ function formatRelativeTime(iso: string): string {
   return `${days} 天前`;
 }
 
-export function TaskDetail({ task, currentUserEmail, onUpdate }: Props) {
+export function TaskDetail({ task, currentUserEmail, onUpdate, readonly }: Props) {
   const [logs, setLogs] = useState<TaskLog[]>([]);
   const [logsLoaded, setLogsLoaded] = useState(false);
   const [description, setDescription] = useState(task.description ?? "");
@@ -82,15 +83,23 @@ export function TaskDetail({ task, currentUserEmail, onUpdate }: Props) {
     <div className="p-4 space-y-4">
       {/* Description */}
       <div>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          onBlur={saveDescription}
-          disabled={savingDesc}
-          placeholder="添加描述（AI 会参考描述来理解任务，建议填写）"
-          rows={2}
-          className="w-full text-sm bg-muted/40 border border-border/50 rounded-md px-3 py-2 resize-none outline-none focus:border-primary/50 placeholder:text-muted-foreground/50 transition-colors min-h-[72px]"
-        />
+        {readonly ? (
+          description ? (
+            <p className="text-sm text-foreground/80 whitespace-pre-wrap break-words">{description}</p>
+          ) : (
+            <p className="text-sm text-muted-foreground/50">无描述</p>
+          )
+        ) : (
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            onBlur={saveDescription}
+            disabled={savingDesc}
+            placeholder="添加描述（AI 会参考描述来理解任务，建议填写）"
+            rows={2}
+            className="w-full text-sm bg-muted/40 border border-border/50 rounded-md px-3 py-2 resize-none outline-none focus:border-primary/50 placeholder:text-muted-foreground/50 transition-colors min-h-[72px]"
+          />
+        )}
       </div>
 
       {/* Logs */}
@@ -124,24 +133,26 @@ export function TaskDetail({ task, currentUserEmail, onUpdate }: Props) {
       </div>
 
       {/* Add comment */}
-      <div className="flex gap-2">
-        <textarea
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); submitComment(); } }}
-          placeholder="添加进展更新…（⌘+Enter 发送）"
-          disabled={submitting}
-          rows={2}
-          className="flex-1 text-sm bg-muted/40 border border-border/50 rounded-md px-3 py-2 resize-none outline-none focus:border-primary/50 placeholder:text-muted-foreground/50 transition-colors"
-        />
-        <button
-          onClick={submitComment}
-          disabled={!comment.trim() || submitting}
-          className="text-sm px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors self-end"
-        >
-          发送
-        </button>
-      </div>
+      {!readonly && (
+        <div className="flex gap-2">
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); submitComment(); } }}
+            placeholder="添加进展更新…（⌘+Enter 发送）"
+            disabled={submitting}
+            rows={2}
+            className="flex-1 text-sm bg-muted/40 border border-border/50 rounded-md px-3 py-2 resize-none outline-none focus:border-primary/50 placeholder:text-muted-foreground/50 transition-colors"
+          />
+          <button
+            onClick={submitComment}
+            disabled={!comment.trim() || submitting}
+            className="text-sm px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors self-end"
+          >
+            发送
+          </button>
+        </div>
+      )}
     </div>
   );
 }
