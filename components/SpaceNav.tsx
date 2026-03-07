@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import type { Task } from "@/lib/types";
 import { buildTree, type TaskNode } from "@/lib/task-utils";
+import { InvitePanel } from "@/components/InvitePanel";
 
 interface SpaceTaskNode {
   id: string;
@@ -35,6 +36,8 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
   const [expandedSpaceIds, setExpandedSpaceIds] = useState<Set<string>>(new Set());
   const [openMenuSpaceId, setOpenMenuSpaceId] = useState<string | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [invitePanelOpen, setInvitePanelOpen] = useState(false);
+  const invitePanelRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const accountMenuRef = useRef<HTMLDivElement>(null);
 
@@ -90,8 +93,8 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
     return () => window.removeEventListener("tasks-changed", onTasksChanged);
   }, [expandedSpaceIds]);
 
-  function handleLogout() {
-    window.location.href = "/api/auth/logout";
+  function handleSwitchAccount() {
+    window.location.href = "/api/auth/switch-account";
   }
 
   async function handleUnpin(spaceId: string) {
@@ -114,6 +117,17 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [accountMenuOpen]);
+
+  useEffect(() => {
+    if (!invitePanelOpen) return;
+    function handler(e: MouseEvent) {
+      if (invitePanelRef.current && !invitePanelRef.current.contains(e.target as Node)) {
+        setInvitePanelOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [invitePanelOpen]);
 
   useEffect(() => {
     if (!openMenuSpaceId) return;
@@ -277,7 +291,18 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
           </div>
         </div>
 
-        <div className="px-3 pt-4 border-t border-border/60">
+        <div className="px-3 pt-4 border-t border-border/60 space-y-2">
+          <div className="relative" ref={invitePanelRef}>
+            <button
+              onClick={() => setInvitePanelOpen((v) => !v)}
+              className="w-full text-left px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              邀请好友
+            </button>
+            {invitePanelOpen && (
+              <InvitePanel onClose={() => setInvitePanelOpen(false)} />
+            )}
+          </div>
           <div className="group/account flex items-center gap-2 relative" ref={accountMenuRef}>
             <p className="text-xs text-muted-foreground truncate flex-1">{userEmail}</p>
             {isDev && (
@@ -295,10 +320,10 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
             {accountMenuOpen && (
               <div className="absolute right-0 bottom-full mb-1 z-50 bg-popover border border-border rounded-md shadow-md min-w-[100px] py-1">
                 <button
-                  onClick={() => { setAccountMenuOpen(false); handleLogout(); }}
+                  onClick={() => { setAccountMenuOpen(false); handleSwitchAccount(); }}
                   className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted/60"
                 >
-                  退出登录
+                  切换账号
                 </button>
               </div>
             )}

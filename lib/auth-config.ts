@@ -34,11 +34,14 @@ export function buildCallbackUrl(nextPath?: string): string {
   return callbackUrl.toString();
 }
 
-export function buildAuthorizeUrl(returnTo: string, state: string): string {
+export function buildAuthorizeUrl(returnTo: string, state: string, prompt?: string): string {
   const authorizeUrl = new URL("/authorize", AUTH_ISSUER);
   authorizeUrl.searchParams.set("service", AUTH_SERVICE_ID);
   authorizeUrl.searchParams.set("return_to", returnTo);
   authorizeUrl.searchParams.set("state", state);
+  if (prompt === "select_account") {
+    authorizeUrl.searchParams.set("prompt", "select_account");
+  }
   return authorizeUrl.toString();
 }
 
