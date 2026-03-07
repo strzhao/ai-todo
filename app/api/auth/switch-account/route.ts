@@ -14,5 +14,11 @@ export async function GET(req: NextRequest) {
   const res = NextResponse.redirect(new URL(authorizeUrl), { status: 302 });
   clearGatewaySessionCookie(res);
   applyAuthStateCookie(res, createAuthStateCookieValue(state, "/"));
+
+  // Clear any stale host-only access_token cookie on ai-todo domain
+  // to prevent it from shadowing the new .stringzhao.life domain cookie
+  res.cookies.set("access_token", "", { path: "/", maxAge: 0 });
+  res.cookies.set("refresh_token", "", { path: "/", maxAge: 0 });
+
   return res;
 }

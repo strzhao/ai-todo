@@ -64,6 +64,7 @@ export async function POST(request: Request): Promise<Response> {
 
   const accessToken = readCookie(request, "access_token");
   if (!accessToken) {
+    console.warn("[finalize] missing access_token cookie");
     return noStore(
       NextResponse.json(
         { ok: false, error: "missing_access_token", message: "missing_access_token_cookie" },
@@ -74,10 +75,13 @@ export async function POST(request: Request): Promise<Response> {
 
   const user = await getUserFromCookie(accessToken);
   if (!user) {
+    console.warn("[finalize] invalid access_token, could not resolve user");
     return noStore(
       NextResponse.json({ ok: false, error: "invalid_access_token" }, { status: 401 }),
     );
   }
+
+  console.log("[finalize] resolved user:", user.email);
 
   const response = NextResponse.json(
     {
