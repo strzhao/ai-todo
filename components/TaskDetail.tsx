@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { RichText } from "@/components/RichText";
 import type { Task, TaskLog } from "@/lib/types";
 
 interface Props {
@@ -85,7 +86,7 @@ export function TaskDetail({ task, currentUserEmail, onUpdate, readonly }: Props
       <div>
         {readonly ? (
           description ? (
-            <p className="text-sm text-foreground/80 whitespace-pre-wrap break-words">{description}</p>
+            <RichText text={description} className="text-sm text-foreground/80" />
           ) : (
             <p className="text-sm text-muted-foreground/50">无描述</p>
           )
@@ -123,7 +124,7 @@ export function TaskDetail({ task, currentUserEmail, onUpdate, readonly }: Props
                     </span>
                     <span className="text-xs text-muted-foreground/50">{formatRelativeTime(log.created_at)}</span>
                   </div>
-                  <p className="text-sm text-foreground/80 mt-0.5 break-words whitespace-pre-wrap">{log.content}</p>
+                  <RichText text={log.content} className="text-sm text-foreground/80 mt-0.5" />
                 </div>
               </div>
             ))}

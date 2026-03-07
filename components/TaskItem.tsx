@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TaskDetail } from "@/components/TaskDetail";
+import { RichText } from "@/components/RichText";
 import type { Task, TaskMember } from "@/lib/types";
 import type { TaskNode } from "@/lib/task-utils";
 
@@ -304,11 +305,11 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
               onClick={startEdit}
               title="单击编辑"
             >
-              {task.title}
+              <RichText text={task.title} truncate />
             </p>
           )}
           {task.description && (
-            <p className="text-sm text-muted-foreground mt-0.5 truncate">{task.description}</p>
+            <RichText text={task.description} truncate className="text-sm text-muted-foreground mt-0.5" />
           )}
 
           {/* Interactive badge row */}
