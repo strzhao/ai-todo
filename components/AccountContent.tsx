@@ -24,7 +24,6 @@ interface Props {
 export function AccountContent({ userEmail, isDev }: Props) {
   const [inviteData, setInviteData] = useState<InviteData | null>(null);
   const [inviteLoading, setInviteLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,18 +38,6 @@ export function AccountContent({ userEmail, isDev }: Props) {
       setInviteData({ codes: [], quota: { used: 0, total: 3 } });
     } finally {
       setInviteLoading(false);
-    }
-  }
-
-  async function handleGenerate() {
-    setGenerating(true);
-    try {
-      const res = await fetch("/api/invitation/codes/generate", { method: "POST" });
-      if (res.ok) {
-        await fetchCodes();
-      }
-    } finally {
-      setGenerating(false);
     }
   }
 
@@ -71,9 +58,8 @@ export function AccountContent({ userEmail, isDev }: Props) {
     window.location.href = "/api/auth/switch-account";
   }
 
-  const activeCodes = inviteData?.codes.filter((c) => c.status === "ACTIVE") ?? [];
-  const usedCodes = inviteData?.codes.filter((c) => c.status === "REDEEMED") ?? [];
-  const remaining = (inviteData?.quota.total ?? 3) - (inviteData?.quota.used ?? 0);
+  const codes = inviteData?.codes ?? [];
+  const redeemedCount = codes.filter((c) => c.status === "REDEEMED").length;
 
   return (
     <div className="max-w-lg mx-auto px-4 py-8 space-y-8">
@@ -100,45 +86,28 @@ export function AccountContent({ userEmail, isDev }: Props) {
         ) : (
           <>
             <p className="text-xs text-muted-foreground">
-              剩余 {remaining} / {inviteData?.quota.total ?? 3} 个名额
+              已使用 {redeemedCount} / {codes.length} 个邀请码
             </p>
 
-            {activeCodes.length > 0 && (
-              <div className="space-y-2">
-                {activeCodes.map((c) => (
-                  <div key={c.id} className="flex items-center gap-2 bg-muted/40 rounded-md px-3 py-2">
-                    <span className="font-mono text-sm tracking-wider flex-1">{c.code}</span>
+            <div className="space-y-2">
+              {codes.map((c) => (
+                <div key={c.id} className="flex items-center gap-2 bg-muted/40 rounded-md px-3 py-2">
+                  <span className={`font-mono text-sm tracking-wider flex-1 ${c.status === "REDEEMED" ? "line-through text-muted-foreground" : ""}`}>
+                    {c.code}
+                  </span>
+                  {c.status === "ACTIVE" ? (
                     <button
                       onClick={() => copyLink(c.code, c.id)}
                       className="text-xs text-primary hover:underline shrink-0"
                     >
                       {copiedId === c.id ? "已复制" : "复制链接"}
                     </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {usedCodes.length > 0 && (
-              <div className="space-y-1">
-                {usedCodes.map((c) => (
-                  <div key={c.id} className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground">
-                    <span className="font-mono tracking-wider line-through">{c.code}</span>
-                    <span className="ml-auto">已使用</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {remaining > 0 && (
-              <button
-                onClick={handleGenerate}
-                disabled={generating}
-                className="text-xs text-primary hover:underline py-1.5 disabled:opacity-50"
-              >
-                {generating ? "生成中..." : "+ 生成新邀请码"}
-              </button>
-            )}
+                  ) : (
+                    <span className="text-xs text-muted-foreground shrink-0">已使用</span>
+                  )}
+                </div>
+              ))}
+            </div>
           </>
         )}
       </section>
