@@ -91,10 +91,47 @@ async function _doInitDb() {
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_task_logs_task ON ai_todo_task_logs(task_id)`;
+
+  // 6. Activated users table (invitation-code access gate)
+  await sql`
+    CREATE TABLE IF NOT EXISTS ai_todo_activated_users (
+      id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id      TEXT NOT NULL UNIQUE,
+      email        TEXT NOT NULL,
+      activated_at TIMESTAMPTZ DEFAULT NOW(),
+      invited_by   TEXT,
+      invite_code  TEXT
+    )
+  `;
+
+  // Seed already executed on 2026-03-07: all existing users auto-activated.
 }
 
 export async function migrateDb() {
   await initDb();
+}
+
+// ─── Activation (invitation-code access gate) ────────────────────────────────
+
+export async function isUserActivated(userId: string): Promise<boolean> {
+  const { rows } = await sql`
+    SELECT 1 FROM ai_todo_activated_users WHERE user_id = ${userId} LIMIT 1
+  `;
+  return rows.length > 0;
+}
+
+export async function activateUser(
+  userId: string,
+  email: string,
+  invitedBy?: string,
+  inviteCode?: string
+): Promise<void> {
+  await sql.query(
+    `INSERT INTO ai_todo_activated_users (user_id, email, invited_by, invite_code)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (user_id) DO NOTHING`,
+    [userId, email, invitedBy ?? null, inviteCode ?? null]
+  );
 }
 
 // ─── Row mapping ─────────────────────────────────────────────────────────────

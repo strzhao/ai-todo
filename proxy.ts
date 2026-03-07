@@ -17,7 +17,7 @@ import {
   verifyAuthStateCookieValue,
 } from "@/lib/auth-gateway-session";
 
-const protectedPaths = ["/", "/all", "/spaces", "/join", "/auth/cli"];
+const protectedPaths = ["/", "/all", "/spaces", "/join", "/auth/cli", "/activate"];
 const protectedApiPaths = ["/api/tasks", "/api/parse-task", "/api/spaces"];
 
 function isRscPrefetchRequest(req: NextRequest): boolean {
