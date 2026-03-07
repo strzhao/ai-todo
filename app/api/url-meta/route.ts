@@ -123,6 +123,20 @@ export async function GET(req: NextRequest) {
 
     if (!res.ok || !res.body) return empty;
 
+    // If redirected to a different domain (e.g. login page), ignore the response
+    // and fall back to friendlyName from the original URL
+    try {
+      const originalHost = new URL(url).hostname;
+      const finalHost = new URL(res.url).hostname;
+      if (originalHost !== finalHost) {
+        const title = friendlyName(url);
+        return NextResponse.json(
+          { title },
+          { headers: { "Cache-Control": "public, max-age=86400, s-maxage=86400" } }
+        );
+      }
+    } catch { /* ignore parse errors, continue normally */ }
+
     // Stream-read up to MAX_BYTES
     const reader = res.body.getReader();
     const chunks: Uint8Array[] = [];
