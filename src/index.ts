@@ -1,15 +1,19 @@
 import { Command } from "commander";
+import { createRequire } from "node:module";
 import { login } from "./auth.js";
 import { loadCredentials, clearCredentials } from "./credentials.js";
 import { fetchManifest } from "./manifest.js";
 import { registerDynamicCommands } from "./commands.js";
+
+const require = createRequire(import.meta.url);
+const { version } = require("../package.json");
 
 const program = new Command();
 
 program
   .name("ai-todo")
   .description("CLI for AI agents to interact with ai-todo")
-  .version("0.1.0");
+  .version(version);
 
 program
   .command("login")

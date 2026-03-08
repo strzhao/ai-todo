@@ -1,10 +1,18 @@
 {
   "name": "ai-todo-cli",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "CLI tool for AI agents to interact with ai-todo",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/strzhao/ai-todo-cli.git"
+  },
+  "homepage": "https://github.com/strzhao/ai-todo-cli#readme",
+  "bugs": {
+    "url": "https://github.com/strzhao/ai-todo-cli/issues"
+  },
   "bin": {
-    "ai-todo": "./dist/index.js"
+    "ai-todo": "dist/index.js"
   },
   "files": [
     "dist"
@@ -18,9 +26,9 @@
     "open": "^10.0.0"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.9.0",
-    "@types/node": "^22.0.0"
+    "typescript": "^5.9.0"
   },
   "engines": {
     "node": ">=18"
