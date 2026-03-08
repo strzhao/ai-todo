@@ -1,0 +1,43 @@
+export interface ChangelogEntry {
+  version: string;
+  date: string;
+  title: string;
+  items: string[];
+}
+
+export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.5.0",
+    date: "2026-03-08",
+    title: "昵称与账号设置",
+    items: [
+      "支持设置全局昵称，所有面板优先展示昵称",
+      "新增账号设置页，整合邀请码和切换账号功能",
+      "邀请码自动生成，过滤已撤销状态",
+    ],
+  },
+  {
+    version: "1.4.0",
+    date: "2026-03-05",
+    title: "项目空间协作",
+    items: [
+      "支持创建项目空间，邀请成员协作",
+      "空间内 @mention 指派任务给成员",
+      "加入空间支持邀请链接和审批模式",
+    ],
+  },
+  {
+    version: "1.3.0",
+    date: "2026-03-01",
+    title: "AI 自然语言操作",
+    items: [
+      "AI 输入框支持更新、完成、删除等自然语言操作",
+      "支持批量创建层级任务",
+      "新增任务进展日报功能",
+    ],
+  },
+];
+
+export function getLatestVersion(): string {
+  return changelog[0]?.version ?? "0.0.0";
+}

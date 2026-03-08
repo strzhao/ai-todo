@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import type { Task } from "@/lib/types";
 import { buildTree, type TaskNode } from "@/lib/task-utils";
+import { getLatestVersion } from "@/lib/changelog";
 
 interface SpaceTaskNode {
   id: string;
@@ -35,7 +36,14 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
   const [collapsedTaskIds, setCollapsedTaskIds] = useState<Record<string, boolean>>({});
   const [expandedSpaceIds, setExpandedSpaceIds] = useState<Set<string>>(new Set());
   const [openMenuSpaceId, setOpenMenuSpaceId] = useState<string | null>(null);
+  const [hasUnreadChangelog, setHasUnreadChangelog] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Check for unread changelog
+  useEffect(() => {
+    const lastSeen = localStorage.getItem("changelog_last_seen");
+    setHasUnreadChangelog(lastSeen !== getLatestVersion());
+  }, [pathname]);
 
   // Extract current space ID from pathname (e.g. /spaces/abc123 or /spaces/abc123/settings)
   const spaceMatch = pathname.match(/^\/spaces\/([^/]+)/);
@@ -261,7 +269,16 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
           </div>
         </div>
 
-        <div className="px-3 pt-4 border-t border-border/60">
+        <div className="px-3 pt-4 border-t border-border/60 space-y-1">
+          <Link
+            href="/changelog"
+            className={navLinkCls(pathname === "/changelog")}
+          >
+            <span className="flex-1">更新日志</span>
+            {hasUnreadChangelog && (
+              <span className="w-2 h-2 rounded-full bg-destructive shrink-0" />
+            )}
+          </Link>
           <Link
             href="/account"
             className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"

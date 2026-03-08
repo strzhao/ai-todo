@@ -188,3 +188,23 @@ proxy.ts                        # 路由保护（未登录重定向到 /authoriz
 - `invite_mode`：`open`（直接加入）或 `approval`（需审批）
 - `ai_todo_task_members`：成员表，`task_id` 关联置顶任务
 - `space_id`：子任务指向所属空间任务 ID（denormalized 访问键）
+
+## 色彩体系
+
+统一使用 `documents/refs/colors.md` 定义的色彩规范，**禁止使用 Tailwind 默认颜色**（如 `bg-red-500`、`text-blue-600`）。
+
+CSS Token 已在 `app/globals.css` 中定义，Tailwind 可直接使用：
+
+| 语义 | Tailwind class | CSS 变量 | 色值 |
+|------|---------------|----------|------|
+| 品牌/CTA | `text-sage` / `bg-sage` | `--home-accent` | 苔 #3A7D68 |
+| 品牌浅 | `text-sage-light` / `bg-sage-light` | `--home-accent-hover` | 苔浅 #52A688 |
+| 品牌淡底 | `bg-sage-mist` | `--home-accent-mist` | 苔淡 #E8F2EE |
+| 正文 | `text-foreground` | `--home-fg` | 墨 #1A1A18 |
+| 背景 | `bg-background` | `--home-bg` | 纸 #F7F6F1 |
+| 次级背景 | `bg-muted` | `--home-mist` | 雾 #EBEBEA |
+| 辅助文字 | `text-muted-foreground` | `--home-muted` | 烟 #8F8F8D |
+| 标签文字 | `text-charcoal` | `--home-charcoal` | 炭 #595957 |
+| 警告 | `text-warning` / `bg-warning` | `--home-warning` | 琥 #D4920A |
+| 错误/删除 | `text-destructive` / `bg-destructive` | `--home-danger` | 朱 #D94F3D |
+| 链接/信息 | `text-info` / `bg-info` | `--home-info` | 天 #3B87CC |
