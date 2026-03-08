@@ -43,21 +43,23 @@ program
   });
 
 async function main() {
-  // If only running auth commands, skip manifest fetch
-  const authCommands = ["login", "logout", "whoami", "help", "--help", "-h", "--version", "-V"];
   const firstArg = process.argv[2];
+  const skipCommands = ["login", "logout", "whoami"];
+  const isVersionFlag = firstArg === "--version" || firstArg === "-V";
+  const isBuiltinCommand = firstArg !== undefined && skipCommands.includes(firstArg);
 
-  if (!firstArg || authCommands.includes(firstArg)) {
-    await program.parseAsync(process.argv);
-    return;
-  }
-
-  try {
-    const manifest = await fetchManifest();
-    registerDynamicCommands(program, manifest.operations);
-  } catch {
-    console.log(JSON.stringify({ error: "Failed to load commands from server" }));
-    process.exit(1);
+  if (!isVersionFlag && !isBuiltinCommand) {
+    try {
+      const manifest = await fetchManifest();
+      registerDynamicCommands(program, manifest.operations);
+    } catch {
+      // For help/empty args, show what we have even if manifest fetch fails
+      const isHelpOrEmpty = !firstArg || ["help", "--help", "-h"].includes(firstArg);
+      if (!isHelpOrEmpty) {
+        console.log(JSON.stringify({ error: "Failed to load commands from server" }));
+        process.exit(1);
+      }
+    }
   }
 
   await program.parseAsync(process.argv);
