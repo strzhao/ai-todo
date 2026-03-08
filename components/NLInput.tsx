@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import { Mic, MicOff } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { aiFlowLog, createAiTraceId, summarizeParsedActions } from "@/lib/ai-flow-log";
 import type { ParsedAction, ParsedTask, Task, SpaceMember } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
+import { useSpeechRecognition } from "@/lib/use-speech-recognition";
 
 interface Props {
   onResult?: (actions: ParsedAction[], raw: string, traceId?: string) => void;
@@ -33,6 +36,15 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
     if (value === undefined) setInternalText(next);
   }
 
+  const { isListening, interimTranscript, isSupported, toggleListening, stopListening } =
+    useSpeechRecognition({
+      lang: "zh-CN",
+      onResult: (transcript) => {
+        setTextValue(text ? `${text} ${transcript}` : transcript);
+      },
+      onError: (msg) => setError(msg),
+    });
+
   const activeMembers = members?.filter((m) => m.status === "active") ?? [];
 
   function getPlaceholder(): string {
@@ -54,6 +66,7 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
 
   async function parse() {
     if (!text.trim() || loading) return;
+    stopListening();
     setLoading(true);
     setError("");
     setMentionQuery(null);
@@ -192,6 +205,12 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
         disabled={loading}
       />
 
+      {isListening && interimTranscript && (
+        <p className="text-xs text-muted-foreground italic px-1">
+          🎙️ {interimTranscript}
+        </p>
+      )}
+
       {/* @mention dropdown */}
       {mentionQuery !== null && filteredMembers.length > 0 && (
         <div className="absolute z-50 bottom-full mb-1 left-0 w-72 bg-background border border-border rounded-md shadow-lg overflow-hidden">
@@ -216,7 +235,22 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
       <div className="flex items-center gap-2">
         {error && <span className="text-xs text-destructive">{error}</span>}
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">⌘ + Enter</span>
+          {isSupported && (
+            <Button
+              type="button"
+              variant={isListening ? "default" : "ghost"}
+              size="icon-sm"
+              onClick={toggleListening}
+              disabled={loading}
+              className={cn(
+                isListening && "bg-sage text-white hover:bg-sage-light animate-pulse"
+              )}
+              title={isListening ? "停止录音" : "语音输入"}
+            >
+              {isListening ? <MicOff className="size-4" /> : <Mic className="size-4" />}
+            </Button>
+          )}
+          <span className="text-xs text-muted-foreground hidden md:inline">⌘ + Enter</span>
           <Button onClick={parse} disabled={!text.trim() || loading} size="sm">
             {loading ? "解析中..." : "AI 解析"}
           </Button>

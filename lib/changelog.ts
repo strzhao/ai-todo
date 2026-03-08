@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.6.0",
+    date: "2026-03-08",
+    title: "语音输入",
+    items: [
+      "新增语音输入，支持中文语音识别（zh-CN）",
+      "录音状态实时反馈，识别结果自动填入输入框",
+      "支持 iOS Safari 和 Android Chrome，方便手机端操作",
+    ],
+  },
+  {
     version: "1.5.0",
     date: "2026-03-08",
     title: "昵称与账号设置",
