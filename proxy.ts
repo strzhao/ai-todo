@@ -18,7 +18,7 @@ import {
 } from "@/lib/auth-gateway-session";
 
 const protectedPaths = ["/", "/all", "/spaces", "/join", "/auth/cli", "/activate"];
-const protectedApiPaths = ["/api/tasks", "/api/parse-task", "/api/spaces"];
+const protectedApiPaths = ["/api/tasks", "/api/parse-task", "/api/spaces", "/api/transcribe"];
 
 function isRscPrefetchRequest(req: NextRequest): boolean {
   if (req.nextUrl.searchParams.has("_rsc")) return true;

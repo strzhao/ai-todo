@@ -91,6 +91,9 @@ NEXT_PUBLIC_AUTH_ISSUER=https://user.stringzhao.life
 DEEPSEEK_API_KEY=...
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 DEEPSEEK_MODEL=deepseek-chat
+STT_BASE_URL=https://api.groq.com/openai/v1  # Whisper API（兼容 OpenAI 格式）
+STT_API_KEY=...                                # Groq API Key
+STT_MODEL=whisper-large-v3                     # STT 模型名
 POSTGRES_URL=...    # Neon DB（与 ai-news 共享，表名不同）
 ```
 
@@ -124,6 +127,7 @@ app/
     spaces/[id]/members/route.ts          # GET 成员列表
     spaces/[id]/members/[uid]/route.ts    # PATCH（审批/更新）+ DELETE（移除/退出）
     spaces/join/[code]/route.ts           # GET 预览 + POST 加入
+    transcribe/route.ts         # POST 音频转文字（转发到 Whisper API）
 components/
   SpaceNav.tsx                  # 侧边栏导航（桌面）+ 底部 Tab（移动端）+ 当前空间一级任务目录
   NLInput.tsx                   # 自然语言输入框，Cmd+K 聚焦，@ 触发成员菜单，传 tasks + parent_task 上下文给 AI；聚焦态下 placeholder 提示父任务名
@@ -144,6 +148,7 @@ lib/
   gantt-utils.ts                # 纯函数：daysBetween / addDays / formatAxisDate / getMemberName
   parse-utils.ts                # 纯函数：parseItem / parseActions / cleanupCache（可测试）
   route-timing.ts               # API 路由计时工具（createRouteTimer）
+  use-voice-input.ts            # 语音输入 hook（MediaRecorder 录音 + /api/transcribe 转写）
   auth.ts                       # JWT 验证（jose + JWKS）+ DEV_BYPASS 模式
   auth-config.ts                # 统一授权配置（authorize/callback）
   server-auth.ts                # Server Component 用 getServerUser()

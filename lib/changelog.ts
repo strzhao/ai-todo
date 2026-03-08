@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.7.0",
+    date: "2026-03-08",
+    title: "语音输入升级",
+    items: [
+      "语音识别改用服务端 Whisper 引擎，不再依赖浏览器内置 API",
+      "全面兼容 Edge、微信浏览器等此前不支持的环境",
+      "录音中显示实时时长，识别中显示加载状态",
+    ],
+  },
+  {
     version: "1.6.0",
     date: "2026-03-08",
     title: "语音输入",
