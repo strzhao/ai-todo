@@ -1,13 +1,16 @@
+import { getDisplayLabel } from "@/lib/display-utils";
+
 interface Props {
   email: string;
-  displayName?: string;
+  display_name?: string;
+  nickname?: string;
   isMe?: boolean;
 }
 
-export function AssigneeBadge({ email, displayName, isMe }: Props) {
+export function AssigneeBadge({ email, display_name, nickname, isMe }: Props) {
   if (isMe) return null;
 
-  const label = displayName || email.split("@")[0];
+  const label = getDisplayLabel(email, { display_name, nickname });
   const initial = label[0]?.toUpperCase() ?? "?";
 
   return (

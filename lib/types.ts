@@ -56,6 +56,7 @@ export interface TaskMember {
   user_id: string;
   email: string;
   display_name?: string;
+  nickname?: string; // 全局昵称（来自 ai_todo_activated_users）
   role: "owner" | "member";
   status: "active" | "pending";
   joined_at: string;

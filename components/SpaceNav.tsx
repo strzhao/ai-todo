@@ -23,10 +23,11 @@ function toSpaceTaskNode(node: TaskNode): SpaceTaskNode {
 interface Props {
   spaces: (Task & { name?: string })[];
   userEmail: string;
+  userNickname?: string;
   isDev?: boolean;
 }
 
-export function SpaceNav({ spaces, userEmail, isDev }: Props) {
+export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -265,7 +266,7 @@ export function SpaceNav({ spaces, userEmail, isDev }: Props) {
             href="/account"
             className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
-            <span className="truncate flex-1">{userEmail}</span>
+            <span className="truncate flex-1">{userNickname || userEmail.split("@")[0]}</span>
             {isDev && (
               <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200 shrink-0">
                 DEV

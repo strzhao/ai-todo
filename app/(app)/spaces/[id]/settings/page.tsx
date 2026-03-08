@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Space, TaskMember, SpaceMember } from "@/lib/types";
+import { getDisplayLabel } from "@/lib/display-utils";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -157,7 +158,7 @@ export default function SpaceSettingsPage({ params }: Props) {
             {pendingMembers.map((m) => (
               <div key={m.user_id} className="flex items-center gap-3 py-2">
                 <div className="flex-1">
-                  <p className="text-sm">{m.display_name || m.email}</p>
+                  <p className="text-sm">{getDisplayLabel(m.email, m)}</p>
                   <p className="text-xs text-muted-foreground">{m.email}</p>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => approveMember(m.user_id)}>同意</Button>
@@ -175,11 +176,11 @@ export default function SpaceSettingsPage({ params }: Props) {
           {activeMembers.map((m) => (
             <div key={m.user_id} className="flex items-center gap-3 py-2 border-b last:border-0 border-border/40">
               <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-medium flex-shrink-0">
-                {(m.display_name || m.email)[0]?.toUpperCase()}
+                {getDisplayLabel(m.email, m)[0]?.toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm truncate">{m.display_name || m.email}</p>
-                {m.display_name && <p className="text-xs text-muted-foreground">{m.email}</p>}
+                <p className="text-sm truncate">{getDisplayLabel(m.email, m)}</p>
+                {(m.display_name || m.nickname) && <p className="text-xs text-muted-foreground">{m.email}</p>}
               </div>
               {m.role === "owner" ? (
                 <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">管理员</span>

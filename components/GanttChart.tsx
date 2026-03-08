@@ -110,7 +110,7 @@ export function GanttChart({ tasks, members, onTaskClick }: Props) {
               </span>
               {task.assignee_email && (
                 <span className="flex-shrink-0 w-4 h-4 rounded-full bg-muted flex items-center justify-center text-[8px] font-medium uppercase">
-                  {task.assignee_email[0]}
+                  {getMemberName(task.assignee_email, members)[0]}
                 </span>
               )}
             </div>

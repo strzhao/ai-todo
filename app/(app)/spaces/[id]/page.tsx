@@ -9,6 +9,7 @@ import { TaskList } from "@/components/TaskList";
 import { GanttChart } from "@/components/GanttChart";
 import { DailySummary } from "@/components/DailySummary";
 import type { ParsedAction, Task, Space, SpaceMember, ActionResult } from "@/lib/types";
+import { getDisplayLabel } from "@/lib/display-utils";
 
 interface SpacePageProps {
   params: Promise<{ id: string }>;
@@ -225,7 +226,7 @@ export default function SpacePage({ params }: SpacePageProps) {
                   onClick={() => setFilterMember(m.user_id)}
                   className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${filterMember === m.user_id ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-foreground"}`}
                 >
-                  {m.display_name || m.email.split("@")[0]}
+                  {getDisplayLabel(m.email, m)}
                 </button>
               ))}
             </div>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { MultiTaskPreview } from "@/components/MultiTaskPreview";
 import { aiFlowLog, summarizeParsedActions } from "@/lib/ai-flow-log";
 import type { ParsedAction, ParsedTask, Task, ActionResult, SpaceMember } from "@/lib/types";
+import { getDisplayLabel } from "@/lib/display-utils";
 
 interface Props {
   actions: ParsedAction[];
@@ -75,7 +76,7 @@ function formatDate(iso?: string | null): string {
   return new Date(iso).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
 }
 
-function ActionRow({ action, allTasks, parentTaskId }: { action: ParsedAction; allTasks: Task[]; parentTaskId?: string }) {
+function ActionRow({ action, allTasks, parentTaskId, members }: { action: ParsedAction; allTasks: Task[]; parentTaskId?: string; members?: SpaceMember[] }) {
   const task = action.type !== "create" ? resolveTask(action, allTasks) : null;
   const parentTask = action.type === "move" ? resolveParentTask(action, allTasks) : null;
   const notFound = (action.type !== "create" && !task) || (action.type === "move" && !parentTask);
@@ -152,7 +153,10 @@ function ActionRow({ action, allTasks, parentTaskId }: { action: ParsedAction; a
     if (c.title !== undefined) changeParts.push(`标题→「${c.title}」`);
     if (c.description !== undefined) changeParts.push("更新描述");
     if (c.tags !== undefined) changeParts.push(`标签→[${c.tags.join(",")}]`);
-    if (c.assignee_email !== undefined) changeParts.push(c.assignee_email ? `经办人→${c.assignee_email}` : "经办人→未指派");
+    if (c.assignee_email !== undefined) {
+      const am = members?.find((m) => m.email === c.assignee_email);
+      changeParts.push(`经办人→${c.assignee_email ? getDisplayLabel(c.assignee_email, am) : "未指派"}`);
+    }
     if (c.progress !== undefined) changeParts.push(`进度→${c.progress}%`);
     return (
       <div className={`flex items-start gap-2 text-sm ${notFound ? "text-destructive" : ""}`}>
@@ -447,7 +451,7 @@ export function ActionPreview({ actions, raw, allTasks, spaceId, members, parent
 
       <div className="space-y-2 py-1">
         {actions.map((action, i) => (
-          <ActionRow key={i} action={action} allTasks={allTasks} parentTaskId={parentTaskId} />
+          <ActionRow key={i} action={action} allTasks={allTasks} parentTaskId={parentTaskId} members={members} />
         ))}
       </div>
 

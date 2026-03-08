@@ -104,6 +104,9 @@ async function _doInitDb() {
     )
   `;
 
+  // 7. Add nickname column to activated users
+  await sql`ALTER TABLE ai_todo_activated_users ADD COLUMN IF NOT EXISTS nickname TEXT`;
+
   // Seed already executed on 2026-03-07: all existing users auto-activated.
 }
 
@@ -132,6 +135,29 @@ export async function activateUser(
      ON CONFLICT (user_id) DO NOTHING`,
     [userId, email, invitedBy ?? null, inviteCode ?? null]
   );
+}
+
+// ─── User nickname ───────────────────────────────────────────────────────────
+
+export async function getUserActivation(userId: string): Promise<{ activated: boolean; nickname: string | null }> {
+  const { rows } = await sql`
+    SELECT nickname FROM ai_todo_activated_users WHERE user_id = ${userId} LIMIT 1
+  `;
+  if (!rows[0]) return { activated: false, nickname: null };
+  return { activated: true, nickname: (rows[0].nickname as string) ?? null };
+}
+
+export async function getUserNickname(userId: string): Promise<string | null> {
+  const { rows } = await sql`
+    SELECT nickname FROM ai_todo_activated_users WHERE user_id = ${userId} LIMIT 1
+  `;
+  return (rows[0]?.nickname as string) ?? null;
+}
+
+export async function setUserNickname(userId: string, nickname: string | null): Promise<void> {
+  await sql`
+    UPDATE ai_todo_activated_users SET nickname = ${nickname} WHERE user_id = ${userId}
+  `;
 }
 
 // ─── Row mapping ─────────────────────────────────────────────────────────────
@@ -173,6 +199,7 @@ function rowToMember(row: Record<string, unknown>): TaskMember {
     user_id: row.user_id as string,
     email: row.email as string,
     display_name: (row.display_name as string) || undefined,
+    nickname: (row.nickname as string) || undefined,
     role: row.role as "owner" | "member",
     status: row.status as "active" | "pending",
     joined_at: (row.joined_at as Date).toISOString(),
@@ -661,9 +688,11 @@ export async function updatePinnedTask(
 
 export async function getTaskMembers(taskId: string): Promise<TaskMember[]> {
   const { rows } = await sql`
-    SELECT * FROM ai_todo_task_members
-    WHERE task_id = ${taskId}
-    ORDER BY role ASC, joined_at ASC
+    SELECT m.*, u.nickname
+    FROM ai_todo_task_members m
+    LEFT JOIN ai_todo_activated_users u ON m.user_id = u.user_id
+    WHERE m.task_id = ${taskId}
+    ORDER BY m.role ASC, m.joined_at ASC
   `;
   return rows.map(rowToMember);
 }

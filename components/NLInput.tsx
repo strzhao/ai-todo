@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { aiFlowLog, createAiTraceId, summarizeParsedActions } from "@/lib/ai-flow-log";
 import type { ParsedAction, ParsedTask, Task, SpaceMember } from "@/lib/types";
+import { getDisplayLabel } from "@/lib/display-utils";
 
 interface Props {
   onResult?: (actions: ParsedAction[], raw: string, traceId?: string) => void;
@@ -47,7 +48,7 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
   const filteredMembers = mentionQuery !== null
     ? activeMembers.filter((m) => {
         const q = mentionQuery.toLowerCase();
-        return m.email.toLowerCase().includes(q) || (m.display_name?.toLowerCase().includes(q) ?? false);
+        return m.email.toLowerCase().includes(q) || (m.display_name?.toLowerCase().includes(q) ?? false) || (m.nickname?.toLowerCase().includes(q) ?? false);
       })
     : [];
 
@@ -201,10 +202,10 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
               onMouseDown={(e) => { e.preventDefault(); insertMention(m); }}
             >
               <span className="w-6 h-6 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-medium flex-shrink-0">
-                {(m.display_name || m.email)[0]?.toUpperCase()}
+                {getDisplayLabel(m.email, m)[0]?.toUpperCase()}
               </span>
               <span className="flex-1 min-w-0">
-                {m.display_name && <span className="font-medium mr-1">{m.display_name}</span>}
+                {(m.display_name || m.nickname) && <span className="font-medium mr-1">{m.display_name || m.nickname}</span>}
                 <span className="text-muted-foreground text-xs">{m.email}</span>
               </span>
             </button>

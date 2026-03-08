@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import { RichText } from "@/components/RichText";
-import type { Task, TaskLog } from "@/lib/types";
+import type { Task, TaskLog, TaskMember } from "@/lib/types";
+import { getDisplayLabel } from "@/lib/display-utils";
 
 interface Props {
   task: Task;
   currentUserEmail?: string;
+  members?: TaskMember[];
   onUpdate?: (id: string, updates: Partial<Task>) => void;
   readonly?: boolean;
 }
@@ -22,7 +24,7 @@ function formatRelativeTime(iso: string): string {
   return `${days} 天前`;
 }
 
-export function TaskDetail({ task, currentUserEmail, onUpdate, readonly }: Props) {
+export function TaskDetail({ task, currentUserEmail, members, onUpdate, readonly }: Props) {
   const [logs, setLogs] = useState<TaskLog[]>([]);
   const [logsLoaded, setLogsLoaded] = useState(false);
   const [description, setDescription] = useState(task.description ?? "");
@@ -112,22 +114,26 @@ export function TaskDetail({ task, currentUserEmail, onUpdate, readonly }: Props
           <p className="text-sm text-muted-foreground/50">暂无进展记录</p>
         ) : (
           <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-            {logs.map((log) => (
+            {logs.map((log) => {
+              const logMember = members?.find((mb) => mb.email === log.user_email);
+              const logLabel = getDisplayLabel(log.user_email, logMember);
+              return (
               <div key={log.id} className="flex gap-2.5">
                 <div className="flex-shrink-0 w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium uppercase">
-                  {log.user_email[0]}
+                  {logLabel[0]}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-xs font-medium">
-                      {log.user_email === currentUserEmail ? "你" : log.user_email.split("@")[0]}
+                      {log.user_email === currentUserEmail ? "你" : logLabel}
                     </span>
                     <span className="text-xs text-muted-foreground/50">{formatRelativeTime(log.created_at)}</span>
                   </div>
                   <RichText text={log.content} className="text-sm text-foreground/80 mt-0.5" />
                 </div>
               </div>
-            ))}
+              );
+            })}
             <div ref={bottomRef} />
           </div>
         )}

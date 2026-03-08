@@ -7,6 +7,7 @@ import {
 export interface AuthUser {
   id: string;
   email: string;
+  nickname?: string;
 }
 
 const DEV_BYPASS =

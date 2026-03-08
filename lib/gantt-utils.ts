@@ -1,4 +1,5 @@
 import type { SpaceMember } from "@/lib/types";
+import { getDisplayLabel } from "@/lib/display-utils";
 
 export function daysBetween(a: Date, b: Date): number {
   return (b.getTime() - a.getTime()) / 86400000;
@@ -14,5 +15,5 @@ export function formatAxisDate(date: Date): string {
 
 export function getMemberName(email: string, members: SpaceMember[]): string {
   const m = members.find((mb) => mb.email === email);
-  return m?.display_name || email.split("@")[0];
+  return getDisplayLabel(email, m);
 }

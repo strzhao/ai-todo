@@ -8,6 +8,7 @@ import { TaskDetail } from "@/components/TaskDetail";
 import { RichText } from "@/components/RichText";
 import type { Task, TaskMember } from "@/lib/types";
 import type { TaskNode } from "@/lib/task-utils";
+import { getDisplayLabel } from "@/lib/display-utils";
 
 const PRIORITY_BADGES: Record<number, { label: string; cls: string }> = {
   0: { label: "P0", cls: "bg-danger-soft text-danger border-danger/35" },
@@ -268,7 +269,8 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
   const dueText = formatDue(task.due_date);
   const isDueToday = highlightTodayDue && isDateToday(task.due_date);
   const isAssignedToOther = task.assignee_email && task.assignee_email !== currentUserEmail;
-  const assigneeLabel = task.assignee_email ? task.assignee_email.split("@")[0] : null;
+  const assigneeMember = task.assignee_email ? members.find((m) => m.email === task.assignee_email) : undefined;
+  const assigneeLabel = task.assignee_email ? getDisplayLabel(task.assignee_email, assigneeMember) : null;
 
   return (
     <div className={`border-b last:border-0 border-border/50 ${completing ? "opacity-40" : ""}`}>
@@ -524,9 +526,9 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
                           className={`w-full flex items-center gap-2 text-left px-3 py-1.5 text-xs hover:bg-muted transition-colors ${task.assignee_email === m.email ? "font-medium text-primary bg-muted/50" : "text-foreground"}`}
                         >
                           <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/15 text-primary font-medium text-[10px]">
-                            {(m.display_name || m.email)[0]?.toUpperCase()}
+                            {getDisplayLabel(m.email, m)[0]?.toUpperCase()}
                           </span>
-                          {m.display_name || m.email.split("@")[0]}
+                          {getDisplayLabel(m.email, m)}
                         </button>
                       ))}
                   </div>
@@ -602,7 +604,7 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
       {/* Detail panel — only description + logs */}
       {detailOpen && (
         <div className="mx-1 mb-3 mt-1 border border-border/40 rounded-lg bg-muted/20 overflow-hidden">
-          <TaskDetail task={task} currentUserEmail={currentUserEmail} onUpdate={onUpdate} />
+          <TaskDetail task={task} currentUserEmail={currentUserEmail} members={members} onUpdate={onUpdate} />
         </div>
       )}
 

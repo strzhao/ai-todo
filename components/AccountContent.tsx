@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 interface InvitationCode {
   id: string;
@@ -18,13 +19,19 @@ interface InviteData {
 
 interface Props {
   userEmail: string;
+  userNickname?: string;
   isDev?: boolean;
 }
 
-export function AccountContent({ userEmail, isDev }: Props) {
+export function AccountContent({ userEmail, userNickname, isDev }: Props) {
+  const router = useRouter();
   const [inviteData, setInviteData] = useState<InviteData | null>(null);
   const [inviteLoading, setInviteLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [editingNickname, setEditingNickname] = useState(false);
+  const [nickname, setNickname] = useState(userNickname ?? "");
+  const [saving, setSaving] = useState(false);
+  const nicknameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchCodes();
@@ -54,6 +61,28 @@ export function AccountContent({ userEmail, isDev }: Props) {
     setTimeout(() => setCopiedId(null), 2000);
   }
 
+  async function saveNickname() {
+    const trimmed = nickname.trim();
+    if (trimmed === (userNickname ?? "")) {
+      setEditingNickname(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/account/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nickname: trimmed }),
+      });
+      if (res.ok) {
+        setEditingNickname(false);
+        router.refresh();
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function handleSwitchAccount() {
     window.location.href = "/api/auth/switch-account";
   }
@@ -66,15 +95,46 @@ export function AccountContent({ userEmail, isDev }: Props) {
       <h1 className="text-lg font-semibold">账号设置</h1>
 
       {/* 账号信息 */}
-      <section className="space-y-2">
+      <section className="space-y-3">
         <h2 className="text-sm font-medium text-muted-foreground">账号信息</h2>
-        <div className="flex items-center gap-2">
-          <p className="text-sm">{userEmail}</p>
-          {isDev && (
-            <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
-              DEV
-            </span>
-          )}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground w-12 shrink-0">邮箱</span>
+            <p className="text-sm">{userEmail}</p>
+            {isDev && (
+              <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
+                DEV
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground w-12 shrink-0">昵称</span>
+            {editingNickname ? (
+              <input
+                ref={nicknameInputRef}
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                onBlur={saveNickname}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveNickname();
+                  if (e.key === "Escape") { setNickname(userNickname ?? ""); setEditingNickname(false); }
+                }}
+                maxLength={20}
+                disabled={saving}
+                placeholder="设置昵称"
+                className="text-sm border-b border-primary bg-transparent outline-none py-0.5 w-40"
+                autoFocus
+              />
+            ) : (
+              <button
+                onClick={() => { setEditingNickname(true); setTimeout(() => nicknameInputRef.current?.focus(), 0); }}
+                className="text-sm hover:text-primary transition-colors"
+              >
+                {userNickname || <span className="text-muted-foreground">设置昵称</span>}
+              </button>
+            )}
+          </div>
         </div>
       </section>
 
