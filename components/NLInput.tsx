@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, KeyboardEvent } from "react";
+import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Mic, MicOff, Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import { aiFlowLog, createAiTraceId, summarizeParsedActions } from "@/lib/ai-flo
 import type { ParsedAction, ParsedTask, Task, SpaceMember } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
 import { useVoiceInput } from "@/lib/use-voice-input";
-import { VoiceRecordingOverlay } from "@/components/VoiceRecordingOverlay";
 
 interface Props {
   onResult?: (actions: ParsedAction[], raw: string, traceId?: string) => void;
@@ -37,13 +36,7 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
     if (value === undefined) setInternalText(next);
   }
 
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
-
-  useEffect(() => {
-    setIsTouchDevice(window.matchMedia("(pointer: coarse)").matches);
-  }, []);
-
-  const { isListening, isTranscribing, isSupported, duration, startListening, stopListening, toggleListening } =
+  const { isListening, isTranscribing, isSupported, duration, toggleListening, stopListening } =
     useVoiceInput({
       lang: "zh",
       onResult: (transcript) => {
@@ -52,27 +45,6 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
       },
       onError: (msg) => setError(msg),
     });
-
-  // Mobile: global pointerup to stop recording when finger lifts anywhere
-  useEffect(() => {
-    if (!isListening || !isTouchDevice) return;
-    const handler = () => stopListening();
-    document.addEventListener("pointerup", handler);
-    document.addEventListener("pointercancel", handler);
-    return () => {
-      document.removeEventListener("pointerup", handler);
-      document.removeEventListener("pointercancel", handler);
-    };
-  }, [isListening, isTouchDevice, stopListening]);
-
-  const handleMicPointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      if (!isTouchDevice) return;
-      e.preventDefault();
-      startListening();
-    },
-    [isTouchDevice, startListening]
-  );
 
   const activeMembers = members?.filter((m) => m.status === "active") ?? [];
 
@@ -224,7 +196,6 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
 
   return (
     <div ref={containerRef} className="space-y-2 relative">
-      {isListening && isTouchDevice && <VoiceRecordingOverlay duration={duration} />}
       <Textarea
         ref={textareaRef}
         placeholder={getPlaceholder()}
@@ -268,24 +239,21 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
               <Button
                 type="button"
                 variant={isListening ? "default" : "ghost"}
-                onClick={isTouchDevice ? undefined : toggleListening}
-                onPointerDown={isTouchDevice ? handleMicPointerDown : undefined}
-                onContextMenu={isTouchDevice ? (e) => e.preventDefault() : undefined}
+                size="icon-sm"
+                onClick={toggleListening}
                 disabled={loading}
                 className={cn(
-                  "size-12 rounded-full md:size-8 md:rounded-md",
                   isListening && "bg-sage text-white hover:bg-sage-light animate-pulse"
                 )}
-                style={isTouchDevice ? { touchAction: "none" } : undefined}
                 title={isListening ? "停止录音" : "语音输入"}
               >
                 {isListening ? (
                   <span className="flex items-center gap-1">
-                    <MicOff className="size-5 md:size-4" />
-                    <span className="text-xs tabular-nums hidden md:inline">{duration}s</span>
+                    <MicOff className="size-4" />
+                    <span className="text-xs tabular-nums">{duration}s</span>
                   </span>
                 ) : (
-                  <Mic className="size-5 md:size-4" />
+                  <Mic className="size-4" />
                 )}
               </Button>
             )
