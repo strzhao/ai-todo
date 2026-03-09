@@ -74,6 +74,12 @@ export async function GET(req: NextRequest) {
 ```
 错误响应格式统一为 `{ error: "message" }`，HTTP 码：400 输入错误、401 未授权、404 未找到、503 AI 超时。
 
+### CLI 命令扩展原则（严格遵守）
+ai-todo-cli 的所有业务命令从 `/api/manifest` 动态下发，**严禁在 CLI 中硬编码业务命令**。新增 CLI 命令的正确做法：
+1. 在本项目（ai-todo 服务端）新增 API 路由
+2. 在 `app/api/manifest/route.ts` 的 operations 数组中注册新操作
+3. CLI 自动发现并注册命令，无需修改 CLI 代码
+
 ### Vercel Postgres 数组字段
 `sql` 模板标签不支持数组类型 → 有数组字段的查询使用 `sql.query()`：
 ```typescript
