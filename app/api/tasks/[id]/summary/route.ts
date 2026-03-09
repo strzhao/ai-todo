@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { initDb, getTaskForUser, getDescendantTasks, getLogsForTasks } from "@/lib/db";
+import { initDb, getTaskForUser, getDescendantTasks, getLogsForTasks, getTaskMembers } from "@/lib/db";
+import { getDisplayLabel } from "@/lib/display-utils";
 import { LLMClient } from "@/lib/llm-client";
 import type { Task, TaskLog } from "@/lib/types";
 
@@ -12,54 +13,75 @@ const SUMMARY_SYSTEM_PROMPT = `你是一个项目管理助手，为 PM 生成简
 你会收到完整的任务结构（含父子层级）、全部历史进展日志和今日进展日志。历史日志仅作为背景参考，输出聚焦今日状态。
 
 **核心原则**：
-- 理解任务间的关联，按主题/模块/功能域聚类表达，不要逐条罗列
-- 父子任务是一个整体：子任务归属于父任务主题下，不要拆开单独描述
-- 用简洁的自然语言段落或分组描述，避免平铺直叙每一条
+- 按主题/模块/功能域聚类，不要逐条罗列单个任务
+- 父子任务是一个整体：子任务归属父任务主题下合并描述
+- 各部分使用 Markdown 表格展示，同模块的内容合并为一行
+- 负责人使用数据中 @ 后的昵称，不要显示邮箱
+- 识别问题/修复类工作：标题或日志中含"修复/fix/bug/解决/处理/问题/异常/报错"的任务属于问题修复范畴
 
 输出格式（Markdown），严格按以下四部分：
 
 ## 问题与解决
 先用一句话概括全局状态（总任务数、完成率等关键数字）。
 
-然后分两块输出：
+**已解决的问题**
 
-**已解决的问题**：基于今日完成的任务和进展日志，按模块/功能域归组，说明解决了哪些问题或完成了哪些事项。同一父任务下的多个子任务合并为一个条目描述（如"XX模块：完成了 A、B、C 三项子任务"）。
+| 模块 | 解决内容 | 负责人 |
+|------|---------|--------|
 
-**新增的问题**：基于今日新建的任务或日志中提到的阻塞/问题，按模块归组说明出现了哪些新的待解决事项。
+- 包含：今日标记完成的任务 + 进展日志中提到的修复/解决事项
+- **重点**：子任务中含修复/fix/bug/解决等关键词的已完成任务必须归入此表
+- 同一父任务下的多个子任务合并为一行（如"完成了 A、B、C"）
+- 无则写"今日无已解决问题"
 
-如果某一块无内容，写"无"。如果今日无任何进展，简要说明。
+**新增的问题**
+
+| 模块 | 问题描述 | 优先级 |
+|------|---------|--------|
+
+- 今日新建的任务或日志中提到的阻塞/问题，按模块归组
+- 无则写"今日无新增问题"
 
 ## 进展与特性
-按模块/功能域聚类，描述当前正在推进的功能特性和工作进展：
-- 每个聚类用**粗体标题**标识模块/主题名
-- 下方用 1-2 句话概括该模块的整体进展（进度百分比、关键里程碑）
-- 父任务代表模块主题，子任务进展合并描述，不要逐个子任务单独成行
-- 重点突出今日有实质推进的部分，标注负责人（如有）
+按模块聚类，展示当前正在推进的功能特性和工作进展：
 
-如果今日无特性进展，基于任务结构概括各模块当前状态。
+| 模块 | 进展概要 | 进度 | 负责人 |
+|------|---------|------|--------|
+
+- 父任务作为模块名，子任务进展合并描述
+- 进度使用百分比
+- 重点突出今日有实质推进的部分
+- 如果今日无特性进展，基于任务结构概括各模块当前状态
 
 ## 风险提示
-按风险类型聚类（不要逐个任务列出）：
+按风险类型聚类：
 
-- **逾期风险**：哪些模块/功能域存在已逾期或 3 天内到期的任务，涉及几个任务，影响范围
-- **停滞风险**：哪些模块的 P0/P1 任务最近 3 天无进展，可能需要关注
-- **依赖风险**：基于任务结构判断是否有前置任务未完成可能阻塞后续
+| 风险类型 | 涉及模块 | 说明 | 严重程度 |
+|---------|---------|------|---------|
 
-每类风险用一段话概括，标注涉及的模块和严重程度。如果无风险项，说明"当前无明显风险"。
+- **逾期风险**：已逾期或 3 天内到期的任务所属模块
+- **停滞风险**：P0/P1 任务最近 3 天无进展的模块
+- **依赖风险**：前置任务未完成可能阻塞后续的模块
+
+如果无风险项，说明"当前无明显风险"，不输出表格。
 
 ## 进行中概览
-按模块/功能域分组展示所有未完成的工作：
-- 每个分组用**粗体**标识模块名（通常对应一级父任务）
-- 包含：整体进度、子任务完成情况（如 3/5 完成）、负责人、截止日
-- 同一模块下的多个子任务合并为一句概括，不要逐行列表
-- 按优先级从高到低排列各模块
+按模块分组展示所有未完成的工作：
+
+| 模块 | 完成情况 | 进度 | 负责人 | 截止日 |
+|------|---------|------|--------|--------|
+
+- 模块名对应一级父任务
+- 完成情况：子任务完成数/总数（如 3/5）
+- 同模块子任务合并描述，不要逐行列出
+- 按优先级从高到低排列
 
 规则：
 - 只基于提供的数据，不捏造，不给建议
-- 简洁直接，段落化表达优于列表罗列
+- 简洁直接，聚类汇总
 - 中文输出`;
 
-function buildTaskTreeText(allTasks: Task[], parentId: string | undefined, indent: number): string {
+function buildTaskTreeText(allTasks: Task[], parentId: string | undefined, indent: number, nameMap: Map<string, string>): string {
   const children = allTasks.filter((t) =>
     parentId
       ? t.parent_id === parentId || (t.space_id === parentId && !t.parent_id)
@@ -73,23 +95,24 @@ function buildTaskTreeText(allTasks: Task[], parentId: string | undefined, inden
         ? ` 截止:${new Date(t.due_date).toLocaleDateString("zh-CN")}`
         : "";
       const assignee = t.assignee_email
-        ? ` @${t.assignee_email.split("@")[0]}`
+        ? ` @${nameMap.get(t.assignee_email) ?? t.assignee_email.split("@")[0]}`
         : "";
       const desc = t.description ? ` | ${t.description.slice(0, 80)}` : "";
       const prog = ` 进度:${t.progress}%`;
       const prefix = "  ".repeat(indent) + "- ";
       const line = `${prefix}[${status}][${priority}] ${t.title}${due}${assignee}${prog}${desc}`;
-      const childLines = buildTaskTreeText(allTasks, t.id, indent + 1);
+      const childLines = buildTaskTreeText(allTasks, t.id, indent + 1, nameMap);
       return childLines ? `${line}\n${childLines}` : line;
     })
     .join("\n");
 }
 
-function formatLogs(logs: TaskLog[], taskIdToTitle: Map<string, string>): string {
+function formatLogs(logs: TaskLog[], taskIdToTitle: Map<string, string>, nameMap: Map<string, string>): string {
   return logs
     .map((l) => {
       const d = new Date(l.created_at);
-      return `- [${d.toLocaleDateString("zh-CN")} ${d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}] ${l.user_email.split("@")[0]} → 任务「${taskIdToTitle.get(l.task_id) ?? "未知"}」: ${l.content}`;
+      const userName = nameMap.get(l.user_email) ?? l.user_email.split("@")[0];
+      return `- [${d.toLocaleDateString("zh-CN")} ${d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}] ${userName} → 任务「${taskIdToTitle.get(l.task_id) ?? "未知"}」: ${l.content}`;
     })
     .join("\n");
 }
@@ -99,22 +122,23 @@ function buildUserMessage(
   descendants: Task[],
   allLogs: TaskLog[],
   todayLogs: TaskLog[],
-  date: string
+  date: string,
+  nameMap: Map<string, string>
 ): string {
   const allTasks = [parentTask, ...descendants];
   const taskIdToTitle = new Map(allTasks.map((t) => [t.id, t.title]));
 
-  const childrenTree = buildTaskTreeText(allTasks, parentTask.id, 1);
+  const childrenTree = buildTaskTreeText(allTasks, parentTask.id, 1, nameMap);
   const fullTree = `- [${parentTask.status === 2 ? "已完成" : "待办"}][P${parentTask.priority}] ${parentTask.title}\n${childrenTree}`;
 
   const allLogsText =
     allLogs.length > 0
-      ? formatLogs(allLogs, taskIdToTitle)
+      ? formatLogs(allLogs, taskIdToTitle, nameMap)
       : "暂无进展日志";
 
   const todayLogsText =
     todayLogs.length > 0
-      ? formatLogs(todayLogs, taskIdToTitle)
+      ? formatLogs(todayLogs, taskIdToTitle, nameMap)
       : "今日暂无进展日志";
 
   const totalCount = allTasks.length;
@@ -155,14 +179,18 @@ export async function POST(
 
   const descendants = await getDescendantTasks(id);
   const allTaskIds = [id, ...descendants.map((t) => t.id)];
-  const allLogs = await getLogsForTasks(allTaskIds, 500);
+  const [allLogs, members] = await Promise.all([
+    getLogsForTasks(allTaskIds, 500),
+    getTaskMembers(id),
+  ]);
   const todayLogs = allLogs.filter((l) => l.created_at.slice(0, 10) === date);
+  const nameMap = new Map(members.map((m) => [m.email, getDisplayLabel(m.email, m)]));
 
   const llm = new LLMClient();
 
   // Try with full data first; fallback to recent-only if too large
   async function tryGenerate(logs: TaskLog[]): Promise<ReadableStream<string>> {
-    const userMessage = buildUserMessage(task!, descendants, logs, todayLogs, date);
+    const userMessage = buildUserMessage(task!, descendants, logs, todayLogs, date, nameMap);
     return llm.chatStream(
       [
         { role: "system", content: SUMMARY_SYSTEM_PROMPT },
