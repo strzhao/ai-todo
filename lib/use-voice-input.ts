@@ -15,6 +15,7 @@ interface UseVoiceInputReturn {
   duration: number;
   startListening: () => void;
   stopListening: () => void;
+  cancelListening: () => void;
   toggleListening: () => void;
 }
 
@@ -44,6 +45,7 @@ export function useVoiceInput(
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelledRef = useRef(false);
   const onResultRef = useRef(onResult);
   const onErrorRef = useRef(onError);
 
@@ -133,6 +135,8 @@ export function useVoiceInput(
   }, [clearTimers]);
 
   const startListening = useCallback(async () => {
+    if (mediaRecorderRef.current) return; // prevent double-start
+    cancelledRef.current = false;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -150,18 +154,19 @@ export function useVoiceInput(
 
       recorder.onstop = () => {
         const chunks = chunksRef.current;
+        const wasCancelled = cancelledRef.current;
         // Release mic
         stream.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
         mediaRecorderRef.current = null;
+        chunksRef.current = [];
 
-        if (chunks.length > 0) {
+        if (!wasCancelled && chunks.length > 0) {
           const blob = new Blob(chunks, {
             type: recorder.mimeType || "audio/webm",
           });
           transcribe(blob);
         }
-        chunksRef.current = [];
       };
 
       mediaRecorderRef.current = recorder;
@@ -189,6 +194,11 @@ export function useVoiceInput(
     }
   }, [stopListening, transcribe, cleanup]);
 
+  const cancelListening = useCallback(() => {
+    cancelledRef.current = true;
+    stopListening();
+  }, [stopListening]);
+
   const toggleListening = useCallback(() => {
     if (isListening) {
       stopListening();
@@ -211,6 +221,7 @@ export function useVoiceInput(
     duration,
     startListening,
     stopListening,
+    cancelListening,
     toggleListening,
   };
 }

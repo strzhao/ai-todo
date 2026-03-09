@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.8.0",
+    date: "2026-03-09",
+    title: "语音交互优化",
+    items: [
+      "手机端支持按住录音、松开发送（微信风格交互）",
+      "录音时显示全屏提示遮罩，操作更直观",
+      "麦克风按钮在手机端加大为圆形，更易点按",
+    ],
+  },
+  {
     version: "1.7.0",
     date: "2026-03-08",
     title: "语音输入升级",
