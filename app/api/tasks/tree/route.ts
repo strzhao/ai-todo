@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { initDb, getTasks } from "@/lib/db";
+import { initDb, getAllActiveTasks } from "@/lib/db";
 import { buildTree } from "@/lib/task-utils";
 import type { TaskNode } from "@/lib/task-utils";
 
@@ -59,9 +59,8 @@ export async function GET(req: NextRequest) {
   }
 
   await initDb();
-  const tasks = await getTasks(user.id);
-  const activeTasks = tasks.filter((t) => t.status !== 2);
-  const roots = buildTree(activeTasks);
+  const tasks = await getAllActiveTasks(user.id);
+  const roots = buildTree(tasks);
   const tree = formatTree(roots);
 
   return NextResponse.json({ output: tree });

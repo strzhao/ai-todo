@@ -259,6 +259,15 @@ export async function getTasks(userId: string, options: GetTasksOptions = {}): P
   return rows.map(rowToTask);
 }
 
+export async function getAllActiveTasks(userId: string): Promise<Task[]> {
+  const { rows } = await sql`
+    SELECT * FROM ai_todo_tasks
+    WHERE user_id = ${userId} AND status != 2
+    ORDER BY priority ASC, created_at DESC
+  `;
+  return rows.map(rowToTask);
+}
+
 export async function getTodayTasks(userId: string, spaceId?: string): Promise<Task[]> {
   if (spaceId) {
     const { rows } = await sql.query(
