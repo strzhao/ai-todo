@@ -7,6 +7,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.8.2",
+    date: "2026-03-09",
+    title: "已完成任务保持层级展示",
+    items: [
+      "已完成任务区域按父子层级缩进展示，不再扁平罗列",
+      "已完成任务详情正确显示成员信息",
+    ],
+  },
+  {
     version: "1.8.1",
     date: "2026-03-09",
     title: "修复空间任务列表遗漏部分任务",
