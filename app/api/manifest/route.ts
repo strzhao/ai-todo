@@ -192,11 +192,10 @@ const manifest = {
     {
       id: "task_tree",
       name: "tasks:tree",
-      description: "Display all active tasks in a tree hierarchy (text output for quick overview)",
+      description: "Display all active tasks as a JSON tree with nested children",
       method: "GET",
       path: "/api/tasks/tree",
       params: [],
-      format: "text",
     },
   ],
 };
