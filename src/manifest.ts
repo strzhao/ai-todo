@@ -17,6 +17,7 @@ export interface ManifestOperation {
   path: string;
   params: ManifestParam[];
   fixed_body?: Record<string, unknown>;
+  format?: "text" | "json";
 }
 
 export interface Manifest {

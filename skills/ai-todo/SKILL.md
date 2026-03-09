@@ -44,10 +44,26 @@ Key conventions:
 
 ## Workflow Patterns
 
+### 了解任务结构（首要步骤）
+
+在创建、更新或关联任务前，**必须先了解现有任务层级**：
+
+```bash
+ai-todo tree
+```
+
+输出树形文本，📌 标记项目空间，缩进显示父子关系。用于：
+- 找到新任务应归属的项目空间或父任务
+- 避免创建重复任务
+- 理解当前任务拆分再添加子任务
+
+**重要**：把任务放到正确的项目和父任务下，是保持任务系统可用的关键。不要在顶层随意创建任务。
+
 ### Starting a work session
 
 Check existing tasks to understand priorities:
 ```bash
+ai-todo tree
 ai-todo tasks:list --filter today
 ai-todo tasks:list --filter assigned
 ```
@@ -55,10 +71,12 @@ ai-todo tasks:list --filter assigned
 ### Task creation from development context
 
 When the user describes work or you identify actionable items:
-1. Create a parent task for the overall objective
-2. Break it into subtasks using `--parent_id`
-3. Set priorities based on dependencies and urgency
-4. Use `ai-todo tasks:create --help` to see all available options
+1. Run `ai-todo tree` to see existing task structure
+2. Find the correct parent task or project space for the new task
+3. Create a parent task for the overall objective (or use an existing one)
+4. Break it into subtasks using `--parent_id`
+5. Set priorities based on dependencies and urgency
+6. Use `ai-todo tasks:create --help` to see all available options
 
 ### Progress tracking during development
 

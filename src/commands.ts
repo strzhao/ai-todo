@@ -46,7 +46,11 @@ export function registerDynamicCommands(
         bodyParams,
         op.fixed_body,
       );
-      console.log(JSON.stringify(data, null, 2));
+      if (op.format === "text" && typeof data === "object" && data !== null && "output" in data) {
+        console.log((data as Record<string, string>).output);
+      } else {
+        console.log(JSON.stringify(data, null, 2));
+      }
     });
   }
 }
