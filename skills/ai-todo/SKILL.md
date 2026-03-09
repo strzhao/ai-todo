@@ -49,7 +49,7 @@ Key conventions:
 在创建、更新或关联任务前，**必须先了解现有任务层级**：
 
 ```bash
-ai-todo tree
+ai-todo tasks:tree
 ```
 
 输出树形文本，📌 标记项目空间，缩进显示父子关系。用于：
@@ -63,7 +63,7 @@ ai-todo tree
 
 Check existing tasks to understand priorities:
 ```bash
-ai-todo tree
+ai-todo tasks:tree
 ai-todo tasks:list --filter today
 ai-todo tasks:list --filter assigned
 ```
@@ -71,7 +71,7 @@ ai-todo tasks:list --filter assigned
 ### Task creation from development context
 
 When the user describes work or you identify actionable items:
-1. Run `ai-todo tree` to see existing task structure
+1. Run `ai-todo tasks:tree` to see existing task structure
 2. Find the correct parent task or project space for the new task
 3. Create a parent task for the overall objective (or use an existing one)
 4. Break it into subtasks using `--parent_id`
