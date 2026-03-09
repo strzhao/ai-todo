@@ -82,7 +82,9 @@ function buildTaskTreeText(allTasks: Task[], parentId: string | undefined, inden
   );
   return children
     .map((t) => {
-      const status = t.status === 2 ? "已完成" : "待办";
+      const status = t.status === 2
+        ? `已完成${t.completed_at ? ` ${new Date(t.completed_at).toLocaleDateString("zh-CN")}` : ""}`
+        : "待办";
       const priority = `P${t.priority}`;
       const due = t.due_date
         ? ` 截止:${new Date(t.due_date).toLocaleDateString("zh-CN")}`
