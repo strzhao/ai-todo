@@ -400,10 +400,18 @@ export async function completeTask(taskId: string, userId: string): Promise<Task
     WHERE id = ${taskId}
     RETURNING *
   `;
-  await sql`
-    UPDATE ai_todo_tasks SET status = 2, completed_at = NOW()
-    WHERE parent_id = ${taskId} AND status = 0
-  `;
+  // 递归完成所有后代任务（不仅仅是直接子任务）
+  await sql.query(
+    `WITH RECURSIVE descendants AS (
+       SELECT id FROM ai_todo_tasks WHERE parent_id = $1
+       UNION ALL
+       SELECT t.id FROM ai_todo_tasks t
+       JOIN descendants d ON t.parent_id = d.id
+     )
+     UPDATE ai_todo_tasks SET status = 2, completed_at = NOW()
+     WHERE id IN (SELECT id FROM descendants) AND status = 0`,
+    [taskId]
+  );
   return rowToTask(rows[0]);
 }
 
