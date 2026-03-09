@@ -22,7 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen bg-background">
       <SpaceNav spaces={spacesForNav} userEmail={user.email} userNickname={user.nickname} isDev={process.env.AUTH_DEV_BYPASS === "true"} />
       {/* Desktop: offset for sidebar; mobile: offset for bottom tab */}
-      <main className="md:ml-52 pb-16 md:pb-0">
+      <main className="main-content pb-16 md:pb-0">
         {children}
       </main>
     </div>

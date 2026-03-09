@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.8.0",
+    date: "2026-03-09",
+    title: "侧边栏宽度可拖拽调整",
+    items: [
+      "拖拽侧边栏右边缘可自由调整宽度（160px ~ 400px）",
+      "宽度偏好自动保存，刷新后保持",
+      "双击边缘可恢复默认宽度",
+    ],
+  },
+  {
     version: "1.7.1",
     date: "2026-03-09",
     title: "空间聚焦体验优化",

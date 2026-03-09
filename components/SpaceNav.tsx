@@ -6,6 +6,7 @@ import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import type { Task } from "@/lib/types";
 import { buildTree, type TaskNode } from "@/lib/task-utils";
 import { getLatestVersion } from "@/lib/changelog";
+import { useSidebarResize } from "@/lib/use-sidebar-resize";
 
 interface SpaceTaskNode {
   id: string;
@@ -38,6 +39,7 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
   const [openMenuSpaceId, setOpenMenuSpaceId] = useState<string | null>(null);
   const [hasUnreadChangelog, setHasUnreadChangelog] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { handleRef } = useSidebarResize();
 
   // Check for unread changelog
   useEffect(() => {
@@ -181,7 +183,7 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
   return (
     <>
       {/* Desktop sidebar */}
-      <nav className="hidden md:flex flex-col w-52 h-screen border-r border-border/60 bg-background fixed left-0 top-0 pt-6 pb-4 px-3 z-10">
+      <nav className="hidden md:flex flex-col h-screen border-r border-border/60 bg-background fixed left-0 top-0 pt-6 pb-4 px-3 z-10" style={{ width: 'var(--sidebar-width, 208px)' }}>
         <div className="flex items-center gap-2 px-3 mb-6">
           <span className="font-semibold text-base">AI Todo</span>
         </div>
@@ -295,6 +297,11 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
             )}
           </Link>
         </div>
+        {/* Drag handle for resizing */}
+        <div
+          ref={handleRef}
+          className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-border/60 active:bg-sage/20 z-20"
+        />
       </nav>
 
       {/* Mobile bottom tab bar */}
