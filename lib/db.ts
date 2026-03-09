@@ -230,20 +230,15 @@ export async function getTasks(userId: string, options: GetTasksOptions = {}): P
       `WITH RECURSIVE descendants AS (
          SELECT id
          FROM ai_todo_tasks
-         WHERE parent_id = $1
-         UNION ALL
+         WHERE parent_id = $1 OR space_id = $1
+         UNION
          SELECT t.id
          FROM ai_todo_tasks t
          JOIN descendants d ON t.parent_id = d.id
-       ),
-       scoped AS (
-         SELECT id FROM ai_todo_tasks WHERE space_id = $1
-         UNION
-         SELECT id FROM descendants
        )
        SELECT t.*
        FROM ai_todo_tasks t
-       JOIN scoped s ON s.id = t.id
+       JOIN descendants d ON d.id = t.id
        WHERE t.status != 2
        ORDER BY t.priority ASC, t.created_at DESC`,
       [spaceId]
@@ -274,20 +269,15 @@ export async function getTodayTasks(userId: string, spaceId?: string): Promise<T
       `WITH RECURSIVE descendants AS (
          SELECT id
          FROM ai_todo_tasks
-         WHERE parent_id = $1
-         UNION ALL
+         WHERE parent_id = $1 OR space_id = $1
+         UNION
          SELECT t.id
          FROM ai_todo_tasks t
          JOIN descendants d ON t.parent_id = d.id
-       ),
-       scoped AS (
-         SELECT id FROM ai_todo_tasks WHERE space_id = $1
-         UNION
-         SELECT id FROM descendants
        )
        SELECT t.*
        FROM ai_todo_tasks t
-       JOIN scoped s ON s.id = t.id
+       JOIN descendants d ON d.id = t.id
        WHERE t.status != 2
          AND t.due_date >= NOW()::DATE
          AND t.due_date < NOW()::DATE + INTERVAL '1 day'
@@ -315,20 +305,15 @@ export async function getCompletedTasks(userId: string, spaceId?: string): Promi
       `WITH RECURSIVE descendants AS (
          SELECT id
          FROM ai_todo_tasks
-         WHERE parent_id = $1
-         UNION ALL
+         WHERE parent_id = $1 OR space_id = $1
+         UNION
          SELECT t.id
          FROM ai_todo_tasks t
          JOIN descendants d ON t.parent_id = d.id
-       ),
-       scoped AS (
-         SELECT id FROM ai_todo_tasks WHERE space_id = $1
-         UNION
-         SELECT id FROM descendants
        )
        SELECT t.*
        FROM ai_todo_tasks t
-       JOIN scoped s ON s.id = t.id
+       JOIN descendants d ON d.id = t.id
        WHERE t.status = 2
        ORDER BY t.completed_at DESC
        LIMIT 20`,

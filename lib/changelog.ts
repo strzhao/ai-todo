@@ -7,6 +7,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.8.1",
+    date: "2026-03-09",
+    title: "修复空间任务列表遗漏部分任务",
+    items: [
+      "修复通过 CLI 创建的空间任务在列表中不显示的问题",
+      "统一空间任务查询逻辑，确保所有层级的任务都能正确展示",
+    ],
+  },
+  {
     version: "1.8.0",
     date: "2026-03-09",
     title: "侧边栏宽度可拖拽调整",
