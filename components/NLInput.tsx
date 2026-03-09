@@ -98,6 +98,7 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
         body: JSON.stringify({
           text,
           now: new Date().toISOString(),
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           ...(spaceId ? { space_id: spaceId } : {}),
           ...(activeMembers.length > 0
             ? { members: activeMembers.map((m) => ({ email: m.email, display_name: m.display_name })) }
