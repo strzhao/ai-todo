@@ -282,7 +282,7 @@ export default function SpacePage({ params }: SpacePageProps) {
               <ActionPreview
                 actions={preview.actions}
                 raw={preview.raw}
-                allTasks={aiContextTasks}
+                allTasks={tasks}
                 spaceId={spaceId}
                 members={members}
                 parentTaskId={focusedTaskId ?? undefined}
