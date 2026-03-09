@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.7.1",
+    date: "2026-03-09",
+    title: "空间聚焦体验优化",
+    items: [
+      "聚焦子任务时，子任务的下级任务也能正确显示",
+      "面包屑导航支持多层级路径，可逐级点击跳转",
+      "侧边栏点击空间名可回到空间根视图",
+    ],
+  },
+  {
     version: "1.7.0",
     date: "2026-03-08",
     title: "语音输入升级",

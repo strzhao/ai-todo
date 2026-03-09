@@ -206,6 +206,10 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
                     href={`/spaces/${space.id}`}
                     onClick={(e) => {
                       if (currentSpaceId === space.id) {
+                        if (focusedTaskId) {
+                          // Has focus → navigate back to space root (let Link handle it)
+                          return;
+                        }
                         e.preventDefault();
                         setExpandedSpaceIds((prev) => {
                           const next = new Set(prev);

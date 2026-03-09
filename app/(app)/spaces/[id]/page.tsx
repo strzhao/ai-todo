@@ -11,6 +11,12 @@ import { DailySummary } from "@/components/DailySummary";
 import type { ParsedAction, Task, Space, SpaceMember, ActionResult } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
 
+// Recursively collect all descendants of a given parent
+function getDescendants(tasks: Task[], parentId: string): Task[] {
+  const direct = tasks.filter((t) => t.parent_id === parentId);
+  return direct.flatMap((t) => [t, ...getDescendants(tasks, t.id)]);
+}
+
 interface SpacePageProps {
   params: Promise<{ id: string }>;
 }
@@ -121,14 +127,14 @@ export default function SpacePage({ params }: SpacePageProps) {
     ? (focusedTask ? [focusedTask, ...focusLayerTasks] : focusLayerTasks)
     : (space ? [space, ...focusLayerTasks] : focusLayerTasks);
 
-  // When a task is focused, show only its subtasks directly
+  // When a task is focused, show all descendants (not just direct children)
   const displayTasks = focusedTaskId
-    ? filteredTasks.filter((t) => t.parent_id === focusedTaskId)
+    ? getDescendants(filteredTasks, focusedTaskId)
     : filteredTasks;
 
-  // Completed tasks scoped to focus context
+  // Completed tasks scoped to focus context (include all descendants)
   const focusedCompletedTasks = focusedTaskId
-    ? completedTasks.filter((t) => t.parent_id === focusedTaskId)
+    ? getDescendants(completedTasks, focusedTaskId)
     : completedTasks;
 
   const completedCount = focusedCompletedTasks.length;
@@ -166,8 +172,34 @@ export default function SpacePage({ params }: SpacePageProps) {
             >
               {space.title}
             </button>
-            <span className="text-muted-foreground/50 shrink-0">›</span>
-            <span className="truncate">{focusedTask.title}</span>
+            {(() => {
+              // Build ancestor chain from focusedTask up to root
+              const ancestors: Task[] = [];
+              let current = focusedTask;
+              while (current.parent_id) {
+                const parent = tasks.find((t) => t.id === current.parent_id);
+                if (!parent) break;
+                ancestors.unshift(parent);
+                current = parent;
+              }
+              return (
+                <>
+                  {ancestors.map((ancestor) => (
+                    <span key={ancestor.id} className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-muted-foreground/50">›</span>
+                      <button
+                        onClick={() => router.push(`/spaces/${spaceId}?focus=${ancestor.id}`)}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {ancestor.title}
+                      </button>
+                    </span>
+                  ))}
+                  <span className="text-muted-foreground/50 shrink-0">›</span>
+                  <span className="truncate">{focusedTask.title}</span>
+                </>
+              );
+            })()}
           </h1>
         ) : (
           <h1 className="text-xl font-semibold">{space.title}</h1>
