@@ -120,6 +120,7 @@ app/
     auth/exchange/route.ts      # 服务端中转：转发 refresh 请求给认证服务器（避免 CORS）
     parse-task/route.ts         # AI 解析自然语言 → { actions: ParsedAction[] }（支持创建/更新/完成/删除/日报/移动，附带 tasks + parent_task 上下文）
     tasks/route.ts              # GET（列表/今日/已完成/空间/指派）+ POST（创建）
+    tasks/tree/route.ts         # GET 树形文本（CLI tasks:tree，format:text → { output }）
     tasks/[id]/route.ts         # PATCH（完成/更新）+ DELETE
     tasks/[id]/logs/route.ts    # GET + POST 任务进展日报
     spaces/route.ts             # GET（我的空间列表）+ POST（创建空间）

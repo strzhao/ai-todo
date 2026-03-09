@@ -189,6 +189,15 @@ const manifest = {
         { name: "code", in: "path", type: "string", required: true, description: "Invite code" },
       ],
     },
+    {
+      id: "task_tree",
+      name: "tasks:tree",
+      description: "Display all active tasks in a tree hierarchy (text output for quick overview)",
+      method: "GET",
+      path: "/api/tasks/tree",
+      params: [],
+      format: "text",
+    },
   ],
 };
 
