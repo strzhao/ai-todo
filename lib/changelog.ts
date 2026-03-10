@@ -3,13 +3,25 @@ export interface ChangelogEntry {
   date: string;
   title: string;
   items: string[];
+  notable?: boolean;
 }
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.15.0",
+    date: "2026-03-10",
+    title: "侧边栏布局优化",
+    items: [
+      "通知和更新日志改为图标按钮，侧边栏底部更紧凑",
+      "通知改为独立页面，桌面端不再使用弹窗",
+      "更新日志红点仅在重要更新时显示",
+    ],
+  },
+  {
     version: "1.14.0",
     date: "2026-03-10",
     title: "通知系统",
+    notable: true,
     items: [
       "新增应用内通知中心：侧边栏铃铛图标 + 移动端通知 Tab",
       "任务指派、@提到、完成、删除、进展日报等操作自动触发通知",
@@ -21,6 +33,7 @@ export const changelog: ChangelogEntry[] = [
     version: "1.13.0",
     date: "2026-03-10",
     title: "日期时间选择器升级",
+    notable: true,
     items: [
       "全新日期时间选择器：日历面板 + 时间输入 + 快捷按钮（今天/明天/下周一）",
       "支持设置具体小时和分钟，不再只能选日期",
@@ -55,6 +68,7 @@ export const changelog: ChangelogEntry[] = [
     version: "1.11.0",
     date: "2026-03-10",
     title: "AI 总结全员可用 + 服务端缓存",
+    notable: true,
     items: [
       "AI 总结改为服务端缓存，同一空间所有成员共享已生成的总结",
       "所有空间成员均可生成 AI 总结（普通成员每日 10 次，管理员/创建者每日 100 次）",
@@ -73,6 +87,7 @@ export const changelog: ChangelogEntry[] = [
     version: "1.9.0",
     date: "2026-03-10",
     title: "空间管理员角色 + AI 总结权限",
+    notable: true,
     items: [
       "新增管理员角色，创建者可在设置中提升成员为管理员",
       "管理员可审批新成员、移除普通成员",
@@ -101,6 +116,7 @@ export const changelog: ChangelogEntry[] = [
     version: "1.8.0",
     date: "2026-03-09",
     title: "侧边栏宽度可拖拽调整",
+    notable: true,
     items: [
       "拖拽侧边栏右边缘可自由调整宽度（160px ~ 400px）",
       "宽度偏好自动保存，刷新后保持",
@@ -121,6 +137,7 @@ export const changelog: ChangelogEntry[] = [
     version: "1.7.0",
     date: "2026-03-08",
     title: "语音输入升级",
+    notable: true,
     items: [
       "语音识别改用服务端 Whisper 引擎，不再依赖浏览器内置 API",
       "全面兼容 Edge、微信浏览器等此前不支持的环境",
@@ -131,6 +148,7 @@ export const changelog: ChangelogEntry[] = [
     version: "1.6.0",
     date: "2026-03-08",
     title: "语音输入",
+    notable: true,
     items: [
       "新增语音输入，支持中文语音识别（zh-CN）",
       "录音状态实时反馈，识别结果自动填入输入框",
@@ -141,6 +159,7 @@ export const changelog: ChangelogEntry[] = [
     version: "1.5.0",
     date: "2026-03-08",
     title: "昵称与账号设置",
+    notable: true,
     items: [
       "支持设置全局昵称，所有面板优先展示昵称",
       "新增账号设置页，整合邀请码和切换账号功能",
@@ -151,6 +170,7 @@ export const changelog: ChangelogEntry[] = [
     version: "1.4.0",
     date: "2026-03-05",
     title: "项目空间协作",
+    notable: true,
     items: [
       "支持创建项目空间，邀请成员协作",
       "空间内 @mention 指派任务给成员",
@@ -161,6 +181,7 @@ export const changelog: ChangelogEntry[] = [
     version: "1.3.0",
     date: "2026-03-01",
     title: "AI 自然语言操作",
+    notable: true,
     items: [
       "AI 输入框支持更新、完成、删除等自然语言操作",
       "支持批量创建层级任务",
@@ -171,4 +192,13 @@ export const changelog: ChangelogEntry[] = [
 
 export function getLatestVersion(): string {
   return changelog[0]?.version ?? "0.0.0";
+}
+
+export function hasNotableUpdate(lastSeenVersion: string | null): boolean {
+  if (!lastSeenVersion) return true;
+  for (const entry of changelog) {
+    if (entry.version === lastSeenVersion) break;
+    if (entry.notable) return true;
+  }
+  return false;
 }

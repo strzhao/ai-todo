@@ -156,7 +156,7 @@ components/
   TaskSkeleton.tsx              # 加载骨架屏（3 行）
   SpaceSettings.tsx             # 空间设置面板（Sheet 抽屉内容：邀请链接 + 成员管理 + 归档 + 解散）
   EmptyState.tsx                # 空状态展示组件
-  NotificationBell.tsx          # 铃铛图标 + 未读数 + 桌面端 Popover 通知列表
+  (已删除 NotificationBell.tsx，通知改为图标直接导航到 /notifications 页面)
   NotificationList.tsx          # 通知列表（Popover / 全屏页共用）
   NotificationItem.tsx          # 单条通知行
   NotificationSettings.tsx      # 通知偏好设置（应用内 + 邮件开关矩阵）

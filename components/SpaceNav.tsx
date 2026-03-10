@@ -5,9 +5,8 @@ import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import type { Task } from "@/lib/types";
 import { buildTree, type TaskNode } from "@/lib/task-utils";
-import { getLatestVersion } from "@/lib/changelog";
+import { getLatestVersion, hasNotableUpdate } from "@/lib/changelog";
 import { useSidebarResize } from "@/lib/use-sidebar-resize";
-import { NotificationBell } from "./NotificationBell";
 import { useUnreadCount } from "@/lib/use-notifications";
 
 interface SpaceTaskNode {
@@ -44,10 +43,10 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
   const menuRef = useRef<HTMLDivElement>(null);
   const { handleRef } = useSidebarResize();
 
-  // Check for unread changelog
+  // Check for unread changelog (only notable updates trigger the red dot)
   useEffect(() => {
     const lastSeen = localStorage.getItem("changelog_last_seen");
-    setHasUnreadChangelog(lastSeen !== getLatestVersion());
+    setHasUnreadChangelog(lastSeen !== getLatestVersion() && hasNotableUpdate(lastSeen));
   }, [pathname]);
 
   // Extract current space ID from pathname (e.g. /spaces/abc123 or /spaces/abc123/settings)
@@ -134,6 +133,13 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
     `flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
       active
         ? "bg-primary/10 text-primary font-medium"
+        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+    }`;
+
+  const iconLinkCls = (active: boolean) =>
+    `relative flex items-center justify-center w-8 h-8 rounded-md transition-colors ${
+      active
+        ? "bg-primary/10 text-primary"
         : "text-muted-foreground hover:text-foreground hover:bg-muted"
     }`;
 
@@ -279,16 +285,22 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
         </div>
 
         <div className="px-3 pt-4 border-t border-border/60 space-y-1">
-          <NotificationBell />
-          <Link
-            href="/changelog"
-            className={navLinkCls(pathname === "/changelog")}
-          >
-            <span className="flex-1">更新日志</span>
-            {hasUnreadChangelog && (
-              <span className="w-2 h-2 rounded-full bg-destructive shrink-0" />
-            )}
-          </Link>
+          {/* Icon toolbar */}
+          <div className="flex items-center gap-1 px-1">
+            <Link href="/notifications" className={iconLinkCls(pathname === "/notifications")} title="通知">
+              <span className="text-base">🔔</span>
+              {unreadNotifCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-destructive" />
+              )}
+            </Link>
+            <Link href="/changelog" className={iconLinkCls(pathname === "/changelog")} title="更新日志">
+              <span className="text-base">✨</span>
+              {hasUnreadChangelog && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-destructive" />
+              )}
+            </Link>
+          </div>
+          {/* Account */}
           <Link
             href="/account"
             className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
