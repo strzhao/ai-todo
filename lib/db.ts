@@ -390,14 +390,14 @@ export async function getTaskForUser(taskId: string, userId: string): Promise<Ta
     SELECT t.* FROM ai_todo_tasks t
     WHERE t.id = ${taskId}
       AND (
-        (t.space_id IS NULL AND t.user_id = ${userId})
+        (t.space_id IS NULL AND t.pinned = false AND t.user_id = ${userId})
         OR
-        (t.space_id IS NOT NULL AND EXISTS (
+        EXISTS (
           SELECT 1 FROM ai_todo_task_members m
-          WHERE m.task_id = t.space_id
+          WHERE m.task_id = COALESCE(t.space_id, t.id)
             AND m.user_id = ${userId}
             AND m.status = 'active'
-        ))
+        )
       )
   `;
   return rows[0] ? rowToTask(rows[0]) : null;

@@ -8,6 +8,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.15.1",
+    date: "2026-03-10",
+    title: "空间成员权限修复",
+    items: [
+      "修复空间成员无法访问空间根节点的问题（AI 总结、编辑、日报等返回 Not found）",
+    ],
+  },
+  {
     version: "1.15.0",
     date: "2026-03-10",
     title: "侧边栏布局优化",
