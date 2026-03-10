@@ -6,16 +6,17 @@ import { Input } from "@/components/ui/input";
 import type { Space, TaskMember, SpaceMember } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
 
-interface Props {
-  params: Promise<{ id: string }>;
+interface SpaceSettingsProps {
+  spaceId: string;
+  onArchived?: () => void;
+  onDissolved?: () => void;
+  onNameChanged?: (name: string) => void;
 }
 
-export default function SpaceSettingsPage({ params }: Props) {
-  const [spaceId, setSpaceId] = useState("");
+export function SpaceSettings({ spaceId, onArchived, onDissolved, onNameChanged }: SpaceSettingsProps) {
   const [space, setSpace] = useState<Space | null>(null);
   const [members, setMembers] = useState<TaskMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const [origin, setOrigin] = useState("");
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -24,28 +25,28 @@ export default function SpaceSettingsPage({ params }: Props) {
   const [dissolving, setDissolving] = useState(false);
 
   useEffect(() => {
-    // Read browser origin only after hydration to keep initial markup stable.
-    setOrigin(window.location.origin);
-  }, []);
+    fetch(`/api/spaces/${spaceId}`)
+      .then((r) => r.json())
+      .then((data: { space: Space; members: SpaceMember[] }) => {
+        setSpace(data.space);
+        setMembers(data.members);
+        setName(data.space.title);
+      })
+      .finally(() => setLoading(false));
+  }, [spaceId]);
 
-  function buildInviteLink(inviteCode?: string, baseOrigin = origin) {
-    if (!inviteCode) return "";
-    return baseOrigin ? `${baseOrigin}/join/${inviteCode}` : `/join/${inviteCode}`;
+  if (loading) {
+    return <div className="px-6 py-8 text-sm text-muted-foreground">加载中...</div>;
   }
 
-  useEffect(() => {
-    params.then(({ id }) => {
-      setSpaceId(id);
-      fetch(`/api/spaces/${id}`)
-        .then((r) => r.json())
-        .then((data: { space: Space; members: SpaceMember[] }) => {
-          setSpace(data.space);
-          setMembers(data.members);
-          setName(data.space.title);
-        })
-        .finally(() => setLoading(false));
-    });
-  }, [params]);
+  if (!space) {
+    return <div className="px-6 py-8 text-sm text-muted-foreground">空间不存在</div>;
+  }
+
+  function buildInviteLink(inviteCode?: string) {
+    if (!inviteCode) return "";
+    return `${window.location.origin}/join/${inviteCode}`;
+  }
 
   async function saveSettings() {
     if (!name.trim()) return;
@@ -56,11 +57,12 @@ export default function SpaceSettingsPage({ params }: Props) {
       body: JSON.stringify({ name: name.trim() }),
     });
     setSaving(false);
+    onNameChanged?.(name.trim());
   }
 
   function copyInviteLink() {
     if (!space?.invite_code) return;
-    const link = buildInviteLink(space.invite_code, window.location.origin);
+    const link = buildInviteLink(space.invite_code);
     navigator.clipboard.writeText(link).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -102,22 +104,14 @@ export default function SpaceSettingsPage({ params }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ complete: true }),
     });
-    window.location.href = "/spaces";
+    onArchived?.();
   }
 
   async function dissolveSpace() {
     if (dissolveConfirm !== space?.title) return;
     setDissolving(true);
     await fetch(`/api/spaces/${spaceId}`, { method: "DELETE" });
-    window.location.href = "/spaces";
-  }
-
-  if (loading) {
-    return <div className="max-w-lg mx-auto px-4 py-8 text-sm text-muted-foreground">加载中...</div>;
-  }
-
-  if (!space) {
-    return <div className="max-w-lg mx-auto px-4 py-8 text-sm text-muted-foreground">空间不存在</div>;
+    onDissolved?.();
   }
 
   const isOwner = space.my_role === "owner";
@@ -128,11 +122,7 @@ export default function SpaceSettingsPage({ params }: Props) {
   const inviteLink = buildInviteLink(space.invite_code);
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-8 space-y-8">
-      <div>
-        <h1 className="text-xl font-semibold">{space.title} · 设置</h1>
-      </div>
-
+    <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
       {/* Basic Info */}
       {isOwner && (
         <section className="space-y-3">
@@ -209,12 +199,7 @@ export default function SpaceSettingsPage({ params }: Props) {
                     {m.role === "admin" ? "取消管理员" : "设为管理员"}
                   </Button>
                 )}
-                {canManageMembers && m.role === "member" && (
-                  <Button size="sm" variant="ghost" className="text-xs h-7 text-muted-foreground" onClick={() => removeMember(m.user_id)}>
-                    移除
-                  </Button>
-                )}
-                {isOwner && m.role === "admin" && (
+                {m.role !== "owner" && ((m.role === "member" && canManageMembers) || (m.role === "admin" && isOwner)) && (
                   <Button size="sm" variant="ghost" className="text-xs h-7 text-muted-foreground" onClick={() => removeMember(m.user_id)}>
                     移除
                   </Button>

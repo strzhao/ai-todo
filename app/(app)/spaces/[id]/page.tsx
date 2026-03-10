@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { NLInput } from "@/components/NLInput";
 import { ActionPreview } from "@/components/ActionPreview";
 import { TaskList } from "@/components/TaskList";
 import { GanttChart } from "@/components/GanttChart";
 import { DailySummary } from "@/components/DailySummary";
+import { SpaceSettings } from "@/components/SpaceSettings";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { ParsedAction, Task, Space, SpaceMember, ActionResult } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
 
@@ -31,6 +32,7 @@ export default function SpacePage({ params }: SpacePageProps) {
   const [preview, setPreview] = useState<{ actions: ParsedAction[]; raw: string; traceId?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [filterMember, setFilterMember] = useState<string>("all");
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -204,9 +206,9 @@ export default function SpacePage({ params }: SpacePageProps) {
         ) : (
           <h1 className="text-xl font-semibold">{space.title}</h1>
         )}
-        <Link href={`/spaces/${spaceId}/settings`} className="text-xs text-muted-foreground hover:text-foreground shrink-0 ml-2">
+        <button onClick={() => setSettingsOpen(true)} className="text-xs text-muted-foreground hover:text-foreground shrink-0 ml-2">
           设置
-        </Link>
+        </button>
       </div>
 
       {totalCount > 0 && (
@@ -319,6 +321,29 @@ export default function SpacePage({ params }: SpacePageProps) {
           canTrigger={space?.my_role === "owner" || space?.my_role === "admin"}
         />
       )}
+
+      <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>{space.title} · 设置</SheetTitle>
+          </SheetHeader>
+          <SpaceSettings
+            spaceId={spaceId}
+            onArchived={() => {
+              setSettingsOpen(false);
+              router.push("/spaces");
+            }}
+            onDissolved={() => {
+              setSettingsOpen(false);
+              router.push("/spaces");
+            }}
+            onNameChanged={(newName) => {
+              setSpace((prev) => prev ? { ...prev, title: newName } : prev);
+              window.dispatchEvent(new Event("tasks-changed"));
+            }}
+          />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

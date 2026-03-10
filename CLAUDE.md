@@ -117,8 +117,7 @@ app/
     spaces/
       page.tsx                  # 空间列表
       new/page.tsx              # 创建空间
-      [id]/page.tsx             # 空间任务视图（进度条 + 成员筛选 + @mention + ?focus=taskId 聚焦态）
-      [id]/settings/page.tsx    # 空间设置（邀请链接 + 成员管理 + 归档 + 解散）
+      [id]/page.tsx             # 空间任务视图（进度条 + 成员筛选 + @mention + ?focus=taskId 聚焦态 + 设置抽屉）
   auth/callback/page.tsx        # 统一授权回跳页（authorized/state 校验）
   join/[invite_code]/page.tsx   # 加入空间（独立布局，无 AppShell）
   api/
@@ -147,6 +146,7 @@ components/
   TaskList.tsx                  # 任务列表（buildTree 组装父子关系 + 骨架屏 + 已完成折叠）
   AssigneeBadge.tsx             # 显示非自己的负责人徽章
   TaskSkeleton.tsx              # 加载骨架屏（3 行）
+  SpaceSettings.tsx             # 空间设置面板（Sheet 抽屉内容：邀请链接 + 成员管理 + 归档 + 解散）
   EmptyState.tsx                # 空状态展示组件
 lib/
   types.ts                      # Task、ParsedTask、ParsedAction、ActionResult、TaskLog 等接口

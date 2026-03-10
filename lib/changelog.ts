@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.10.0",
+    date: "2026-03-10",
+    title: "空间设置抽屉化",
+    items: [
+      "空间设置改为右侧抽屉打开，无需跳转页面，操作更流畅",
+    ],
+  },
+  {
     version: "1.9.0",
     date: "2026-03-10",
     title: "空间管理员角色 + AI 总结权限",
