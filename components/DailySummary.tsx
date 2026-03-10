@@ -51,18 +51,25 @@ function formatTimeAgo(timestamp: number): string {
   return `${hours} 小时前生成`;
 }
 
+interface Quota {
+  used: number;
+  limit: number;
+  remaining: number;
+}
+
 interface Props {
   taskId: string;
   taskTitle: string;
   autoTrigger?: boolean;
-  canTrigger?: boolean;
 }
 
-export function DailySummary({ taskId, taskTitle, autoTrigger, canTrigger = true }: Props) {
+export function DailySummary({ taskId, taskTitle, autoTrigger }: Props) {
   const [summary, setSummary] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cachedAt, setCachedAt] = useState<number | null>(null);
+  const [quota, setQuota] = useState<Quota | null>(null);
+  const [serverLoading, setServerLoading] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
   const triggered = useRef(false);
 
@@ -86,6 +93,7 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, canTrigger = true
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: "生成失败" }));
+        if (data.quota) setQuota(data.quota);
         throw new Error(data.error || `请求失败 (${res.status})`);
       }
 
@@ -103,6 +111,7 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, canTrigger = true
 
       setCache(taskId, full);
       setCachedAt(Date.now());
+      setQuota((prev) => prev ? { ...prev, used: prev.used + 1, remaining: Math.max(0, prev.remaining - 1) } : prev);
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
       setError(err instanceof Error ? err.message : "生成失败");
@@ -111,26 +120,52 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, canTrigger = true
     }
   }, [taskId]);
 
+  // Fetch server cache + quota on mount / taskId change
   useEffect(() => {
     triggered.current = false;
-    if (autoTrigger) {
-      const cached = getCache(taskId);
-      if (cached) {
-        setSummary(cached.content);
-        setCachedAt(cached.timestamp);
-        triggered.current = true;
-        return;
-      }
-      if (canTrigger) {
-        triggered.current = true;
-        generateSummary();
-      }
+    setServerLoading(true);
+
+    // Show localStorage cache immediately (fast flash)
+    const localCached = getCache(taskId);
+    if (localCached) {
+      setSummary(localCached.content);
+      setCachedAt(localCached.timestamp);
+    } else {
+      setSummary("");
+      setCachedAt(null);
     }
-  }, [autoTrigger, generateSummary, taskId, canTrigger]);
+
+    const today = new Date().toISOString().slice(0, 10);
+    fetch(`/api/tasks/${taskId}/summary?date=${today}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.quota) setQuota(data.quota);
+        if (data.cached && data.content) {
+          setSummary(data.content);
+          const serverTime = new Date(data.generated_at).getTime();
+          setCachedAt(serverTime);
+          setCache(taskId, data.content);
+          triggered.current = true;
+        } else if (autoTrigger && !localCached && data.quota?.remaining > 0) {
+          triggered.current = true;
+          generateSummary();
+        }
+      })
+      .catch(() => {
+        // Fallback: if server unreachable and autoTrigger, try generating
+        if (autoTrigger && !localCached) {
+          triggered.current = true;
+          generateSummary();
+        }
+      })
+      .finally(() => setServerLoading(false));
+  }, [taskId, autoTrigger, generateSummary]);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
   }, []);
+
+  const canGenerate = !quota || quota.remaining > 0;
 
   return (
     <div className="mt-2">
@@ -144,15 +179,20 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, canTrigger = true
             <span className="text-muted-foreground/40 ml-1.5">· {formatTimeAgo(cachedAt)}</span>
           )}
         </p>
-        {canTrigger && (
+        <div className="flex items-center gap-2">
+          {quota && (
+            <span className="text-xs text-muted-foreground/50">
+              {quota.remaining}/{quota.limit}
+            </span>
+          )}
           <button
             onClick={generateSummary}
-            disabled={loading}
+            disabled={loading || !canGenerate}
             className="text-xs px-3 py-1 rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? "生成中..." : summary ? "重新生成" : "生成总结"}
           </button>
-        )}
+        </div>
       </div>
 
       {error && <p className="text-xs text-danger mb-2">{error}</p>}
@@ -170,10 +210,17 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, canTrigger = true
         </div>
       )}
 
-      {!loading && !summary && !error && !canTrigger && (
+      {!loading && !summary && !error && serverLoading && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground py-4">
+          <div className="w-3 h-3 border border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
+          加载中...
+        </div>
+      )}
+
+      {!loading && !summary && !error && !serverLoading && !canGenerate && (
         <div className="text-center py-8">
           <p className="text-sm text-muted-foreground">暂无 AI 总结</p>
-          <p className="text-xs text-muted-foreground/60 mt-1">等待管理员生成今日总结</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">今日生成次数已用完</p>
         </div>
       )}
     </div>

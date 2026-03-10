@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.11.0",
+    date: "2026-03-10",
+    title: "AI 总结全员可用 + 服务端缓存",
+    items: [
+      "AI 总结改为服务端缓存，同一空间所有成员共享已生成的总结",
+      "所有空间成员均可生成 AI 总结（普通成员每日 10 次，管理员/创建者每日 100 次）",
+      "显示今日剩余生成次数",
+    ],
+  },
+  {
     version: "1.10.0",
     date: "2026-03-10",
     title: "空间设置抽屉化",

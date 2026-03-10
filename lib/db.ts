@@ -107,6 +107,32 @@ async function _doInitDb() {
   // 7. Add nickname column to activated users
   await sql`ALTER TABLE ai_todo_activated_users ADD COLUMN IF NOT EXISTS nickname TEXT`;
 
+  // 8. Summary cache (server-side, shared across all space members)
+  await sql`
+    CREATE TABLE IF NOT EXISTS ai_todo_summary_cache (
+      id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      task_id      UUID NOT NULL REFERENCES ai_todo_tasks(id) ON DELETE CASCADE,
+      summary_date DATE NOT NULL,
+      content      TEXT NOT NULL,
+      generated_by TEXT NOT NULL,
+      generated_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(task_id, summary_date)
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_summary_cache_task_date ON ai_todo_summary_cache(task_id, summary_date)`;
+
+  // 9. Summary usage tracking (rate limiting per user per day)
+  await sql`
+    CREATE TABLE IF NOT EXISTS ai_todo_summary_usage (
+      id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id    TEXT NOT NULL,
+      usage_date DATE NOT NULL,
+      count      INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(user_id, usage_date)
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_summary_usage_user_date ON ai_todo_summary_usage(user_id, usage_date)`;
+
   // Seed already executed on 2026-03-07: all existing users auto-activated.
 }
 
@@ -841,4 +867,63 @@ export async function addTaskLog(
     [taskId, userId, userEmail, content]
   );
   return rowToTaskLog(rows[0]);
+}
+
+// ─── Summary Cache & Usage ────────────────────────────────────────────────────
+
+const SUMMARY_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+export interface SummaryCache {
+  task_id: string;
+  summary_date: string;
+  content: string;
+  generated_by: string;
+  generated_at: string;
+}
+
+export async function getSummaryCache(taskId: string, date: string): Promise<SummaryCache | null> {
+  const { rows } = await sql.query(
+    `SELECT * FROM ai_todo_summary_cache WHERE task_id = $1 AND summary_date = $2 LIMIT 1`,
+    [taskId, date]
+  );
+  if (!rows[0]) return null;
+  const generatedAt = new Date(rows[0].generated_at as string);
+  if (Date.now() - generatedAt.getTime() > SUMMARY_CACHE_TTL_MS) return null;
+  return {
+    task_id: rows[0].task_id as string,
+    summary_date: (rows[0].summary_date as Date).toISOString().slice(0, 10),
+    content: rows[0].content as string,
+    generated_by: rows[0].generated_by as string,
+    generated_at: generatedAt.toISOString(),
+  };
+}
+
+export async function upsertSummaryCache(taskId: string, date: string, content: string, userId: string): Promise<void> {
+  await sql.query(
+    `INSERT INTO ai_todo_summary_cache (task_id, summary_date, content, generated_by, generated_at)
+     VALUES ($1, $2, $3, $4, NOW())
+     ON CONFLICT (task_id, summary_date)
+     DO UPDATE SET content = EXCLUDED.content, generated_by = EXCLUDED.generated_by, generated_at = NOW()`,
+    [taskId, date, content, userId]
+  );
+}
+
+export async function getSummaryUsageCount(userId: string, date: string): Promise<number> {
+  const { rows } = await sql.query(
+    `SELECT count FROM ai_todo_summary_usage WHERE user_id = $1 AND usage_date = $2 LIMIT 1`,
+    [userId, date]
+  );
+  return rows[0] ? Number(rows[0].count) : 0;
+}
+
+export async function incrementSummaryUsage(userId: string, date: string): Promise<number> {
+  const { rows } = await sql.query(
+    `INSERT INTO ai_todo_summary_usage (user_id, usage_date, count)
+     VALUES ($1, $2, 1)
+     ON CONFLICT (user_id, usage_date)
+     DO UPDATE SET count = ai_todo_summary_usage.count + 1
+     RETURNING count`,
+    [userId, date]
+  );
+  return Number(rows[0].count);
 }

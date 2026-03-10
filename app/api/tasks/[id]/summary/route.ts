@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { initDb, getTaskForUser, getDescendantTasks, getLogsForTasks, getTaskMembers } from "@/lib/db";
+import { initDb, getTaskForUser, getDescendantTasks, getLogsForTasks, getTaskMembers, getSummaryCache, upsertSummaryCache, getSummaryUsageCount, incrementSummaryUsage } from "@/lib/db";
 import { getDisplayLabel } from "@/lib/display-utils";
-import { requireSpaceAdminOrOwner } from "@/lib/spaces";
+import { requireSpaceMember, getSpaceMember } from "@/lib/spaces";
 import { LLMClient } from "@/lib/llm-client";
 import type { Task, TaskLog } from "@/lib/types";
 
@@ -155,6 +155,55 @@ ${allLogsText}
 ${todayLogsText}`;
 }
 
+async function getQuotaInfo(userId: string, spaceId: string | undefined, date: string) {
+  const member = spaceId ? await getSpaceMember(spaceId, userId) : null;
+  const role = member?.role ?? "member";
+  const limit = (role === "owner" || role === "admin") ? 100 : 10;
+  const used = await getSummaryUsageCount(userId, date);
+  return { used, limit, remaining: Math.max(0, limit - used) };
+}
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = await getUserFromRequest(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  await initDb();
+  const { id } = await params;
+
+  const task = await getTaskForUser(id, user.id);
+  if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const spaceId = task.pinned ? task.id : task.space_id;
+  if (spaceId) {
+    try {
+      await requireSpaceMember(spaceId, user.id);
+    } catch {
+      return NextResponse.json({ error: "Not a space member" }, { status: 403 });
+    }
+  }
+
+  const date = req.nextUrl.searchParams.get("date") || new Date().toISOString().slice(0, 10);
+  const [cached, quota] = await Promise.all([
+    getSummaryCache(id, date),
+    getQuotaInfo(user.id, spaceId, date),
+  ]);
+
+  if (!cached) {
+    return NextResponse.json({ cached: false, quota });
+  }
+
+  return NextResponse.json({
+    cached: true,
+    content: cached.content,
+    generated_by: cached.generated_by,
+    generated_at: cached.generated_at,
+    quota,
+  });
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -170,14 +219,13 @@ export async function POST(
   if (!task)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // Space tasks: only admin/owner can trigger summary
   const spaceId = task.pinned ? task.id : task.space_id;
   if (spaceId) {
     try {
-      await requireSpaceAdminOrOwner(spaceId, user.id);
+      await requireSpaceMember(spaceId, user.id);
     } catch {
       return NextResponse.json(
-        { error: "仅管理员可生成 AI 总结" },
+        { error: "仅空间成员可生成 AI 总结" },
         { status: 403 }
       );
     }
@@ -185,6 +233,15 @@ export async function POST(
 
   const body = (await req.json().catch(() => ({}))) as { date?: string };
   const date = body.date || new Date().toISOString().slice(0, 10);
+
+  // Rate limiting
+  const quota = await getQuotaInfo(user.id, spaceId, date);
+  if (quota.remaining <= 0) {
+    return NextResponse.json(
+      { error: `今日生成次数已达上限（${quota.limit}次）`, quota },
+      { status: 429 }
+    );
+  }
 
   const descendants = await getDescendantTasks(id);
   const allTaskIds = [id, ...descendants.map((t) => t.id)];
@@ -222,7 +279,24 @@ export async function POST(
     stream = await tryGenerate(recentLogs);
   }
 
-  return new Response(stream.pipeThrough(new TextEncoderStream()), {
+  // Wrap stream to collect content and save to DB cache on completion
+  let fullContent = "";
+  const saveStream = new TransformStream<string, string>({
+    transform(chunk, controller) {
+      fullContent += chunk;
+      controller.enqueue(chunk);
+    },
+    async flush() {
+      if (fullContent.trim()) {
+        await Promise.all([
+          upsertSummaryCache(id, date, fullContent, user!.id),
+          incrementSummaryUsage(user!.id, date),
+        ]);
+      }
+    },
+  });
+
+  return new Response(stream.pipeThrough(saveStream).pipeThrough(new TextEncoderStream()), {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-cache",
