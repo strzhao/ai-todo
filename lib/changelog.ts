@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.16.0",
+    date: "2026-03-10",
+    title: "账号设置页全新设计",
+    items: [
+      "Profile Header 卡片：头像 + 昵称 + 邮箱，一目了然",
+      "Apple 风格卡片分组布局，视觉层级更清晰",
+      "通知设置改用 Toggle Switch 开关，操作更直观",
+    ],
+    notable: true,
+  },
+  {
     version: "1.15.1",
     date: "2026-03-10",
     title: "空间成员权限修复",

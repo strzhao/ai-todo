@@ -22,6 +22,42 @@ const CATEGORIES = [
   },
 ];
 
+function ToggleSwitch({ checked, onChange, disabled, label }: {
+  checked: boolean;
+  onChange: () => void;
+  disabled?: boolean;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        onClick={onChange}
+        disabled={disabled}
+        className={`
+          relative inline-flex h-5 w-9 shrink-0 rounded-full
+          transition-colors duration-200 ease-in-out
+          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage
+          disabled:opacity-50 disabled:cursor-not-allowed
+          ${checked ? 'bg-sage' : 'bg-muted'}
+        `}
+      >
+        <span
+          className={`
+            pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm
+            transform transition-transform duration-200 ease-in-out mt-0.5
+            ${checked ? 'translate-x-4' : 'translate-x-0.5'}
+          `}
+        />
+      </button>
+      <span className="text-xs text-muted-foreground">{label}</span>
+    </div>
+  );
+}
+
 export function NotificationSettings() {
   const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,6 +73,7 @@ export function NotificationSettings() {
 
   async function togglePref(type: string, channel: "inapp" | "email") {
     if (!prefs) return;
+    const prev = prefs;
     const next = { ...prefs };
     next[type] = { ...next[type], [channel]: !next[type]?.[channel] };
     setPrefs(next);
@@ -49,61 +86,64 @@ export function NotificationSettings() {
         body: JSON.stringify(next),
       });
     } catch {
-      // revert on error
-      setPrefs(prefs);
+      setPrefs(prev);
     } finally {
       setSaving(false);
     }
   }
 
   if (loading) {
-    return <p className="text-xs text-muted-foreground">加载中...</p>;
+    return (
+      <div className="space-y-3 px-4 py-3">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="flex items-center justify-between">
+            <div className="h-4 w-28 bg-muted rounded animate-pulse" />
+            <div className="flex gap-4">
+              <div className="h-5 w-9 bg-muted rounded-full animate-pulse" />
+              <div className="h-5 w-9 bg-muted rounded-full animate-pulse" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   if (!prefs) return null;
 
   return (
-    <div className="space-y-6">
-      {CATEGORIES.map((cat) => (
+    <div>
+      {CATEGORIES.map((cat, catIdx) => (
         <div key={cat.key}>
-          <h3 className="text-xs font-medium text-muted-foreground mb-2">{cat.label}</h3>
-          <div className="space-y-1">
-            {cat.types.map((type) => {
-              const def = NOTIFICATION_TYPES[type];
-              const pref = prefs[type] ?? { inapp: def.defaultInapp, email: def.defaultEmail };
-              const isDigest = type === "daily_digest";
-
-              return (
-                <div key={type} className="flex items-center justify-between py-1.5">
-                  <span className="text-sm">{def.label}</span>
-                  <div className="flex items-center gap-3">
-                    {!isDigest && (
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={pref.inapp}
-                          onChange={() => togglePref(type, "inapp")}
-                          disabled={saving}
-                          className="w-3.5 h-3.5 rounded accent-sage"
-                        />
-                        <span className="text-xs text-muted-foreground">应用内</span>
-                      </label>
-                    )}
-                    <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={pref.email}
-                        onChange={() => togglePref(type, "email")}
-                        disabled={saving}
-                        className="w-3.5 h-3.5 rounded accent-sage"
-                      />
-                      <span className="text-xs text-muted-foreground">邮件</span>
-                    </label>
-                  </div>
-                </div>
-              );
-            })}
+          <div className={`px-4 pb-1 ${catIdx === 0 ? 'pt-2' : 'pt-3'}`}>
+            <span className="text-xs font-medium text-muted-foreground">{cat.label}</span>
           </div>
+          {cat.types.map((type) => {
+            const def = NOTIFICATION_TYPES[type];
+            const pref = prefs[type] ?? { inapp: def.defaultInapp, email: def.defaultEmail };
+            const isDigest = type === "daily_digest";
+
+            return (
+              <div key={type} className="flex items-center justify-between px-4 py-2.5">
+                <span className="text-sm text-foreground">{def.label}</span>
+                <div className="flex items-center gap-4">
+                  {!isDigest && (
+                    <ToggleSwitch
+                      checked={pref.inapp}
+                      onChange={() => togglePref(type, "inapp")}
+                      disabled={saving}
+                      label="应用内"
+                    />
+                  )}
+                  <ToggleSwitch
+                    checked={pref.email}
+                    onChange={() => togglePref(type, "email")}
+                    disabled={saving}
+                    label="邮件"
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
       ))}
     </div>
