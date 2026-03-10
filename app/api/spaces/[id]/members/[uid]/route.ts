@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { updateTaskMember, removeTaskMember, getTaskMemberRecord } from "@/lib/db";
+import { updateTaskMember, removeTaskMember, getTaskMemberRecord, getTaskById } from "@/lib/db";
 import { createRouteTimer } from "@/lib/route-timing";
+import { fireNotification } from "@/lib/notifications";
 
 export const preferredRegion = "hkg1";
 
@@ -37,8 +38,24 @@ export async function PATCH(
     }
   }
 
+  const memberBefore = await rt.track("db_query", async () => getTaskMemberRecord(id, uid));
   const member = await rt.track("db_query", async () => updateTaskMember(id, uid, body));
   if (!member) return rt.json({ error: "Not found" }, { status: 404 });
+
+  // Notify member when approved (pending → active)
+  if (memberBefore?.status === "pending" && body.status === "active" && uid !== user.id) {
+    const space = await getTaskById(id);
+    fireNotification({
+      userId: uid,
+      type: "space_member_approved",
+      title: "你的加入申请已通过",
+      body: space?.title,
+      taskId: id,
+      spaceId: id,
+      actorId: user.id,
+      actorEmail: user.email,
+    });
+  }
 
   return rt.json(member);
 }
@@ -70,5 +87,21 @@ export async function DELETE(
   }
 
   await rt.track("db_query", async () => removeTaskMember(id, uid));
+
+  // Notify removed member (if not self-removal)
+  if (!isSelf) {
+    const space = await getTaskById(id);
+    fireNotification({
+      userId: uid,
+      type: "space_member_removed",
+      title: "你已被移出空间",
+      body: space?.title,
+      taskId: id,
+      spaceId: id,
+      actorId: user.id,
+      actorEmail: user.email,
+    });
+  }
+
   return rt.empty(204);
 }

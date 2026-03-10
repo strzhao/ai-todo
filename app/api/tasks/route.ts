@@ -3,6 +3,8 @@ import { getUserFromRequest } from "@/lib/auth";
 import { getTasks, getTodayTasks, getCompletedTasks, createTask, getTaskMemberRecord } from "@/lib/db";
 import { aiFlowLog, getAiTraceIdFromHeaders } from "@/lib/ai-flow-log";
 import { createRouteTimer } from "@/lib/route-timing";
+import { fireNotifications } from "@/lib/notifications";
+import type { CreateNotificationParams } from "@/lib/notifications";
 import type { ParsedTask } from "@/lib/types";
 
 export const preferredRegion = "hkg1";
@@ -99,6 +101,54 @@ export async function POST(req: NextRequest) {
     parent_id: task.parent_id ?? null,
     space_id: task.space_id ?? null,
   });
+
+  // Fire notifications (non-blocking)
+  void (async () => {
+    try {
+      const notifs: CreateNotificationParams[] = [];
+      const actorName = user.email.split("@")[0];
+
+      if (task.assignee_id && task.assignee_id !== user.id) {
+        notifs.push({
+          userId: task.assignee_id,
+          type: "task_assigned",
+          title: `${actorName} 给你指派了任务`,
+          body: task.title,
+          taskId: task.id,
+          spaceId: task.space_id,
+          actorId: user.id,
+          actorEmail: user.email,
+        });
+      }
+
+      if (task.mentioned_emails?.length && task.space_id) {
+        const { sql: pgSql } = await import("@vercel/postgres");
+        for (const email of task.mentioned_emails) {
+          const { rows } = await pgSql`
+            SELECT user_id FROM ai_todo_task_members
+            WHERE task_id = ${task.space_id} AND email = ${email} AND status = 'active'
+          `;
+          const mentionedUserId = rows[0]?.user_id as string | undefined;
+          if (mentionedUserId && mentionedUserId !== user.id && mentionedUserId !== task.assignee_id) {
+            notifs.push({
+              userId: mentionedUserId,
+              type: "task_mentioned",
+              title: `${actorName} 在任务中提到了你`,
+              body: task.title,
+              taskId: task.id,
+              spaceId: task.space_id,
+              actorId: user.id,
+              actorEmail: user.email,
+            });
+          }
+        }
+      }
+
+      if (notifs.length) fireNotifications(notifs);
+    } catch (err) {
+      console.error("[notification] task create error:", err);
+    }
+  })();
 
   return rt.json(task, { status: 201 });
 }

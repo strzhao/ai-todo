@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { NotificationSettings } from "./NotificationSettings";
 
 interface InvitationCode {
   id: string;
@@ -170,6 +171,12 @@ export function AccountContent({ userEmail, userNickname, isDev }: Props) {
             </div>
           </>
         )}
+      </section>
+
+      {/* 通知设置 */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-medium text-muted-foreground">通知设置</h2>
+        <NotificationSettings />
       </section>
 
       {/* 切换账号 */}

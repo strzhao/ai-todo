@@ -7,6 +7,8 @@ import type { Task } from "@/lib/types";
 import { buildTree, type TaskNode } from "@/lib/task-utils";
 import { getLatestVersion } from "@/lib/changelog";
 import { useSidebarResize } from "@/lib/use-sidebar-resize";
+import { NotificationBell } from "./NotificationBell";
+import { useUnreadCount } from "@/lib/use-notifications";
 
 interface SpaceTaskNode {
   id: string;
@@ -38,6 +40,7 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
   const [expandedSpaceIds, setExpandedSpaceIds] = useState<Set<string>>(new Set());
   const [openMenuSpaceId, setOpenMenuSpaceId] = useState<string | null>(null);
   const [hasUnreadChangelog, setHasUnreadChangelog] = useState(false);
+  const { count: unreadNotifCount } = useUnreadCount();
   const menuRef = useRef<HTMLDivElement>(null);
   const { handleRef } = useSidebarResize();
 
@@ -276,6 +279,7 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
         </div>
 
         <div className="px-3 pt-4 border-t border-border/60 space-y-1">
+          <NotificationBell />
           <Link
             href="/changelog"
             className={navLinkCls(pathname === "/changelog")}
@@ -311,6 +315,12 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
         </Link>
         <Link href="/spaces" className={`flex-1 flex flex-col items-center py-3 text-xs gap-1 ${pathname.startsWith("/spaces") ? "text-primary" : "text-muted-foreground"}`}>
           <span className="text-base">👥</span>空间
+        </Link>
+        <Link href="/notifications" className={`flex-1 flex flex-col items-center py-3 text-xs gap-1 relative ${pathname === "/notifications" ? "text-primary" : "text-muted-foreground"}`}>
+          <span className="text-base">🔔</span>通知
+          {unreadNotifCount > 0 && (
+            <span className="absolute top-1.5 left-1/2 ml-1.5 w-2 h-2 rounded-full bg-destructive" />
+          )}
         </Link>
         <Link href="/account" className={`flex-1 flex flex-col items-center py-3 text-xs gap-1 ${pathname.startsWith("/account") ? "text-primary" : "text-muted-foreground"}`}>
           <span className="text-base">⚙️</span>我的

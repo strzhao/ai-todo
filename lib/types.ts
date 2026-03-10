@@ -112,3 +112,23 @@ export interface ActionResult {
   deleted?: string[];    // task IDs
   logged?: Array<{ taskId: string }>;
 }
+
+// ─── Notifications ──────────────────────────────────────────────────────────────
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  body?: string;
+  task_id?: string;
+  space_id?: string;
+  actor_id?: string;
+  actor_email?: string;
+  read: boolean;
+  created_at: string;
+}
+
+export interface NotificationPrefs {
+  [type: string]: { inapp: boolean; email: boolean };
+}

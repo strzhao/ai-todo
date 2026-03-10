@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { getTaskByInviteCode, addTaskMember, getTaskMemberRecord } from "@/lib/db";
+import { getTaskByInviteCode, addTaskMember, getTaskMemberRecord, getTaskMembers } from "@/lib/db";
 import { createRouteTimer } from "@/lib/route-timing";
+import { fireNotification } from "@/lib/notifications";
 
 export const preferredRegion = "hkg1";
 
@@ -42,6 +43,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
 
   const status = task.invite_mode === "approval" ? "pending" : "active";
   await rt.track("db_query", async () => addTaskMember(task.id, user.id, user.email, "member", status));
+
+  // Notify space owner if approval needed
+  if (status === "pending") {
+    const members = await rt.track("db_query", async () => getTaskMembers(task.id));
+    const owner = members.find(m => m.role === "owner");
+    if (owner && owner.user_id !== user.id) {
+      fireNotification({
+        userId: owner.user_id,
+        type: "space_join_pending",
+        title: `${user.email.split("@")[0]} 申请加入空间`,
+        body: task.title,
+        taskId: task.id,
+        spaceId: task.id,
+        actorId: user.id,
+        actorEmail: user.email,
+      });
+    }
+  }
 
   return rt.json({ space_id: task.id, status }, { status: 201 });
 }

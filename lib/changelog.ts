@@ -7,6 +7,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.14.0",
+    date: "2026-03-10",
+    title: "通知系统",
+    items: [
+      "新增应用内通知中心：侧边栏铃铛图标 + 移动端通知 Tab",
+      "任务指派、@提到、完成、删除、进展日报等操作自动触发通知",
+      "空间成员变动（加入申请、审批、移除）自动通知",
+      "通知偏好设置：每种通知类型可独立控制应用内和邮件开关",
+    ],
+  },
+  {
     version: "1.13.0",
     date: "2026-03-10",
     title: "日期时间选择器升级",

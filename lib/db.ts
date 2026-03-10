@@ -133,6 +133,34 @@ async function _doInitDb() {
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_summary_usage_user_date ON ai_todo_summary_usage(user_id, usage_date)`;
 
+  // 10. Notifications table
+  await sql`
+    CREATE TABLE IF NOT EXISTS ai_todo_notifications (
+      id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id     TEXT NOT NULL,
+      type        TEXT NOT NULL,
+      title       TEXT NOT NULL,
+      body        TEXT,
+      task_id     UUID REFERENCES ai_todo_tasks(id) ON DELETE CASCADE,
+      space_id    UUID REFERENCES ai_todo_tasks(id) ON DELETE CASCADE,
+      actor_id    TEXT,
+      actor_email TEXT,
+      read        BOOLEAN DEFAULT FALSE,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_notif_user ON ai_todo_notifications(user_id, read, created_at DESC)`;
+
+  // 11. Notification preferences table
+  await sql`
+    CREATE TABLE IF NOT EXISTS ai_todo_notification_prefs (
+      id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id    TEXT NOT NULL UNIQUE,
+      prefs      JSONB NOT NULL DEFAULT '{}',
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
   // Seed already executed on 2026-03-07: all existing users auto-activated.
 }
 
