@@ -142,6 +142,7 @@ components/
   TaskDetail.tsx                # 任务详情内联面板（描述编辑 + 日期 + 进展评论流）
   ParsePreviewCard.tsx          # AI 解析预览 + 确认创建（支持空间/负责人，单任务路径）
   MultiTaskPreview.tsx          # 多任务/层级任务预览 + 批量创建（先建父任务再建子任务）
+  DateTimePicker.tsx             # 日期时间选择器（Popover 日历 + 时间输入 + 快捷按钮）
   TaskItem.tsx                  # 单条任务行（内联编辑 + 键盘导航 + 子任务折叠展开）
   TaskList.tsx                  # 任务列表（buildTree 组装父子关系 + 骨架屏 + 已完成折叠）
   AssigneeBadge.tsx             # 显示非自己的负责人徽章
@@ -152,6 +153,7 @@ lib/
   types.ts                      # Task、ParsedTask、ParsedAction、ActionResult、TaskLog 等接口
   llm-client.ts                 # DeepSeek 客户端（55s 超时，AbortError 兜底）
   task-utils.ts                 # 纯函数：buildTree（flat Task[] → 树形 TaskNode[]）
+  date-utils.ts                 # 纯函数：formatDateTime / toLocalISO / extractTime / extractDate / DateField 类型
   gantt-utils.ts                # 纯函数：daysBetween / addDays / formatAxisDate / getMemberName
   parse-utils.ts                # 纯函数：parseItem / parseActions / cleanupCache（可测试）
   route-timing.ts               # API 路由计时工具（createRouteTimer）

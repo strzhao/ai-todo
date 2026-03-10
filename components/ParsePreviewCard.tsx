@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { aiFlowLog } from "@/lib/ai-flow-log";
+import { formatDateTime } from "@/lib/date-utils";
 import type { ParsedTask, Task } from "@/lib/types";
 
 const PRIORITY_LABELS: Record<number, string> = { 0: "P0 紧急", 1: "P1 高", 2: "P2 普通", 3: "P3 低" };
@@ -30,13 +31,6 @@ export function ParsePreviewCard({ parsed, onConfirm, onCancel, spaceId, parentT
   const [form, setForm] = useState<ParsedTask>({ ...parsed });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  function formatDueDate(iso?: string) {
-    if (!iso) return null;
-    return new Date(iso).toLocaleString("zh-CN", {
-      month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit",
-    });
-  }
 
   async function confirm() {
     if (!form.title.trim()) return;
@@ -126,7 +120,7 @@ export function ParsePreviewCard({ parsed, onConfirm, onCancel, spaceId, parentT
         <div className="flex gap-2 flex-wrap">
           {form.due_date && (
             <Badge variant="outline" className="text-xs">
-              📅 {formatDueDate(form.due_date)}
+              📅 {formatDateTime(form.due_date)}
             </Badge>
           )}
           <Badge variant="outline" className={`text-xs ${PRIORITY_COLORS[form.priority ?? 2]}`}>

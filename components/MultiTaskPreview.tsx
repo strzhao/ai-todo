@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { aiFlowLog } from "@/lib/ai-flow-log";
+import { formatDateTime } from "@/lib/date-utils";
 import type { ParsedTask, Task } from "@/lib/types";
 
 const PRIORITY_LABELS: Record<number, string> = { 0: "P0", 1: "P1", 2: "P2", 3: "P3" };
@@ -110,13 +111,6 @@ function toFlatItems(tasks: ParsedTask[], flatten = false): FlatItem[] {
     });
   });
   return items;
-}
-
-function formatDueDate(iso?: string) {
-  if (!iso) return null;
-  return new Date(iso).toLocaleString("zh-CN", {
-    month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit",
-  });
 }
 
 // ─── Multi-task list with hierarchy ──────────────────────────────────────────
@@ -377,7 +371,7 @@ function MultiTaskList({ initialTasks, onConfirm, onCancel, allTasks, spaceId, p
                     />
                     {item.task.due_date && (
                       <span className="text-xs text-muted-foreground flex-shrink-0 hidden sm:block">
-                        {formatDueDate(item.task.due_date)}
+                        {formatDateTime(item.task.due_date)}
                       </span>
                     )}
                     {item.task.assignee && (

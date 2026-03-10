@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.13.0",
+    date: "2026-03-10",
+    title: "日期时间选择器升级",
+    items: [
+      "全新日期时间选择器：日历面板 + 时间输入 + 快捷按钮（今天/明天/下周一）",
+      "支持设置具体小时和分钟，不再只能选日期",
+      "所有日期显示统一升级，智能显示「今天 14:30」「明天 09:00」等格式",
+    ],
+  },
+  {
     version: "1.12.2",
     date: "2026-03-10",
     title: "修复空间内创建任务失败",

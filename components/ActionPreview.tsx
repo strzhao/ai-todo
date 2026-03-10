@@ -6,6 +6,7 @@ import { MultiTaskPreview } from "@/components/MultiTaskPreview";
 import { aiFlowLog, summarizeParsedActions } from "@/lib/ai-flow-log";
 import type { ParsedAction, ParsedTask, Task, ActionResult, SpaceMember } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
+import { formatDateTime } from "@/lib/date-utils";
 
 interface Props {
   actions: ParsedAction[];
@@ -73,11 +74,6 @@ function getCreateParentDisplay(parsed: ParsedTask, allTasks: Task[], parentTask
   };
 }
 
-function formatDate(iso?: string | null): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
-}
-
 function ActionRow({ action, allTasks, parentTaskId, spaceId, members }: { action: ParsedAction; allTasks: Task[]; parentTaskId?: string; spaceId?: string; members?: SpaceMember[] }) {
   const task = action.type !== "create" ? resolveTask(action, allTasks) : null;
   const parentTask = action.type === "move" ? resolveParentTask(action, allTasks) : null;
@@ -104,7 +100,7 @@ function ActionRow({ action, allTasks, parentTaskId, spaceId, members }: { actio
                 新建「<span className="font-medium">{first.title}</span>」
                 {parentInfo?.status === "matched" && <>，在「<span className="font-medium">{parentInfo.title}</span>」下</>}
                 {first.priority !== undefined && first.priority !== 2 ? ` · ${PRIORITY_LABELS[first.priority]}` : ""}
-                {first.due_date ? ` · ${formatDate(first.due_date)}截止` : ""}
+                {first.due_date ? ` · ${formatDateTime(first.due_date)}截止` : ""}
                 {parentInfo?.status === "unresolved" && <span className="text-xs ml-1 text-destructive">（父任务未匹配：{parentInfo.title}）</span>}
               </>
             )
@@ -149,9 +145,9 @@ function ActionRow({ action, allTasks, parentTaskId, spaceId, members }: { actio
     const c = action.changes;
     const changeParts: string[] = [];
     if (c.priority !== undefined) changeParts.push(`优先级→${PRIORITY_LABELS[c.priority]}`);
-    if (c.due_date !== undefined) changeParts.push(`截止→${formatDate(c.due_date)}`);
-    if (c.start_date !== undefined) changeParts.push(`开始→${formatDate(c.start_date)}`);
-    if (c.end_date !== undefined) changeParts.push(`结束→${formatDate(c.end_date)}`);
+    if (c.due_date !== undefined) changeParts.push(`截止→${formatDateTime(c.due_date)}`);
+    if (c.start_date !== undefined) changeParts.push(`开始→${formatDateTime(c.start_date)}`);
+    if (c.end_date !== undefined) changeParts.push(`结束→${formatDateTime(c.end_date)}`);
     if (c.title !== undefined) changeParts.push(`标题→「${c.title}」`);
     if (c.description !== undefined) changeParts.push("更新描述");
     if (c.tags !== undefined) changeParts.push(`标签→[${c.tags.join(",")}]`);

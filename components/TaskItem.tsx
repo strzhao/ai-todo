@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TaskDetail } from "@/components/TaskDetail";
 import { RichText } from "@/components/RichText";
+import { DateTimePicker } from "@/components/DateTimePicker";
+import { formatDateTime, isToday as isTodayFn } from "@/lib/date-utils";
 import type { Task, TaskMember } from "@/lib/types";
 import type { TaskNode } from "@/lib/task-utils";
 import { getDisplayLabel } from "@/lib/display-utils";
@@ -43,7 +45,6 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
 
   // Inline editing state
   const [priorityOpen, setPriorityOpen] = useState(false);
-  const [dateEditing, setDateEditing] = useState<"due_date" | "start_date" | "end_date" | null>(null);
   const [tagAdding, setTagAdding] = useState(false);
   const [assigneeOpen, setAssigneeOpen] = useState(false);
   const [localProgress, setLocalProgress] = useState(task.progress);
@@ -53,7 +54,6 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
 
   const priorityRef = useRef<HTMLDivElement>(null);
   const assigneeRef = useRef<HTMLDivElement>(null);
-  const dateInputRef = useRef<HTMLInputElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
 
   const p = PRIORITY_BADGES[task.priority] ?? PRIORITY_BADGES[2];
@@ -86,14 +86,6 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [moreOpen, priorityOpen, assigneeOpen]);
-
-  // Auto-focus date input
-  useEffect(() => {
-    if (dateEditing && dateInputRef.current) {
-      dateInputRef.current.focus();
-      dateInputRef.current.showPicker?.();
-    }
-  }, [dateEditing]);
 
   // Auto-focus tag input
   useEffect(() => {
@@ -207,9 +199,8 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
     await patchTask({ priority: value });
   }
 
-  async function handleDateSave(field: "due_date" | "start_date" | "end_date", value: string) {
-    setDateEditing(null);
-    await patchTask({ [field]: value || null });
+  async function handleDateChange(field: "due_date" | "start_date" | "end_date", value: string | null) {
+    await patchTask({ [field]: value });
   }
 
   async function handleTagAdd() {
@@ -238,36 +229,8 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
     await patchTask({ progress: localProgress });
   }
 
-  // ─── Date formatting ──────────────────────────────────────────────
-  function formatDue(iso?: string) {
-    if (!iso) return null;
-    const d = new Date(iso);
-    const today = new Date();
-    const isToday = d.toDateString() === today.toDateString();
-    return isToday
-      ? d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })
-      : d.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
-  }
-
-  function formatShortDate(iso?: string) {
-    if (!iso) return null;
-    return new Date(iso).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
-  }
-
-  function isDateToday(iso?: string) {
-    if (!iso) return false;
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return false;
-    return d.toDateString() === new Date().toDateString();
-  }
-
-  function toDateInputValue(iso?: string): string {
-    if (!iso) return "";
-    return new Date(iso).toISOString().slice(0, 10);
-  }
-
-  const dueText = formatDue(task.due_date);
-  const isDueToday = highlightTodayDue && isDateToday(task.due_date);
+  const dueText = task.due_date ? formatDateTime(task.due_date) : null;
+  const isDueToday = highlightTodayDue && task.due_date ? isTodayFn(new Date(task.due_date)) : false;
   const isAssignedToOther = task.assignee_email && task.assignee_email !== currentUserEmail;
   const assigneeMember = task.assignee_email ? members.find((m) => m.email === task.assignee_email) : undefined;
   const assigneeLabel = task.assignee_email ? getDisplayLabel(task.assignee_email, assigneeMember) : null;
@@ -350,76 +313,63 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
               )}
             </div>
 
-            {/* Due date — click to edit */}
-            {dateEditing === "due_date" ? (
-              <input
-                ref={dateInputRef}
-                type="date"
-                defaultValue={toDateInputValue(task.due_date)}
-                onBlur={(e) => handleDateSave("due_date", e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Escape") setDateEditing(null); }}
-                className="text-xs bg-background border border-border rounded-md px-2 py-1 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 shadow-sm w-[130px] transition-colors"
-              />
-            ) : dueText ? (
-              <span
-                className={`text-xs cursor-pointer hover:opacity-70 transition-opacity ${isDueToday ? "text-[var(--today-accent-strong)] font-medium" : "text-muted-foreground"}`}
-                onClick={() => setDateEditing("due_date")}
-                title="点击修改截止日期"
-              >
-                📅 {dueText}
-              </span>
-            ) : (
-              <span
-                className="text-xs text-muted-foreground/30 cursor-pointer hover:text-muted-foreground/60 transition-colors"
-                onClick={() => setDateEditing("due_date")}
-                title="设置截止日期"
-              >
-                +📅
-              </span>
-            )}
+            {/* Due date — DateTimePicker */}
+            <DateTimePicker
+              value={task.due_date}
+              onChange={(v) => handleDateChange("due_date", v)}
+              field="due_date"
+            >
+              {dueText ? (
+                <button
+                  className={`text-xs cursor-pointer hover:opacity-70 transition-opacity ${isDueToday ? "text-[var(--today-accent-strong)] font-medium" : "text-muted-foreground"}`}
+                  title="点击修改截止日期"
+                >
+                  📅 {dueText}
+                </button>
+              ) : (
+                <button
+                  className="text-xs text-muted-foreground/30 cursor-pointer hover:text-muted-foreground/60 transition-colors"
+                  title="设置截止日期"
+                >
+                  +📅
+                </button>
+              )}
+            </DateTimePicker>
 
             {isDueToday && (
               <span className="today-task-pill">今日优先</span>
             )}
 
-            {/* Start date */}
-            {dateEditing === "start_date" ? (
-              <input
-                ref={dateInputRef}
-                type="date"
-                defaultValue={toDateInputValue(task.start_date)}
-                onBlur={(e) => handleDateSave("start_date", e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Escape") setDateEditing(null); }}
-                className="text-xs bg-background border border-border rounded-md px-2 py-1 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 shadow-sm w-[130px] transition-colors"
-              />
-            ) : task.start_date ? (
-              <span
-                className="text-xs text-muted-foreground cursor-pointer hover:opacity-70 transition-opacity"
-                onClick={() => setDateEditing("start_date")}
-                title="点击修改开始日期"
+            {/* Start date — DateTimePicker */}
+            {task.start_date ? (
+              <DateTimePicker
+                value={task.start_date}
+                onChange={(v) => handleDateChange("start_date", v)}
+                field="start_date"
               >
-                ▸{formatShortDate(task.start_date)}
-              </span>
+                <button
+                  className="text-xs text-muted-foreground cursor-pointer hover:opacity-70 transition-opacity"
+                  title="点击修改开始日期"
+                >
+                  ▸{formatDateTime(task.start_date)}
+                </button>
+              </DateTimePicker>
             ) : null}
 
-            {/* End date */}
-            {dateEditing === "end_date" ? (
-              <input
-                ref={dateInputRef}
-                type="date"
-                defaultValue={toDateInputValue(task.end_date)}
-                onBlur={(e) => handleDateSave("end_date", e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Escape") setDateEditing(null); }}
-                className="text-xs bg-background border border-border rounded-md px-2 py-1 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 shadow-sm w-[130px] transition-colors"
-              />
-            ) : task.end_date ? (
-              <span
-                className="text-xs text-muted-foreground cursor-pointer hover:opacity-70 transition-opacity"
-                onClick={() => setDateEditing("end_date")}
-                title="点击修改结束日期"
+            {/* End date — DateTimePicker */}
+            {task.end_date ? (
+              <DateTimePicker
+                value={task.end_date}
+                onChange={(v) => handleDateChange("end_date", v)}
+                field="end_date"
               >
-                ◂{formatShortDate(task.end_date)}
-              </span>
+                <button
+                  className="text-xs text-muted-foreground cursor-pointer hover:opacity-70 transition-opacity"
+                  title="点击修改结束日期"
+                >
+                  ◂{formatDateTime(task.end_date)}
+                </button>
+              </DateTimePicker>
             ) : null}
 
             {/* Tags — with inline × and + */}
