@@ -27,7 +27,7 @@ export interface Task {
   invite_mode?: "open" | "approval";
   member_count?: number;
   task_count?: number;
-  my_role?: "owner" | "member";
+  my_role?: "owner" | "admin" | "member";
 }
 
 export interface ParsedTask {
@@ -57,7 +57,7 @@ export interface TaskMember {
   email: string;
   display_name?: string;
   nickname?: string; // 全局昵称（来自 ai_todo_activated_users）
-  role: "owner" | "member";
+  role: "owner" | "admin" | "member";
   status: "active" | "pending";
   joined_at: string;
 }

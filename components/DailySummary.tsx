@@ -55,9 +55,10 @@ interface Props {
   taskId: string;
   taskTitle: string;
   autoTrigger?: boolean;
+  canTrigger?: boolean;
 }
 
-export function DailySummary({ taskId, taskTitle, autoTrigger }: Props) {
+export function DailySummary({ taskId, taskTitle, autoTrigger, canTrigger = true }: Props) {
   const [summary, setSummary] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,10 +121,12 @@ export function DailySummary({ taskId, taskTitle, autoTrigger }: Props) {
         triggered.current = true;
         return;
       }
-      triggered.current = true;
-      generateSummary();
+      if (canTrigger) {
+        triggered.current = true;
+        generateSummary();
+      }
     }
-  }, [autoTrigger, generateSummary, taskId]);
+  }, [autoTrigger, generateSummary, taskId, canTrigger]);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
@@ -141,13 +144,15 @@ export function DailySummary({ taskId, taskTitle, autoTrigger }: Props) {
             <span className="text-muted-foreground/40 ml-1.5">· {formatTimeAgo(cachedAt)}</span>
           )}
         </p>
-        <button
-          onClick={generateSummary}
-          disabled={loading}
-          className="text-xs px-3 py-1 rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          {loading ? "生成中..." : summary ? "重新生成" : "生成总结"}
-        </button>
+        {canTrigger && (
+          <button
+            onClick={generateSummary}
+            disabled={loading}
+            className="text-xs px-3 py-1 rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {loading ? "生成中..." : summary ? "重新生成" : "生成总结"}
+          </button>
+        )}
       </div>
 
       {error && <p className="text-xs text-danger mb-2">{error}</p>}
@@ -162,6 +167,13 @@ export function DailySummary({ taskId, taskTitle, autoTrigger }: Props) {
       {summary && (
         <div className="prose-summary text-sm text-foreground/80">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
+        </div>
+      )}
+
+      {!loading && !summary && !error && !canTrigger && (
+        <div className="text-center py-8">
+          <p className="text-sm text-muted-foreground">暂无 AI 总结</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">等待管理员生成今日总结</p>
         </div>
       )}
     </div>

@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { updateTaskMember, removeTaskMember, getTaskMemberRecord } from "@/lib/db";
-import { requireSpaceOwner } from "@/lib/spaces";
 import { createRouteTimer } from "@/lib/route-timing";
 
 export const preferredRegion = "hkg1";
@@ -21,10 +20,20 @@ export async function PATCH(
   const updatingOthers = !isSelf || body.status !== undefined || body.role !== undefined;
 
   if (updatingOthers) {
-    try {
-      await rt.track("db_query", async () => requireSpaceOwner(id, user.id));
-    } catch {
-      return rt.json({ error: "Only owner can update other members" }, { status: 403 });
+    const actor = await rt.track("db_query", async () => getTaskMemberRecord(id, user.id));
+    if (!actor || (actor.role !== "owner" && actor.role !== "admin")) {
+      return rt.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+    // Only owner can change roles
+    if (body.role !== undefined && actor.role !== "owner") {
+      return rt.json({ error: "Only owner can change roles" }, { status: 403 });
+    }
+    // Admin cannot manage owner or other admins
+    if (actor.role === "admin") {
+      const target = await rt.track("db_query", async () => getTaskMemberRecord(id, uid));
+      if (target && target.role !== "member") {
+        return rt.json({ error: "Admin can only manage regular members" }, { status: 403 });
+      }
     }
   }
 
@@ -46,17 +55,17 @@ export async function DELETE(
   const isSelf = uid === user.id;
 
   if (!isSelf) {
-    try {
-      await rt.track("db_query", async () => requireSpaceOwner(id, user.id));
-    } catch {
-      return rt.json({ error: "Only owner can remove other members" }, { status: 403 });
+    const actor = await rt.track("db_query", async () => getTaskMemberRecord(id, user.id));
+    if (!actor || (actor.role !== "owner" && actor.role !== "admin")) {
+      return rt.json({ error: "Insufficient permissions" }, { status: 403 });
     }
-  }
-
-  if (!isSelf) {
     const target = await rt.track("db_query", async () => getTaskMemberRecord(id, uid));
     if (target?.role === "owner") {
       return rt.json({ error: "Cannot remove the space owner" }, { status: 400 });
+    }
+    // Admin cannot remove owner or other admins
+    if (actor.role === "admin" && target?.role === "admin") {
+      return rt.json({ error: "Admin cannot remove other admins" }, { status: 403 });
     }
   }
 

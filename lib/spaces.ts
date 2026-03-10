@@ -21,3 +21,12 @@ export async function requireSpaceOwner(spaceId: string, userId: string): Promis
     throw Object.assign(new Error("Only space owner can perform this action"), { status: 403 });
   }
 }
+
+// Throws with { status, message } if user is not admin or owner
+export async function requireSpaceAdminOrOwner(spaceId: string, userId: string): Promise<TaskMember> {
+  const member = await getTaskMemberRecord(spaceId, userId);
+  if (!member || (member.role !== "owner" && member.role !== "admin")) {
+    throw Object.assign(new Error("Requires admin or owner role"), { status: 403 });
+  }
+  return member;
+}

@@ -72,6 +72,19 @@ export default function SpaceSettingsPage({ params }: Props) {
     setMembers((prev) => prev.filter((m) => m.user_id !== uid));
   }
 
+  async function toggleAdmin(uid: string, currentRole: string) {
+    const newRole = currentRole === "admin" ? "member" : "admin";
+    const res = await fetch(`/api/spaces/${spaceId}/members/${uid}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: newRole }),
+    });
+    if (res.ok) {
+      const updated = await res.json() as SpaceMember;
+      setMembers((prev) => prev.map((m) => m.user_id === uid ? updated : m));
+    }
+  }
+
   async function approveMember(uid: string) {
     const res = await fetch(`/api/spaces/${spaceId}/members/${uid}`, {
       method: "PATCH",
@@ -108,6 +121,8 @@ export default function SpaceSettingsPage({ params }: Props) {
   }
 
   const isOwner = space.my_role === "owner";
+  const isAdmin = space.my_role === "admin";
+  const canManageMembers = isOwner || isAdmin;
   const pendingMembers = members.filter((m) => m.status === "pending");
   const activeMembers = members.filter((m) => m.status === "active");
   const inviteLink = buildInviteLink(space.invite_code);
@@ -151,7 +166,7 @@ export default function SpaceSettingsPage({ params }: Props) {
       </section>
 
       {/* Pending Members */}
-      {isOwner && pendingMembers.length > 0 && (
+      {canManageMembers && pendingMembers.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold">待审批成员 ({pendingMembers.length})</h2>
           <div className="space-y-2">
@@ -182,13 +197,29 @@ export default function SpaceSettingsPage({ params }: Props) {
                 <p className="text-sm truncate">{getDisplayLabel(m.email, m)}</p>
                 {(m.display_name || m.nickname) && <p className="text-xs text-muted-foreground">{m.email}</p>}
               </div>
-              {m.role === "owner" ? (
-                <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">管理员</span>
-              ) : isOwner ? (
-                <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => removeMember(m.user_id)}>
-                  移除
-                </Button>
-              ) : null}
+              <div className="flex items-center gap-1.5">
+                {m.role === "owner" && (
+                  <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">创建者</span>
+                )}
+                {m.role === "admin" && (
+                  <span className="text-[10px] text-sage bg-sage-mist px-1.5 py-0.5 rounded">管理员</span>
+                )}
+                {isOwner && m.role !== "owner" && (
+                  <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => toggleAdmin(m.user_id, m.role)}>
+                    {m.role === "admin" ? "取消管理员" : "设为管理员"}
+                  </Button>
+                )}
+                {canManageMembers && m.role === "member" && (
+                  <Button size="sm" variant="ghost" className="text-xs h-7 text-muted-foreground" onClick={() => removeMember(m.user_id)}>
+                    移除
+                  </Button>
+                )}
+                {isOwner && m.role === "admin" && (
+                  <Button size="sm" variant="ghost" className="text-xs h-7 text-muted-foreground" onClick={() => removeMember(m.user_id)}>
+                    移除
+                  </Button>
+                )}
+              </div>
             </div>
           ))}
         </div>

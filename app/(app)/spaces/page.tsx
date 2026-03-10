@@ -60,7 +60,10 @@ export default function SpacesPage() {
                   </p>
                 </div>
                 {space.my_role === "owner" && (
-                  <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">管理员</span>
+                  <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">创建者</span>
+                )}
+                {space.my_role === "admin" && (
+                  <span className="text-[10px] text-sage bg-sage-mist px-1.5 py-0.5 rounded">管理员</span>
                 )}
               </div>
             </Link>

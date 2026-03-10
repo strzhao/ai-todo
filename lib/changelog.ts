@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.9.0",
+    date: "2026-03-10",
+    title: "空间管理员角色 + AI 总结权限",
+    items: [
+      "新增管理员角色，创建者可在设置中提升成员为管理员",
+      "管理员可审批新成员、移除普通成员",
+      "管理员和创建者可生成 AI 总结，普通成员仅可查看已有总结",
+    ],
+  },
+  {
     version: "1.8.2",
     date: "2026-03-09",
     title: "已完成任务保持层级展示",

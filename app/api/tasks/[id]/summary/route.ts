@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { initDb, getTaskForUser, getDescendantTasks, getLogsForTasks, getTaskMembers } from "@/lib/db";
 import { getDisplayLabel } from "@/lib/display-utils";
+import { requireSpaceAdminOrOwner } from "@/lib/spaces";
 import { LLMClient } from "@/lib/llm-client";
 import type { Task, TaskLog } from "@/lib/types";
 
@@ -168,6 +169,19 @@ export async function POST(
   const task = await getTaskForUser(id, user.id);
   if (!task)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Space tasks: only admin/owner can trigger summary
+  const spaceId = task.pinned ? task.id : task.space_id;
+  if (spaceId) {
+    try {
+      await requireSpaceAdminOrOwner(spaceId, user.id);
+    } catch {
+      return NextResponse.json(
+        { error: "仅管理员可生成 AI 总结" },
+        { status: 403 }
+      );
+    }
+  }
 
   const body = (await req.json().catch(() => ({}))) as { date?: string };
   const date = body.date || new Date().toISOString().slice(0, 10);
