@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.12.2",
+    date: "2026-03-10",
+    title: "修复空间内创建任务失败",
+    items: [
+      "修复在空间视图下创建任务时显示「父任务未匹配」导致无法创建的问题",
+    ],
+  },
+  {
     version: "1.12.1",
     date: "2026-03-10",
     title: "修复手机端任务名截断",

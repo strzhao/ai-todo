@@ -49,7 +49,7 @@ function resolveCreateParentTask(parsed: ParsedTask, allTasks: Task[], parentTas
   return resolveTaskByTarget(allTasks, parsed.parent_target_id, parsed.parent_target_title);
 }
 
-function getCreateParentDisplay(parsed: ParsedTask, allTasks: Task[], parentTaskId?: string): { status: "matched" | "unresolved"; title: string } | null {
+function getCreateParentDisplay(parsed: ParsedTask, allTasks: Task[], parentTaskId?: string, spaceId?: string): { status: "matched" | "unresolved"; title: string } | null {
   if (parentTaskId) {
     const focusedParent = allTasks.find((t) => t.id === parentTaskId);
     return { status: "matched", title: focusedParent?.title ?? "当前父任务" };
@@ -59,6 +59,8 @@ function getCreateParentDisplay(parsed: ParsedTask, allTasks: Task[], parentTask
 
   const resolved = resolveCreateParentTask(parsed, allTasks, parentTaskId);
   if (resolved) {
+    // 如果 parent 就是空间本身，不需要显示父任务标记（在空间内创建是默认行为）
+    if (spaceId && resolved.id === spaceId) return null;
     return {
       status: "matched",
       title: resolved.title ?? parsed.parent_target_title ?? "已匹配父任务",
@@ -76,7 +78,7 @@ function formatDate(iso?: string | null): string {
   return new Date(iso).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
 }
 
-function ActionRow({ action, allTasks, parentTaskId, members }: { action: ParsedAction; allTasks: Task[]; parentTaskId?: string; members?: SpaceMember[] }) {
+function ActionRow({ action, allTasks, parentTaskId, spaceId, members }: { action: ParsedAction; allTasks: Task[]; parentTaskId?: string; spaceId?: string; members?: SpaceMember[] }) {
   const task = action.type !== "create" ? resolveTask(action, allTasks) : null;
   const parentTask = action.type === "move" ? resolveParentTask(action, allTasks) : null;
   const notFound = (action.type !== "create" && !task) || (action.type === "move" && !parentTask);
@@ -86,9 +88,9 @@ function ActionRow({ action, allTasks, parentTaskId, members }: { action: Parsed
   if (action.type === "create") {
     const count = action.tasks?.length ?? 0;
     const first = action.tasks?.[0];
-    const parentInfo = first ? getCreateParentDisplay(first, allTasks, parentTaskId) : null;
+    const parentInfo = first ? getCreateParentDisplay(first, allTasks, parentTaskId, spaceId) : null;
     const parentInfos = (action.tasks ?? [])
-      .map((t) => getCreateParentDisplay(t, allTasks, parentTaskId))
+      .map((t) => getCreateParentDisplay(t, allTasks, parentTaskId, spaceId))
       .filter((i): i is { status: "matched" | "unresolved"; title: string } => Boolean(i));
     const unresolvedCount = parentInfos.filter((i) => i.status === "unresolved").length;
     const matchedCount = parentInfos.filter((i) => i.status === "matched").length;
@@ -267,7 +269,7 @@ export function ActionPreview({ actions, raw, allTasks, spaceId, members, parent
                 ...t,
                 space_id: spaceId ?? undefined,
                 assignee_email: t.assignee,
-                ...(resolvedParent ? { parent_id: resolvedParent.id } : {}),
+                ...(resolvedParent && resolvedParent.id !== spaceId ? { parent_id: resolvedParent.id } : {}),
               };
               aiFlowLog("ActionPreview.create.parent-post", {
                 trace_id: traceId ?? null,
@@ -451,7 +453,7 @@ export function ActionPreview({ actions, raw, allTasks, spaceId, members, parent
 
       <div className="space-y-2 py-1">
         {actions.map((action, i) => (
-          <ActionRow key={i} action={action} allTasks={allTasks} parentTaskId={parentTaskId} members={members} />
+          <ActionRow key={i} action={action} allTasks={allTasks} parentTaskId={parentTaskId} spaceId={spaceId} members={members} />
         ))}
       </div>
 

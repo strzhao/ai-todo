@@ -176,6 +176,8 @@ function MultiTaskList({ initialTasks, onConfirm, onCancel, allTasks, spaceId, p
     if (!item.task.parent_target_id && !item.task.parent_target_title) return null;
     const resolvedParent = resolveCreateParentTask(item.task, allTasks, parentTaskId);
     if (resolvedParent) {
+      // 如果 parent 就是空间本身，不需要显示父任务标记
+      if (spaceId && resolvedParent.id === spaceId) return null;
       const title = resolvedParent.title ?? item.task.parent_target_title ?? "已匹配父任务";
       return {
         label: `父:${shortTitle(title)}`,
@@ -249,7 +251,7 @@ function MultiTaskList({ initialTasks, onConfirm, onCancel, allTasks, spaceId, p
             ...item.task,
             ...(spaceId ? { space_id: spaceId } : {}),
             ...(item.task.assignee ? { assignee_email: item.task.assignee } : {}),
-            ...(resolvedParent ? { parent_id: resolvedParent.id } : {}),
+            ...(resolvedParent && resolvedParent.id !== spaceId ? { parent_id: resolvedParent.id } : {}),
           });
         })
       );
