@@ -94,7 +94,14 @@ function buildTaskTreeText(allTasks: Task[], parentId: string | undefined, inden
         ? ` @${nameMap.get(t.assignee_email) ?? t.assignee_email.split("@")[0]}`
         : "";
       const desc = t.description ? ` | ${t.description.slice(0, 80)}` : "";
-      const prog = ` 进度:${t.progress}%`;
+      const directChildren = allTasks.filter(c => c.parent_id === t.id);
+      let prog: string;
+      if (directChildren.length > 0) {
+        const done = directChildren.filter(c => c.status === 2).length;
+        prog = ` 完成:${done}/${directChildren.length}(${Math.round(done / directChildren.length * 100)}%)`;
+      } else {
+        prog = t.progress > 0 ? ` 进度:${t.progress}%` : "";
+      }
       const prefix = "  ".repeat(indent) + "- ";
       const line = `${prefix}[${status}][${priority}] ${t.title}${due}${assignee}${prog}${desc}`;
       const childLines = buildTaskTreeText(allTasks, t.id, indent + 1, nameMap);

@@ -8,6 +8,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.16.1",
+    date: "2026-03-10",
+    title: "AI 总结进度修复",
+    items: [
+      "修复 AI 总结中有子任务的任务进度始终显示 0% 的问题，现在基于子任务完成状态实时计算（如 6/9 67%）",
+    ],
+  },
+  {
     version: "1.16.0",
     date: "2026-03-10",
     title: "账号设置页全新设计",
