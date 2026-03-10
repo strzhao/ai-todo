@@ -272,6 +272,11 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
   const assigneeMember = task.assignee_email ? members.find((m) => m.email === task.assignee_email) : undefined;
   const assigneeLabel = task.assignee_email ? getDisplayLabel(task.assignee_email, assigneeMember) : null;
 
+  // Creator info for space tasks (hover display)
+  const creatorMember = task.space_id ? members.find((m) => m.user_id === task.user_id) : undefined;
+  const creatorLabel = creatorMember ? getDisplayLabel(creatorMember.email, creatorMember) : null;
+  const showCreator = task.space_id && creatorLabel && creatorMember?.email !== currentUserEmail;
+
   return (
     <div className={`border-b last:border-0 border-border/50 ${completing ? "opacity-40" : ""}`}>
       {/* Main task row */}
@@ -547,6 +552,16 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
             )}
           </div>
         </div>
+
+        {/* Creator label — hover-visible, space tasks only */}
+        {showCreator && (
+          <span
+            className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-muted-foreground whitespace-nowrap"
+            title={`创建者: ${creatorLabel}`}
+          >
+            {creatorLabel}
+          </span>
+        )}
 
         {/* Detail expand */}
         <button

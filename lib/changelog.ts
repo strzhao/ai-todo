@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.12.0",
+    date: "2026-03-10",
+    title: "空间任务显示创建者",
+    items: [
+      "空间任务 hover 时显示创建者名称，方便了解任务来源",
+    ],
+  },
+  {
     version: "1.11.0",
     date: "2026-03-10",
     title: "AI 总结全员可用 + 服务端缓存",
