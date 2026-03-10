@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.12.1",
+    date: "2026-03-10",
+    title: "修复手机端任务名截断",
+    items: [
+      "修复移动端任务名右侧明明有空间却被截断的问题",
+    ],
+  },
+  {
     version: "1.12.0",
     date: "2026-03-10",
     title: "空间任务显示创建者",

@@ -556,7 +556,7 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
         {/* Creator label — hover-visible, space tasks only */}
         {showCreator && (
           <span
-            className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-muted-foreground whitespace-nowrap"
+            className="hidden md:inline opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-muted-foreground whitespace-nowrap"
             title={`创建者: ${creatorLabel}`}
           >
             {creatorLabel}
@@ -566,7 +566,7 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
         {/* Detail expand */}
         <button
           onClick={() => setDetailOpen((v) => !v)}
-          className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 flex items-center justify-center text-sm text-muted-foreground hover:text-foreground"
+          className="hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 items-center justify-center text-sm text-muted-foreground hover:text-foreground"
           title="查看详情"
           tabIndex={-1}
           aria-label="展开详情"
@@ -575,7 +575,7 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
         </button>
 
         {/* More menu */}
-        <div className="relative" ref={moreRef}>
+        <div className="relative hidden md:block" ref={moreRef}>
           <Button
             variant="ghost"
             size="sm"
