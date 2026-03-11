@@ -130,7 +130,7 @@ export interface AppNotification {
 }
 
 export interface NotificationPrefs {
-  [type: string]: { inapp: boolean; email: boolean };
+  [type: string]: { inapp: boolean; email: boolean; push: boolean };
 }
 
 // ─── Summary Config ─────────────────────────────────────────────────────────────

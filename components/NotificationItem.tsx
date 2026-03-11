@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import type { AppNotification } from "@/lib/types";
+import { getNotificationUrl } from "@/lib/notification-utils";
 
 function getTimeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -39,9 +41,10 @@ export function NotificationItem({ notification, onClick }: Props) {
   const n = notification;
 
   return (
-    <button
+    <Link
+      href={getNotificationUrl(n)}
       onClick={() => onClick?.(n)}
-      className={`w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-muted/60 transition-colors ${
+      className={`w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-muted/60 transition-colors cursor-pointer ${
         n.read ? "opacity-60" : ""
       }`}
     >
@@ -56,6 +59,6 @@ export function NotificationItem({ notification, onClick }: Props) {
       {!n.read && (
         <span className="w-2 h-2 rounded-full bg-info shrink-0 mt-2" />
       )}
-    </button>
+    </Link>
   );
 }

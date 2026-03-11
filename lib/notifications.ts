@@ -2,6 +2,7 @@ import { sql } from "@vercel/postgres";
 import { initDb } from "./db";
 import { NOTIFICATION_TYPES, type NotificationType } from "./notification-types";
 import type { AppNotification, NotificationPrefs } from "./types";
+import { getNotificationUrl } from "./notification-utils";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -21,7 +22,7 @@ export interface CreateNotificationParams {
 function getDefaultPrefs(): NotificationPrefs {
   const prefs: NotificationPrefs = {};
   for (const [key, def] of Object.entries(NOTIFICATION_TYPES)) {
-    prefs[key] = { inapp: def.defaultInapp, email: def.defaultEmail };
+    prefs[key] = { inapp: def.defaultInapp, email: def.defaultEmail, push: def.defaultPush };
   }
   return prefs;
 }
@@ -131,6 +132,20 @@ export async function createNotification(params: CreateNotificationParams): Prom
         }).catch((err) => {
           console.error("[email] Failed to send notification email:", err);
         });
+      });
+    });
+  }
+
+  // Send push notification (async, non-blocking)
+  if (pref?.push) {
+    const url = getNotificationUrl({ task_id: params.taskId, space_id: params.spaceId });
+    import("./push").then(({ sendPushToUser }) => {
+      sendPushToUser(params.userId, {
+        title: params.title,
+        body: params.body,
+        url,
+      }).catch((err) => {
+        console.error("[push] Failed to send push notification:", err);
       });
     });
   }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { NotificationItem } from "./NotificationItem";
 import type { AppNotification } from "@/lib/types";
 
@@ -12,7 +11,6 @@ interface Props {
 }
 
 export function NotificationList({ onClose, compact }: Props) {
-  const router = useRouter();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
@@ -54,7 +52,7 @@ export function NotificationList({ onClose, compact }: Props) {
   };
 
   const handleClick = async (n: AppNotification) => {
-    // Mark as read
+    // Mark as read (navigation handled by <Link> in NotificationItem)
     if (!n.read) {
       fetch("/api/notifications", {
         method: "PATCH",
@@ -65,14 +63,6 @@ export function NotificationList({ onClose, compact }: Props) {
         prev.map((item) => (item.id === n.id ? { ...item, read: true } : item))
       );
       window.dispatchEvent(new CustomEvent("tasks-changed"));
-    }
-    // Navigate
-    if (n.space_id && n.task_id) {
-      router.push(`/spaces/${n.space_id}?focus=${n.task_id}`);
-    } else if (n.space_id) {
-      router.push(`/spaces/${n.space_id}`);
-    } else {
-      router.push("/");
     }
     onClose?.();
   };

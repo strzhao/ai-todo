@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { NLInput } from "@/components/NLInput";
 import { ActionPreview } from "@/components/ActionPreview";
 import { TaskList } from "@/components/TaskList";
@@ -45,6 +46,8 @@ export default function TaskHomePage() {
   const [inputText, setInputText] = useState("");
   const [preview, setPreview] = useState<{ actions: ParsedAction[]; raw: string; traceId?: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const searchParams = useSearchParams();
+  const focusedTaskId = searchParams.get("focus");
 
   useEffect(() => {
     Promise.all([
@@ -55,6 +58,20 @@ export default function TaskHomePage() {
       setCompletedTasks(Array.isArray(completed) ? completed.filter((t) => t.status === 2) : []);
     }).finally(() => setLoading(false));
   }, []);
+
+  // Scroll to and highlight focused task from ?focus=taskId
+  useEffect(() => {
+    if (!focusedTaskId || loading) return;
+    const el = document.getElementById(`task-${focusedTaskId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-sage/40", "bg-sage-mist", "rounded-md");
+      const timer = setTimeout(() => {
+        el.classList.remove("ring-2", "ring-sage/40", "bg-sage-mist", "rounded-md");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [focusedTaskId, loading]);
 
   const todayCount = useMemo(
     () => tasks.filter((t) => isDueToday(t.due_date)).length,

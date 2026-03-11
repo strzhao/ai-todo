@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.18.0",
+    date: "2026-03-11",
+    title: "通知优化：链接修复 + 浏览器推送",
+    items: [
+      "修复通知点击无反应的问题，通知项改为可导航链接，个人任务通知支持跳转并高亮",
+      "新增浏览器推送通知，支持 Safari/Chrome 原生通知弹窗",
+      "通知偏好新增「推送」通道，可按类型独立开关",
+    ],
+    notable: true,
+  },
+  {
     version: "1.17.0",
     date: "2026-03-11",
     title: "AI 总结自定义配置",

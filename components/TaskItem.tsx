@@ -241,7 +241,7 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
   const showCreator = task.space_id && creatorLabel && creatorMember?.email !== currentUserEmail;
 
   return (
-    <div className={`border-b last:border-0 border-border/50 ${completing ? "opacity-40" : ""}`}>
+    <div id={`task-${task.id}`} className={`border-b last:border-0 border-border/50 ${completing ? "opacity-40" : ""}`}>
       {/* Main task row */}
       <div
         className={`flex items-start gap-3 py-3 px-1 group transition-opacity focus-visible:outline-none focus-visible:bg-muted/40 rounded-sm ${isDueToday ? "today-task-row" : ""}`}
