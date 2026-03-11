@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.17.0",
+    date: "2026-03-11",
+    title: "AI 总结自定义配置",
+    items: [
+      "支持自定义系统 Prompt 和数据模板，通过 AI 配置助手自然语言修改",
+      "支持添加外部 HTTP 数据源（GET/POST），总结时自动拉取并注入上下文",
+      "独立设置页面（空间设置 → AI 总结设置 / 总结 Tab 齿轮图标）",
+      "CLI 新增 summary:config 和 summary:update-config 命令",
+    ],
+    notable: true,
+  },
+  {
     version: "1.16.1",
     date: "2026-03-10",
     title: "AI 总结进度修复",

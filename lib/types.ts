@@ -132,3 +132,52 @@ export interface AppNotification {
 export interface NotificationPrefs {
   [type: string]: { inapp: boolean; email: boolean };
 }
+
+// ─── Summary Config ─────────────────────────────────────────────────────────────
+
+export interface SummaryDataSource {
+  id: string;
+  name: string;
+  enabled: boolean;
+  method: "GET" | "POST";
+  url: string;
+  headers?: Record<string, string>;
+  body_template?: string;
+  response_extract?: string;  // 简易点分路径如 "data.items"
+  inject_as: string;          // prompt 模板变量名
+  timeout_ms?: number;        // 默认 10000
+}
+
+export interface SummaryConfig {
+  space_id: string;
+  system_prompt: string | null;
+  data_template: string | null;
+  data_sources: SummaryDataSource[];
+  updated_at: string;
+  updated_by: string | null;
+}
+
+export type SummaryConfigActionType =
+  | "update_prompt"
+  | "update_template"
+  | "add_datasource"
+  | "update_datasource"
+  | "remove_datasource"
+  | "toggle_datasource";
+
+export interface ParsedSummaryConfigAction {
+  type: SummaryConfigActionType;
+  // update_prompt
+  new_prompt?: string;
+  prompt_changes_description?: string;
+  // update_template
+  new_template?: string;
+  template_changes_description?: string;
+  // add/update datasource
+  datasource?: Partial<SummaryDataSource>;
+  // remove/toggle datasource
+  datasource_id?: string;
+  datasource_name?: string;
+  // toggle
+  enabled?: boolean;
+}

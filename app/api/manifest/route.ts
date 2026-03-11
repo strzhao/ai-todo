@@ -197,6 +197,27 @@ const manifest = {
       path: "/api/tasks/tree",
       params: [],
     },
+    {
+      id: "get_summary_config",
+      name: "summary:config",
+      description: "Get AI summary configuration for a space",
+      method: "GET",
+      path: "/api/spaces/:id/summary-config",
+      params: [
+        { name: "id", in: "path", type: "string", required: true, description: "Space ID" },
+      ],
+    },
+    {
+      id: "update_summary_config",
+      name: "summary:update-config",
+      description: "Update AI summary configuration via natural language",
+      method: "POST",
+      path: "/api/spaces/:id/summary-config/parse",
+      params: [
+        { name: "id", in: "path", type: "string", required: true, description: "Space ID" },
+        { name: "text", in: "body", type: "string", required: true, description: "Natural language config change description" },
+      ],
+    },
   ],
 };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Space, TaskMember, SpaceMember } from "@/lib/types";
@@ -209,6 +210,20 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onNameChanged 
           ))}
         </div>
       </section>
+
+      {/* AI Summary Settings */}
+      {(isOwner || isAdmin) && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold">AI 总结</h2>
+          <Link
+            href={`/spaces/${spaceId}/summary-settings`}
+            className="flex items-center justify-between text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
+          >
+            <span>自定义总结模版和数据源</span>
+            <span className="text-muted-foreground/50">›</span>
+          </Link>
+        </section>
+      )}
 
       {/* Archive */}
       {isOwner && (

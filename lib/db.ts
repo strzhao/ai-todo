@@ -161,6 +161,19 @@ async function _doInitDb() {
     )
   `;
 
+  // 12. Summary config table (per-space AI summary customization)
+  await sql`
+    CREATE TABLE IF NOT EXISTS ai_todo_summary_config (
+      id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      space_id     UUID NOT NULL UNIQUE REFERENCES ai_todo_tasks(id) ON DELETE CASCADE,
+      system_prompt TEXT,
+      data_template TEXT,
+      data_sources  JSONB DEFAULT '[]',
+      updated_at   TIMESTAMPTZ DEFAULT NOW(),
+      updated_by   TEXT
+    )
+  `;
+
   // Seed already executed on 2026-03-07: all existing users auto-activated.
 }
 
@@ -954,4 +967,72 @@ export async function incrementSummaryUsage(userId: string, date: string): Promi
     [userId, date]
   );
   return Number(rows[0].count);
+}
+
+// ─── Summary Config ──────────────────────────────────────────────────────────
+
+import type { SummaryConfig, SummaryDataSource } from "./types";
+
+export async function getSummaryConfig(spaceId: string): Promise<SummaryConfig | null> {
+  const { rows } = await sql.query(
+    `SELECT space_id, system_prompt, data_template, data_sources, updated_at, updated_by
+     FROM ai_todo_summary_config WHERE space_id = $1 LIMIT 1`,
+    [spaceId]
+  );
+  if (!rows[0]) return null;
+  return {
+    space_id: rows[0].space_id as string,
+    system_prompt: rows[0].system_prompt as string | null,
+    data_template: rows[0].data_template as string | null,
+    data_sources: (rows[0].data_sources ?? []) as SummaryDataSource[],
+    updated_at: (rows[0].updated_at as Date).toISOString(),
+    updated_by: rows[0].updated_by as string | null,
+  };
+}
+
+export async function upsertSummaryConfig(
+  spaceId: string,
+  config: { system_prompt?: string | null; data_template?: string | null; data_sources?: SummaryDataSource[] },
+  userId: string
+): Promise<void> {
+  const existing = await getSummaryConfig(spaceId);
+  if (existing) {
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
+
+    if (config.system_prompt !== undefined) {
+      fields.push(`system_prompt = $${idx++}`);
+      values.push(config.system_prompt);
+    }
+    if (config.data_template !== undefined) {
+      fields.push(`data_template = $${idx++}`);
+      values.push(config.data_template);
+    }
+    if (config.data_sources !== undefined) {
+      fields.push(`data_sources = $${idx++}`);
+      values.push(JSON.stringify(config.data_sources));
+    }
+    fields.push(`updated_at = NOW()`);
+    fields.push(`updated_by = $${idx++}`);
+    values.push(userId);
+    values.push(spaceId);
+
+    await sql.query(
+      `UPDATE ai_todo_summary_config SET ${fields.join(", ")} WHERE space_id = $${idx}`,
+      values
+    );
+  } else {
+    await sql.query(
+      `INSERT INTO ai_todo_summary_config (space_id, system_prompt, data_template, data_sources, updated_by)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        spaceId,
+        config.system_prompt ?? null,
+        config.data_template ?? null,
+        JSON.stringify(config.data_sources ?? []),
+        userId,
+      ]
+    );
+  }
 }

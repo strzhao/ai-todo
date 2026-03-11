@@ -318,6 +318,8 @@ export default function SpacePage({ params }: SpacePageProps) {
           taskId={focusedTaskId ?? spaceId}
           taskTitle={focusedTask?.title ?? space?.title ?? ""}
           autoTrigger
+          spaceId={spaceId}
+          canConfigure={space?.my_role === "owner" || space?.my_role === "admin"}
         />
       )}
 

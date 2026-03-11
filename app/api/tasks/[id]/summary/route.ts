@@ -1,79 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { initDb, getTaskForUser, getDescendantTasks, getLogsForTasks, getTaskMembers, getSummaryCache, upsertSummaryCache, getSummaryUsageCount, incrementSummaryUsage } from "@/lib/db";
+import { initDb, getTaskForUser, getDescendantTasks, getLogsForTasks, getTaskMembers, getSummaryCache, upsertSummaryCache, getSummaryUsageCount, incrementSummaryUsage, getSummaryConfig } from "@/lib/db";
 import { getDisplayLabel } from "@/lib/display-utils";
 import { requireSpaceMember, getSpaceMember } from "@/lib/spaces";
 import { LLMClient } from "@/lib/llm-client";
-import type { Task, TaskLog } from "@/lib/types";
+import { DEFAULT_SYSTEM_PROMPT, DEFAULT_DATA_TEMPLATE } from "@/app/api/spaces/[id]/summary-config/route";
+import type { Task, TaskLog, SummaryDataSource } from "@/lib/types";
 
 export const preferredRegion = "hkg1";
 export const maxDuration = 60;
-
-const SUMMARY_SYSTEM_PROMPT = `你是一个项目管理助手，为 PM 生成简洁的项目总结。
-
-你会收到完整的任务结构（含父子层级）、全部历史进展日志和今日进展日志。历史日志仅作为背景参考，输出聚焦今日状态。
-
-**核心原则**：
-- 按主题/模块/功能域聚类，不要逐条罗列单个任务
-- 父子任务是一个整体：子任务归属父任务主题下合并描述
-- 各部分使用 Markdown 表格展示，同模块的内容合并为一行
-- 负责人使用数据中 @ 后的昵称，不要显示邮箱
-- 识别问题/修复类工作：标题或日志中含"修复/fix/bug/解决/处理/问题/异常/报错"的任务属于问题修复范畴
-
-输出格式（Markdown），严格按以下四部分：
-
-## 问题与解决
-先用一句话概括全局状态（总任务数、完成率等关键数字）。
-
-**已解决的问题**
-
-| 模块 | 解决内容 | 负责人 |
-|------|---------|--------|
-
-- 包含：今日标记完成的任务 + 进展日志中提到的修复/解决事项
-- **重点**：子任务中含修复/fix/bug/解决等关键词的已完成任务必须归入此表
-- 同一父任务下的多个子任务合并为一行（如"完成了 A、B、C"）
-- 无则写"今日无已解决问题"
-
-## 进展与特性
-按模块聚类，展示当前正在推进的功能特性和工作进展：
-
-| 模块 | 进展概要 | 进度 | 负责人 |
-|------|---------|------|--------|
-
-- 父任务作为模块名，子任务进展合并描述
-- 进度使用百分比
-- 重点突出今日有实质推进的部分
-- 如果今日无特性进展，基于任务结构概括各模块当前状态
-
-## 风险提示
-按风险类型聚类：
-
-| 风险类型 | 涉及模块 | 说明 | 严重程度 |
-|---------|---------|------|---------|
-
-- **新增问题**：今日新建的任务或日志中提到的阻塞/问题，按模块归组
-- **逾期风险**：已逾期或 3 天内到期的任务所属模块
-- **停滞风险**：P0/P1 任务最近 3 天无进展的模块
-- **依赖风险**：前置任务未完成可能阻塞后续的模块
-
-如果无风险项，说明"当前无明显风险"，不输出表格。
-
-## 进行中概览
-按模块分组展示所有未完成的工作：
-
-| 模块 | 完成情况 | 进度 | 负责人 | 截止日 |
-|------|---------|------|--------|--------|
-
-- 模块名对应一级父任务
-- 完成情况：子任务完成数/总数（如 3/5）
-- 同模块子任务合并描述，不要逐行列出
-- 按优先级从高到低排列
-
-规则：
-- 只基于提供的数据，不捏造，不给建议
-- 简洁直接，聚类汇总
-- 中文输出`;
 
 function buildTaskTreeText(allTasks: Task[], parentId: string | undefined, indent: number, nameMap: Map<string, string>): string {
   const children = allTasks.filter((t) =>
@@ -120,7 +55,7 @@ function formatLogs(logs: TaskLog[], taskIdToTitle: Map<string, string>, nameMap
     .join("\n");
 }
 
-function buildUserMessage(
+function buildDefaultUserMessage(
   parentTask: Task,
   descendants: Task[],
   allLogs: TaskLog[],
@@ -162,6 +97,147 @@ ${allLogsText}
 ${todayLogsText}`;
 }
 
+// ─── Template rendering ──────────────────────────────────────────────────────
+
+function buildTemplateVariables(
+  parentTask: Task,
+  descendants: Task[],
+  allLogs: TaskLog[],
+  todayLogs: TaskLog[],
+  date: string,
+  nameMap: Map<string, string>,
+  dsResults: Record<string, string>
+): Record<string, string> {
+  const allTasks = [parentTask, ...descendants];
+  const taskIdToTitle = new Map(allTasks.map((t) => [t.id, t.title]));
+
+  const childrenTree = buildTaskTreeText(allTasks, parentTask.id, 1, nameMap);
+  const fullTree = `- [${parentTask.status === 2 ? "已完成" : "待办"}][P${parentTask.priority}] ${parentTask.title}\n${childrenTree}`;
+
+  const totalCount = allTasks.length;
+  const completedCount = allTasks.filter((t) => t.status === 2).length;
+  const pendingCount = totalCount - completedCount;
+
+  const vars: Record<string, string> = {
+    date,
+    project_name: parentTask.title,
+    task_tree: fullTree,
+    all_logs: allLogs.length > 0
+      ? formatLogs(allLogs, taskIdToTitle, nameMap)
+      : "暂无进展日志",
+    today_logs: todayLogs.length > 0
+      ? formatLogs(todayLogs, taskIdToTitle, nameMap)
+      : "今日暂无进展日志",
+    stats: `共 ${totalCount} 个任务，${completedCount} 已完成，${pendingCount} 待办`,
+  };
+
+  // Inject data source results as ds.xxx
+  for (const [key, value] of Object.entries(dsResults)) {
+    vars[`ds.${key}`] = value;
+  }
+
+  return vars;
+}
+
+function renderTemplate(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{\{([^}]+)\}\}/g, (match, key: string) => {
+    const trimmed = key.trim();
+    return vars[trimmed] ?? match;
+  });
+}
+
+// ─── External data source fetching ───────────────────────────────────────────
+
+/** Simple dot-path extraction from a JSON object, e.g. "data.items" */
+function extractByPath(obj: unknown, path: string): unknown {
+  const parts = path.split(".");
+  let current = obj;
+  for (const part of parts) {
+    if (current == null || typeof current !== "object") return undefined;
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
+}
+
+function replaceTemplateVars(text: string, vars: Record<string, string>): string {
+  return text.replace(/\{\{([^}]+)\}\}/g, (match, key: string) => {
+    const trimmed = key.trim();
+    return vars[trimmed] ?? match;
+  });
+}
+
+async function fetchDataSources(
+  sources: SummaryDataSource[],
+  contextVars: Record<string, string>
+): Promise<Record<string, string>> {
+  const enabled = sources.filter((s) => s.enabled);
+  if (enabled.length === 0) return {};
+
+  const results: Record<string, string> = {};
+
+  await Promise.allSettled(
+    enabled.map(async (source) => {
+      const timeout = source.timeout_ms ?? 10000;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeout);
+
+      try {
+        const url = replaceTemplateVars(source.url, contextVars);
+        const headers: Record<string, string> = {};
+        if (source.headers) {
+          for (const [k, v] of Object.entries(source.headers)) {
+            headers[k] = replaceTemplateVars(v, contextVars);
+          }
+        }
+
+        const fetchOptions: RequestInit = {
+          method: source.method,
+          headers,
+          signal: controller.signal,
+        };
+
+        if (source.method === "POST" && source.body_template) {
+          fetchOptions.body = replaceTemplateVars(source.body_template, contextVars);
+          if (!headers["Content-Type"] && !headers["content-type"]) {
+            headers["Content-Type"] = "application/json";
+          }
+        }
+
+        const res = await fetch(url, fetchOptions);
+        const text = await res.text();
+
+        if (!res.ok) {
+          results[source.inject_as] = `[数据源「${source.name}」请求失败: HTTP ${res.status}]`;
+          return;
+        }
+
+        if (source.response_extract) {
+          try {
+            const json = JSON.parse(text);
+            const extracted = extractByPath(json, source.response_extract);
+            results[source.inject_as] = typeof extracted === "string"
+              ? extracted
+              : JSON.stringify(extracted, null, 2);
+          } catch {
+            results[source.inject_as] = text;
+          }
+        } else {
+          results[source.inject_as] = text;
+        }
+      } catch (err) {
+        const isAbort = (err as { name?: string }).name === "AbortError";
+        results[source.inject_as] = `[数据源「${source.name}」${isAbort ? "请求超时" : "获取失败"}]`;
+      } finally {
+        clearTimeout(timer);
+      }
+    })
+  );
+
+  return results;
+}
+
+// ─── Quota ────────────────────────────────────────────────────────────────────
+
 async function getQuotaInfo(userId: string, spaceId: string | undefined, date: string) {
   const member = spaceId ? await getSpaceMember(spaceId, userId) : null;
   const role = member?.role ?? "member";
@@ -169,6 +245,8 @@ async function getQuotaInfo(userId: string, spaceId: string | undefined, date: s
   const used = await getSummaryUsageCount(userId, date);
   return { used, limit, remaining: Math.max(0, limit - used) };
 }
+
+// ─── Routes ──────────────────────────────────────────────────────────────────
 
 export async function GET(
   req: NextRequest,
@@ -250,6 +328,10 @@ export async function POST(
     );
   }
 
+  // Load custom config (if any)
+  const config = spaceId ? await getSummaryConfig(spaceId) : null;
+  const systemPrompt = config?.system_prompt ?? DEFAULT_SYSTEM_PROMPT;
+
   const descendants = await getDescendantTasks(id);
   const allTaskIds = [id, ...descendants.map((t) => t.id)];
   const [allLogs, members] = await Promise.all([
@@ -259,14 +341,37 @@ export async function POST(
   const todayLogs = allLogs.filter((l) => l.created_at.slice(0, 10) === date);
   const nameMap = new Map(members.map((m) => [m.email, getDisplayLabel(m.email, m)]));
 
+  // Fetch external data sources
+  const basicVars: Record<string, string> = { date, project_name: task.title };
+  const dsResults = config?.data_sources?.length
+    ? await fetchDataSources(config.data_sources, basicVars)
+    : {};
+
   const llm = new LLMClient();
+
+  // Build user message: custom template or default
+  function buildMessage(logs: TaskLog[]): string {
+    if (config?.data_template) {
+      const vars = buildTemplateVariables(task!, descendants, logs, todayLogs, date, nameMap, dsResults);
+      return renderTemplate(config.data_template, vars);
+    }
+    // Default path: use original buildDefaultUserMessage + append data source results
+    let msg = buildDefaultUserMessage(task!, descendants, logs, todayLogs, date, nameMap);
+    if (Object.keys(dsResults).length > 0) {
+      msg += "\n\n## 外部数据源";
+      for (const [key, value] of Object.entries(dsResults)) {
+        msg += `\n\n### ${key}\n${value}`;
+      }
+    }
+    return msg;
+  }
 
   // Try with full data first; fallback to recent-only if too large
   async function tryGenerate(logs: TaskLog[]): Promise<ReadableStream<string>> {
-    const userMessage = buildUserMessage(task!, descendants, logs, todayLogs, date, nameMap);
+    const userMessage = buildMessage(logs);
     return llm.chatStream(
       [
-        { role: "system", content: SUMMARY_SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         { role: "user", content: userMessage },
       ],
       0.3
