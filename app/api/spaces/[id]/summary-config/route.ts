@@ -156,6 +156,24 @@ export async function PUT(
     data_sources?: SummaryDataSource[];
   };
 
+  // 回填被 mask 的 header 值：前端拿到的是 masked config，再 PUT 回来时需要还原
+  if (body.data_sources) {
+    const existing = await getSummaryConfig(id);
+    const existingMap = new Map(
+      (existing?.data_sources ?? []).map((s) => [s.id, s])
+    );
+    for (const ds of body.data_sources) {
+      if (!ds.headers) continue;
+      const orig = existingMap.get(ds.id);
+      if (!orig?.headers) continue;
+      for (const [k, v] of Object.entries(ds.headers)) {
+        if (v.includes("****") && orig.headers[k]) {
+          ds.headers[k] = orig.headers[k];
+        }
+      }
+    }
+  }
+
   await upsertSummaryConfig(id, body, user.id);
   const updated = await getSummaryConfig(id);
 
