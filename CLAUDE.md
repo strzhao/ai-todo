@@ -104,6 +104,8 @@ POSTGRES_URL=...    # Neon DB（与 ai-news 共享，表名不同）
 RESEND_API_KEY=...                                 # Resend 邮件服务 API Key
 EMAIL_FROM=AI Todo <noreply@stringzhao.life>       # 发件人地址
 CRON_SECRET=...                                    # Vercel Cron 认证密钥
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=...                    # Web Push VAPID 公钥
+VAPID_PRIVATE_KEY=...                              # Web Push VAPID 私钥
 ```
 
 > **注意**: Vercel 上设置环境变量时用 `printf '%s'` 而非 `echo`，避免尾部换行导致 JWT 校验失败。
@@ -140,6 +142,8 @@ app/
     notifications/route.ts      # GET（分页查询）+ PATCH（批量标记已读）
     notifications/unread-count/route.ts  # GET 返回 { count }
     notifications/prefs/route.ts         # GET + PUT 通知偏好
+    push/vapid/route.ts         # GET 返回 VAPID 公钥
+    push/subscribe/route.ts     # POST（订阅）+ DELETE（取消订阅）
     cron/daily-digest/route.ts  # Cron 每日摘要邮件（UTC 01:00 = 北京 09:00）
 components/
   SpaceNav.tsx                  # 侧边栏导航（桌面）+ 底部 Tab（移动端）+ 当前空间一级任务目录 + 通知铃铛
@@ -159,7 +163,7 @@ components/
   (已删除 NotificationBell.tsx，通知改为图标直接导航到 /notifications 页面)
   NotificationList.tsx          # 通知列表（Popover / 全屏页共用）
   NotificationItem.tsx          # 单条通知行
-  NotificationSettings.tsx      # 通知偏好设置（应用内 + 邮件开关矩阵）
+  NotificationSettings.tsx      # 通知偏好设置（应用内 + 邮件 + 推送开关矩阵）
 lib/
   types.ts                      # Task、ParsedTask、ParsedAction、ActionResult、TaskLog、AppNotification 等接口
   llm-client.ts                 # DeepSeek 客户端（55s 超时，AbortError 兜底）
@@ -179,12 +183,17 @@ lib/
   email.ts                      # Resend 邮件客户端（sendNotificationEmail / sendDigestEmail）
   email-templates.ts            # 邮件 HTML 模板（通知 + 每日摘要）
   daily-digest.ts               # 每日摘要数据查询 + 内容组装
-  db.ts                         # Vercel Postgres CRUD（tasks + task_members + task_logs）；空间 = pinned 任务
+  notification-utils.ts         # 通知工具函数（getNotificationUrl 统一链接计算）
+  push.ts                       # Web Push 服务端推送（sendPushToUser、VAPID 配置）
+  use-push.ts                   # 客户端推送订阅 hook（subscribeToPush、unsubscribeFromPush）
+  db.ts                         # Vercel Postgres CRUD（tasks + task_members + task_logs + push_subscriptions）；空间 = pinned 任务
 __tests__/
   task-utils.test.ts            # buildTree 单元测试
   gantt-utils.test.ts           # 日期函数单元测试
   parse-utils.test.ts           # parseItem / parseActions 单元测试（含 move action）
 proxy.ts                        # 路由保护（未登录重定向到 /authorize）
+public/
+  sw.js                         # Service Worker（push 事件处理 + notificationclick 导航）
 ```
 
 ## 任务优先级
