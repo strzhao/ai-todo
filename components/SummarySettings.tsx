@@ -342,18 +342,34 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
 }
 
 function DataSourceRow({ source }: { source: SummaryDataSource }) {
+  const hasHeaders = source.headers && Object.keys(source.headers).length > 0;
+  const hasBody = !!source.body_template;
+  const hasExtract = !!source.response_extract;
+
   return (
-    <div className="flex items-center gap-3 py-1.5">
-      <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${source.enabled ? "bg-sage" : "bg-muted-foreground/30"}`} />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm truncate">{source.name}</p>
-        <p className="text-xs text-muted-foreground truncate">
-          {source.method} {source.url}
-        </p>
+    <div className="py-2 space-y-1.5">
+      <div className="flex items-center gap-3">
+        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${source.enabled ? "bg-sage" : "bg-muted-foreground/30"}`} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm truncate">{source.name}</p>
+        </div>
+        <span className={`text-[10px] px-1.5 py-0.5 rounded ${source.enabled ? "bg-sage-mist text-sage" : "bg-muted text-muted-foreground"}`}>
+          {source.enabled ? "已启用" : "已禁用"}
+        </span>
       </div>
-      <span className={`text-[10px] px-1.5 py-0.5 rounded ${source.enabled ? "bg-sage-mist text-sage" : "bg-muted text-muted-foreground"}`}>
-        {source.enabled ? "已启用" : "已禁用"}
-      </span>
+      <div className="ml-[18px] space-y-1 text-xs text-muted-foreground">
+        <p className="font-mono truncate">{source.method} {source.url}</p>
+        {hasHeaders && (
+          <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+            {Object.entries(source.headers!).map(([k, v]) => (
+              <span key={k} className="font-mono">{k}: {v}</span>
+            ))}
+          </div>
+        )}
+        {hasBody && <p className="truncate">Body: <span className="font-mono">{source.body_template}</span></p>}
+        {hasExtract && <p>提取路径: <span className="font-mono">{source.response_extract}</span></p>}
+        <p>注入变量: <span className="font-mono">{"{{ds." + source.inject_as + "}}"}</span></p>
+      </div>
     </div>
   );
 }
