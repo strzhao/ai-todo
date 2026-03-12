@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { NLInput } from "@/components/NLInput";
 import { ActionPreview } from "@/components/ActionPreview";
@@ -131,23 +131,35 @@ export default function SpacePage({ params }: SpacePageProps) {
     ? (focusedTask ? [focusedTask, ...focusLayerTasks] : focusLayerTasks)
     : (space ? [space, ...focusLayerTasks] : focusLayerTasks);
 
-  // When a task is focused, show all descendants (not just direct children)
+  // Drill-down: each level only shows direct children, not all descendants
   const displayTasks = focusedTaskId
-    ? getDescendants(filteredTasks, focusedTaskId)
-    : filteredTasks;
+    ? filteredTasks.filter(t => t.parent_id === focusedTaskId)
+    : filteredTasks.filter(t => t.parent_id === spaceId || (t.space_id === spaceId && !t.parent_id));
 
-  // Completed tasks scoped to focus context (include all descendants)
+  // Completed tasks scoped to current level only
   const focusedCompletedTasks = focusedTaskId
-    ? getDescendants(completedTasks, focusedTaskId)
-    : completedTasks;
+    ? completedTasks.filter(t => t.parent_id === focusedTaskId)
+    : completedTasks.filter(t => t.parent_id === spaceId || (t.space_id === spaceId && !t.parent_id));
 
-  const completedCount = focusedCompletedTasks.length;
-  const totalCount = displayTasks.length + completedCount;
+  // Progress stats use all descendants for accurate overall completion rate
+  const allDescendants = focusedTaskId ? getDescendants(filteredTasks, focusedTaskId) : filteredTasks;
+  const allCompletedDescendants = focusedTaskId ? getDescendants(completedTasks, focusedTaskId) : completedTasks;
+  const completedCount = allCompletedDescendants.length;
+  const totalCount = allDescendants.length + completedCount;
   const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   const ganttTasks = focusedTaskId
-    ? [...displayTasks, ...focusedCompletedTasks]
+    ? [...allDescendants, ...allCompletedDescendants]
     : [...tasks, ...completedTasks];
+
+  // Child count map for drill-down: tells TaskItem how many children each task has
+  const childCountMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const t of tasks) {
+      if (t.parent_id) map[t.parent_id] = (map[t.parent_id] ?? 0) + 1;
+    }
+    return map;
+  }, [tasks]);
 
   if (loading) {
     return (
@@ -307,6 +319,8 @@ export default function SpacePage({ params }: SpacePageProps) {
             emptyText={focusedTaskId ? "该任务暂无子任务" : "空间内暂无任务"}
             emptySubtext={focusedTaskId ? "通过 AI 输入框为该任务添加子任务" : "输入一句话创建空间任务，支持 @成员 指派"}
             members={members}
+            onDrillDown={(taskId) => router.push(`/spaces/${spaceId}?focus=${taskId}`)}
+            childCountMap={childCountMap}
           />
         </>
       )}

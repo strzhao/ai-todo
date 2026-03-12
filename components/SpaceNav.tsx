@@ -150,7 +150,7 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
   function renderSpaceTaskTree(spaceId: string, nodes: SpaceTaskNode[]) {
     return nodes.map((node) => {
       const hasChildren = node.subtasks.length > 0;
-      const collapsed = Boolean(collapsedTaskIds[node.id]);
+      const collapsed = !collapsedTaskIds[node.id];
       const isFocused = focusedTaskId === node.id;
 
       return (

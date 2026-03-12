@@ -79,6 +79,8 @@ interface Props {
   pinnedSectionDefaultCollapsed?: boolean;
   pinnedSectionTitle?: string;
   members?: TaskMember[];
+  onDrillDown?: (taskId: string) => void;
+  childCountMap?: Record<string, number>;
 }
 
 export function TaskList({
@@ -96,6 +98,8 @@ export function TaskList({
   pinnedSectionDefaultCollapsed = false,
   pinnedSectionTitle = "置顶任务",
   members,
+  onDrillDown,
+  childCountMap,
 }: Props) {
   const [showCompleted, setShowCompleted] = useState(false);
   const [expandedCompletedId, setExpandedCompletedId] = useState<string | null>(null);
@@ -125,6 +129,8 @@ export function TaskList({
           currentUserEmail={currentUserEmail}
           highlightTodayDue={highlightTodayDue}
           members={members}
+          onDrillDown={onDrillDown}
+          childCountMap={childCountMap}
         />
       ))}
 
@@ -152,6 +158,8 @@ export function TaskList({
                   currentUserEmail={currentUserEmail}
                   highlightTodayDue={highlightTodayDue}
                   members={members}
+                  onDrillDown={onDrillDown}
+                  childCountMap={childCountMap}
                 />
               ))}
             </div>

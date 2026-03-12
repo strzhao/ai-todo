@@ -28,9 +28,11 @@ interface Props {
   currentUserEmail?: string;
   highlightTodayDue?: boolean;
   members?: TaskMember[];
+  onDrillDown?: (taskId: string) => void;
+  childCountMap?: Record<string, number>;
 }
 
-export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, currentUserEmail, highlightTodayDue = false, members: membersProp }: Props) {
+export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, currentUserEmail, highlightTodayDue = false, members: membersProp, onDrillDown, childCountMap }: Props) {
   const router = useRouter();
   const [completing, setCompleting] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -57,7 +59,9 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
   const tagInputRef = useRef<HTMLInputElement>(null);
 
   const p = PRIORITY_BADGES[task.priority] ?? PRIORITY_BADGES[2];
-  const hasSubtasks = (subtasks?.length ?? 0) > 0;
+  const hasSubtasks = (subtasks?.length ?? 0) > 0 || (onDrillDown && (childCountMap?.[task.id] ?? 0) > 0);
+  const subtaskCount = onDrillDown ? (childCountMap?.[task.id] ?? subtasks?.length ?? 0) : (subtasks?.length ?? 0);
+
 
   // Sync local state when task prop changes
   useEffect(() => { setLocalProgress(task.progress); }, [task.progress]);
@@ -494,10 +498,16 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
             {/* Subtask count toggle */}
             {hasSubtasks && (
               <button
-                onClick={() => setExpanded((v) => !v)}
+                onClick={() => {
+                  if (onDrillDown) {
+                    onDrillDown(task.id);
+                  } else {
+                    setExpanded((v) => !v);
+                  }
+                }}
                 className="text-xs px-1.5 py-0 rounded border border-border text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
               >
-                {expanded ? "▼" : "▶"} {subtasks!.length} 子任务
+                {onDrillDown ? "▶" : (expanded ? "▼" : "▶")} {subtaskCount} 子任务
               </button>
             )}
           </div>
