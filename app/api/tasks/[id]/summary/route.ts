@@ -252,6 +252,7 @@ async function fetchDataSources(
         }
       } catch (err) {
         const isAbort = (err as { name?: string }).name === "AbortError";
+        console.error(`[datasource] ${source.name} exception:`, (err as Error).message, `proxy=${process.env.API_PROXY_URL || "none"}`);
         results[source.inject_as] = `[数据源「${source.name}」${isAbort ? "请求超时" : "获取失败"}]`;
       } finally {
         clearTimeout(timer);
