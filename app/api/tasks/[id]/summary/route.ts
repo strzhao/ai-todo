@@ -183,7 +183,9 @@ async function fetchDataSources(
 
       try {
         const url = replaceTemplateVars(source.url, contextVars);
-        const headers: Record<string, string> = {};
+        const headers: Record<string, string> = {
+          "User-Agent": "AI-Todo-Bot/1.0",
+        };
         if (source.headers) {
           for (const [k, v] of Object.entries(source.headers)) {
             headers[k] = replaceTemplateVars(v, contextVars);
@@ -207,6 +209,7 @@ async function fetchDataSources(
         const text = await res.text();
 
         if (!res.ok) {
+          console.error(`[datasource] ${source.name} failed: HTTP ${res.status}, url=${url}, response=${text.slice(0, 200)}`);
           results[source.inject_as] = `[数据源「${source.name}」请求失败: HTTP ${res.status}]`;
           return;
         }
