@@ -6,6 +6,7 @@ import { NLInput } from "@/components/NLInput";
 import { ActionPreview } from "@/components/ActionPreview";
 import { TaskList } from "@/components/TaskList";
 import { GanttChart } from "@/components/GanttChart";
+import { PeopleGantt } from "@/components/PeopleGantt";
 import { DailySummary } from "@/components/DailySummary";
 import { SpaceSettings } from "@/components/SpaceSettings";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -33,6 +34,7 @@ export default function SpacePage({ params }: SpacePageProps) {
   const [loading, setLoading] = useState(true);
   const [filterMember, setFilterMember] = useState<string>("all");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [ganttSub, setGanttSub] = useState<"task" | "people">("task");
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -310,7 +312,27 @@ export default function SpacePage({ params }: SpacePageProps) {
       )}
 
       {tab === "gantt" && (
-        <GanttChart tasks={ganttTasks} members={members} onTaskClick={handleGanttTaskClick} />
+        <>
+          <div className="flex gap-3 mb-3 border-b border-border/30">
+            <button
+              onClick={() => setGanttSub("task")}
+              className={`text-[11px] pb-1.5 border-b-2 transition-colors ${ganttSub === "task" ? "border-primary text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            >
+              任务
+            </button>
+            <button
+              onClick={() => setGanttSub("people")}
+              className={`text-[11px] pb-1.5 border-b-2 transition-colors ${ganttSub === "people" ? "border-primary text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            >
+              人员
+            </button>
+          </div>
+          {ganttSub === "task" ? (
+            <GanttChart tasks={ganttTasks} members={members} onTaskClick={handleGanttTaskClick} />
+          ) : (
+            <PeopleGantt tasks={ganttTasks} members={members} onTaskClick={handleGanttTaskClick} />
+          )}
+        </>
       )}
 
       {tab === "summary" && (

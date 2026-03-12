@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.20.0",
+    date: "2026-03-12",
+    title: "甘特图人员维度优化",
+    items: [
+      "甘特图新增「任务/人员」子 tab，人员视角每人一行、多任务平铺",
+      "任务条上的负责人头像更醒目，左侧前置显示品牌色头像圆",
+    ],
+    notable: true,
+  },
+  {
     version: "1.19.1",
     date: "2026-03-12",
     title: "AI 总结数据源代理简化",
