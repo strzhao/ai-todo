@@ -7,7 +7,7 @@ import { LLMClient } from "@/lib/llm-client";
 import { DEFAULT_SYSTEM_PROMPT, DEFAULT_DATA_TEMPLATE } from "@/app/api/spaces/[id]/summary-config/route";
 import type { Task, TaskLog, SummaryDataSource } from "@/lib/types";
 
-export const preferredRegion = "hnd1";
+export const preferredRegion = "hkg1";
 export const maxDuration = 60;
 
 function buildTaskTreeText(allTasks: Task[], parentId: string | undefined, indent: number, nameMap: Map<string, string>): string {
@@ -166,6 +166,29 @@ function replaceTemplateVars(text: string, vars: Record<string, string>): string
   });
 }
 
+// Proxy fetch: route external requests through local api-proxy when configured
+async function proxyFetch(url: string, options: RequestInit): Promise<Response> {
+  const proxyUrl = process.env.API_PROXY_URL;
+  const proxyToken = process.env.API_PROXY_TOKEN;
+  if (!proxyUrl || !proxyToken) return fetch(url, options);
+
+  return fetch(`${proxyUrl}/proxy`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-proxy-token": proxyToken,
+    },
+    body: JSON.stringify({
+      url,
+      method: (options.method as string) || "GET",
+      headers: options.headers,
+      body: options.body,
+      timeout: 15000,
+    }),
+    signal: options.signal,
+  });
+}
+
 async function fetchDataSources(
   sources: SummaryDataSource[],
   contextVars: Record<string, string>
@@ -205,7 +228,7 @@ async function fetchDataSources(
           }
         }
 
-        const res = await fetch(url, fetchOptions);
+        const res = await proxyFetch(url, fetchOptions);
         const text = await res.text();
 
         if (!res.ok) {

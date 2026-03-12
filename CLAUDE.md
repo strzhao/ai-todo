@@ -106,6 +106,8 @@ EMAIL_FROM=AI Todo <noreply@stringzhao.life>       # 发件人地址
 CRON_SECRET=...                                    # Vercel Cron 认证密钥
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=...                    # Web Push VAPID 公钥
 VAPID_PRIVATE_KEY=...                              # Web Push VAPID 私钥
+API_PROXY_URL=http://43.143.124.222:18082          # 本地 API 代理（frp 隧道）
+API_PROXY_TOKEN=...                                # 代理认证 token
 ```
 
 > **注意**: Vercel 上设置环境变量时用 `printf '%s'` 而非 `echo`，避免尾部换行导致 JWT 校验失败。
