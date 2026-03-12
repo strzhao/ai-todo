@@ -7,7 +7,7 @@ import { LLMClient } from "@/lib/llm-client";
 import { DEFAULT_SYSTEM_PROMPT, DEFAULT_DATA_TEMPLATE } from "@/app/api/spaces/[id]/summary-config/route";
 import type { Task, TaskLog, SummaryDataSource } from "@/lib/types";
 
-export const preferredRegion = "hkg1";
+export const preferredRegion = "hnd1";
 export const maxDuration = 60;
 
 function buildTaskTreeText(allTasks: Task[], parentId: string | undefined, indent: number, nameMap: Map<string, string>): string {
