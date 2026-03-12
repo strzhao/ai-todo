@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerUser } from "@/lib/server-auth";
 import { getSpacesByUser, initDb, getUserActivation } from "@/lib/db";
 import { SpaceNav } from "@/components/SpaceNav";
+import { PushPromptBanner } from "@/components/PushPromptBanner";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getServerUser();
@@ -23,6 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <SpaceNav spaces={spacesForNav} userEmail={user.email} userNickname={user.nickname} isDev={process.env.AUTH_DEV_BYPASS === "true"} />
       {/* Desktop: offset for sidebar; mobile: offset for bottom tab */}
       <main className="main-content pb-16 md:pb-0">
+        <PushPromptBanner />
         {children}
       </main>
     </div>

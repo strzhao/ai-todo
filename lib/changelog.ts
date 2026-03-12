@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.19.0",
+    date: "2026-03-12",
+    title: "PWA 支持 + 推送提醒",
+    items: [
+      "支持添加到主屏幕，离线时显示友好提示页",
+      "智能推送提醒横幅，使用几次后自动提示开启浏览器推送",
+    ],
+    notable: true,
+  },
+  {
     version: "1.18.0",
     date: "2026-03-11",
     title: "通知优化：链接修复 + 浏览器推送",

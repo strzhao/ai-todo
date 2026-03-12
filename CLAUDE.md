@@ -166,6 +166,8 @@ components/
   NotificationList.tsx          # 通知列表（Popover / 全屏页共用）
   NotificationItem.tsx          # 单条通知行
   NotificationSettings.tsx      # 通知偏好设置（应用内 + 邮件 + 推送开关矩阵）
+  PushPromptBanner.tsx          # 推送提醒横幅（访问 3 次后智能提示开启推送）
+  ServiceWorkerRegistrar.tsx    # Service Worker 注册（app 加载时自动注册）
 lib/
   types.ts                      # Task、ParsedTask、ParsedAction、ActionResult、TaskLog、AppNotification 等接口
   llm-client.ts                 # DeepSeek 客户端（55s 超时，AbortError 兜底）
@@ -195,7 +197,9 @@ __tests__/
   parse-utils.test.ts           # parseItem / parseActions 单元测试（含 move action）
 proxy.ts                        # 路由保护（未登录重定向到 /authorize）
 public/
-  sw.js                         # Service Worker（push 事件处理 + notificationclick 导航）
+  sw.js                         # Service Worker（push 通知 + 离线 fallback）
+  manifest.json                 # PWA manifest（standalone 模式 + 苔色主题）
+  offline.html                  # 离线提示页（自包含 HTML）
 ```
 
 ## 任务优先级
