@@ -172,6 +172,7 @@ async function proxyFetch(url: string, options: RequestInit): Promise<Response> 
   const proxyToken = process.env.API_PROXY_TOKEN;
   if (!proxyUrl || !proxyToken) return fetch(url, options);
 
+  // Use a longer timeout for proxy (tunnel adds latency), ignore outer signal
   return fetch(`${proxyUrl}/proxy`, {
     method: "POST",
     headers: {
@@ -185,7 +186,7 @@ async function proxyFetch(url: string, options: RequestInit): Promise<Response> 
       body: options.body,
       timeout: 15000,
     }),
-    signal: options.signal,
+    signal: AbortSignal.timeout(30000),
   });
 }
 
