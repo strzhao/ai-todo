@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.19.1",
+    date: "2026-03-12",
+    title: "AI 总结数据源代理简化",
+    items: [
+      "AI 总结数据源改为直接请求配置里的 URL，不再在服务端额外套一层代理",
+      "支持把内网接口先经由本地 frp 暴露后，直接作为数据源地址使用",
+    ],
+  },
+  {
     version: "1.19.0",
     date: "2026-03-12",
     title: "PWA 支持 + 推送提醒",

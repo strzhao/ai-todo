@@ -166,30 +166,6 @@ function replaceTemplateVars(text: string, vars: Record<string, string>): string
   });
 }
 
-// Proxy fetch: route external requests through local api-proxy when configured
-async function proxyFetch(url: string, options: RequestInit): Promise<Response> {
-  const proxyUrl = process.env.API_PROXY_URL;
-  const proxyToken = process.env.API_PROXY_TOKEN;
-  if (!proxyUrl || !proxyToken) return fetch(url, options);
-
-  // Use a longer timeout for proxy (tunnel adds latency), ignore outer signal
-  return fetch(`${proxyUrl}/proxy`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-proxy-token": proxyToken,
-    },
-    body: JSON.stringify({
-      url,
-      method: (options.method as string) || "GET",
-      headers: options.headers,
-      body: options.body,
-      timeout: 15000,
-    }),
-    signal: AbortSignal.timeout(30000),
-  });
-}
-
 async function fetchDataSources(
   sources: SummaryDataSource[],
   contextVars: Record<string, string>
@@ -229,7 +205,7 @@ async function fetchDataSources(
           }
         }
 
-        const res = await proxyFetch(url, fetchOptions);
+        const res = await fetch(url, fetchOptions);
         const text = await res.text();
 
         if (!res.ok) {
@@ -254,7 +230,7 @@ async function fetchDataSources(
       } catch (err) {
         const isAbort = (err as { name?: string }).name === "AbortError";
         const cause = (err as { cause?: unknown }).cause;
-        console.error(`[datasource] ${source.name} exception: name=${(err as Error).name} msg=${(err as Error).message} cause=${cause ? JSON.stringify(cause) : "none"} proxy=${process.env.API_PROXY_URL || "none"}`);
+        console.error(`[datasource] ${source.name} exception: name=${(err as Error).name} msg=${(err as Error).message} cause=${cause ? JSON.stringify(cause) : "none"}`);
         results[source.inject_as] = `[数据源「${source.name}」${isAbort ? "请求超时" : "获取失败"}]`;
       } finally {
         clearTimeout(timer);
