@@ -8,7 +8,7 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
-    version: "1.21.0",
+    version: "1.22.0",
     date: "2026-03-15",
     title: "轻量笔记",
     items: [
@@ -17,6 +17,17 @@ export const changelog: ChangelogEntry[] = [
       "笔记视图按日期分组的卡片时间流，支持标签筛选",
       "笔记加截止日期或优先级时自动变为任务，无缝互转",
       "CLI 新增 notes:list / notes:create 命令",
+    ],
+    notable: true,
+  },
+  {
+    version: "1.21.0",
+    date: "2026-03-13",
+    title: "AI 总结多模板",
+    items: [
+      "AI 总结支持多个 Prompt 模板，通过子标签切换不同视角的总结（如日报、风险分析、周报）",
+      "设置页新增模板管理，通过 AI 助手用自然语言描述即可生成新模板",
+      "每个模板独立缓存，切换模板不影响已生成的内容",
     ],
     notable: true,
   },

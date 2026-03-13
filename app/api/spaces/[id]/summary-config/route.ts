@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { initDb, getSummaryConfig, upsertSummaryConfig } from "@/lib/db";
 import { requireSpaceMember, requireSpaceAdminOrOwner } from "@/lib/spaces";
-import type { SummaryDataSource } from "@/lib/types";
+import type { SummaryDataSource, PromptTemplate } from "@/lib/types";
 
 export const preferredRegion = "hkg1";
 
@@ -123,6 +123,16 @@ export async function GET(
 
   const config = await getSummaryConfig(id);
 
+  // Build full template list: builtin default + custom templates
+  const builtinTemplate: PromptTemplate = {
+    id: "default",
+    name: "默认模板",
+    system_prompt: null,
+    data_template: null,
+    is_builtin: true,
+  };
+  const allTemplates = [builtinTemplate, ...(config?.prompt_templates ?? [])];
+
   return NextResponse.json({
     config: config
       ? { ...config, data_sources: maskDataSources(config.data_sources) }
@@ -131,6 +141,7 @@ export async function GET(
       system_prompt: DEFAULT_SYSTEM_PROMPT,
       data_template: DEFAULT_DATA_TEMPLATE,
     },
+    templates: allTemplates,
   });
 }
 
@@ -154,6 +165,7 @@ export async function PUT(
     system_prompt?: string | null;
     data_template?: string | null;
     data_sources?: SummaryDataSource[];
+    prompt_templates?: PromptTemplate[];
   };
 
   // 回填被 mask 的 header 值：前端拿到的是 masked config，再 PUT 回来时需要还原

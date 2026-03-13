@@ -276,8 +276,9 @@ export async function GET(
   }
 
   const date = req.nextUrl.searchParams.get("date") || new Date().toISOString().slice(0, 10);
+  const templateId = req.nextUrl.searchParams.get("template_id") || "default";
   const [cached, quota] = await Promise.all([
-    getSummaryCache(id, date),
+    getSummaryCache(id, date, templateId),
     getQuotaInfo(user.id, spaceId, date),
   ]);
 
@@ -321,8 +322,9 @@ export async function POST(
     }
   }
 
-  const body = (await req.json().catch(() => ({}))) as { date?: string };
+  const body = (await req.json().catch(() => ({}))) as { date?: string; template_id?: string };
   const date = body.date || new Date().toISOString().slice(0, 10);
+  const templateId = body.template_id || "default";
 
   // Rate limiting
   const quota = await getQuotaInfo(user.id, spaceId, date);
@@ -335,7 +337,21 @@ export async function POST(
 
   // Load custom config (if any)
   const config = spaceId ? await getSummaryConfig(spaceId) : null;
-  const systemPrompt = config?.system_prompt ?? DEFAULT_SYSTEM_PROMPT;
+
+  // Resolve system prompt and data template based on template_id
+  let systemPrompt: string;
+  let dataTemplate: string | null = null;
+  if (templateId === "default") {
+    systemPrompt = config?.system_prompt ?? DEFAULT_SYSTEM_PROMPT;
+    dataTemplate = config?.data_template ?? null;
+  } else {
+    const template = config?.prompt_templates?.find((t) => t.id === templateId);
+    if (!template) {
+      return NextResponse.json({ error: "模板不存在" }, { status: 404 });
+    }
+    systemPrompt = template.system_prompt ?? DEFAULT_SYSTEM_PROMPT;
+    dataTemplate = template.data_template ?? null;
+  }
 
   const descendants = await getDescendantTasks(id);
   const allTaskIds = [id, ...descendants.map((t) => t.id)];
@@ -356,9 +372,9 @@ export async function POST(
 
   // Build user message: custom template or default
   function buildMessage(logs: TaskLog[]): string {
-    if (config?.data_template) {
+    if (dataTemplate) {
       const vars = buildTemplateVariables(task!, descendants, logs, todayLogs, date, nameMap, dsResults);
-      return renderTemplate(config.data_template, vars);
+      return renderTemplate(dataTemplate, vars);
     }
     // Default path: use original buildDefaultUserMessage + append data source results
     let msg = buildDefaultUserMessage(task!, descendants, logs, todayLogs, date, nameMap);
@@ -406,7 +422,7 @@ export async function POST(
     async flush() {
       if (fullContent.trim()) {
         await Promise.all([
-          upsertSummaryCache(id, date, fullContent, user!.id),
+          upsertSummaryCache(id, date, fullContent, user!.id, templateId),
           incrementSummaryUsage(user!.id, date),
         ]);
       }

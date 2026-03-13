@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import type { PromptTemplate } from "@/lib/types";
 
 const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
 
@@ -13,13 +14,13 @@ interface CacheEntry {
   date: string;
 }
 
-function getCacheKey(taskId: string) {
-  return `ai-summary-${taskId}`;
+function getCacheKey(taskId: string, templateId: string) {
+  return `ai-summary-${taskId}-${templateId}`;
 }
 
-function getCache(taskId: string): CacheEntry | null {
+function getCache(taskId: string, templateId: string): CacheEntry | null {
   try {
-    const raw = localStorage.getItem(getCacheKey(taskId));
+    const raw = localStorage.getItem(getCacheKey(taskId, templateId));
     if (!raw) return null;
     const entry: CacheEntry = JSON.parse(raw);
     const today = new Date().toISOString().slice(0, 10);
@@ -31,14 +32,14 @@ function getCache(taskId: string): CacheEntry | null {
   }
 }
 
-function setCache(taskId: string, content: string) {
+function setCache(taskId: string, templateId: string, content: string) {
   try {
     const entry: CacheEntry = {
       content,
       timestamp: Date.now(),
       date: new Date().toISOString().slice(0, 10),
     };
-    localStorage.setItem(getCacheKey(taskId), JSON.stringify(entry));
+    localStorage.setItem(getCacheKey(taskId, templateId), JSON.stringify(entry));
   } catch {
     // ignore storage errors
   }
@@ -73,10 +74,26 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, spaceId, canConfi
   const [cachedAt, setCachedAt] = useState<number | null>(null);
   const [quota, setQuota] = useState<Quota | null>(null);
   const [serverLoading, setServerLoading] = useState(true);
+  const [templates, setTemplates] = useState<PromptTemplate[]>([]);
+  const [activeTemplateId, setActiveTemplateId] = useState("default");
   const abortRef = useRef<AbortController | null>(null);
   const triggered = useRef(false);
 
-  const generateSummary = useCallback(async () => {
+  // Fetch templates on mount / spaceId change
+  useEffect(() => {
+    if (!spaceId) return;
+    fetch(`/api/spaces/${spaceId}/summary-config`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.templates?.length) {
+          setTemplates(data.templates);
+        }
+      })
+      .catch(() => {});
+  }, [spaceId]);
+
+  const generateSummary = useCallback(async (templateId?: string) => {
+    const tid = templateId ?? activeTemplateId;
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -90,7 +107,10 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, spaceId, canConfi
       const res = await fetch(`/api/tasks/${taskId}/summary`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: new Date().toISOString().slice(0, 10) }),
+        body: JSON.stringify({
+          date: new Date().toISOString().slice(0, 10),
+          template_id: tid,
+        }),
         signal: controller.signal,
       });
 
@@ -112,7 +132,7 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, spaceId, canConfi
         setSummary(full);
       }
 
-      setCache(taskId, full);
+      setCache(taskId, tid, full);
       setCachedAt(Date.now());
       setQuota((prev) => prev ? { ...prev, used: prev.used + 1, remaining: Math.max(0, prev.remaining - 1) } : prev);
     } catch (err) {
@@ -121,15 +141,15 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, spaceId, canConfi
     } finally {
       setLoading(false);
     }
-  }, [taskId]);
+  }, [taskId, activeTemplateId]);
 
-  // Fetch server cache + quota on mount / taskId change
+  // Fetch server cache + quota on mount / taskId / activeTemplateId change
   useEffect(() => {
     triggered.current = false;
     setServerLoading(true);
 
     // Show localStorage cache immediately (fast flash)
-    const localCached = getCache(taskId);
+    const localCached = getCache(taskId, activeTemplateId);
     if (localCached) {
       setSummary(localCached.content);
       setCachedAt(localCached.timestamp);
@@ -139,7 +159,7 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, spaceId, canConfi
     }
 
     const today = new Date().toISOString().slice(0, 10);
-    fetch(`/api/tasks/${taskId}/summary?date=${today}`)
+    fetch(`/api/tasks/${taskId}/summary?date=${today}&template_id=${activeTemplateId}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.quota) setQuota(data.quota);
@@ -147,28 +167,29 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, spaceId, canConfi
           setSummary(data.content);
           const serverTime = new Date(data.generated_at).getTime();
           setCachedAt(serverTime);
-          setCache(taskId, data.content);
+          setCache(taskId, activeTemplateId, data.content);
           triggered.current = true;
         } else if (autoTrigger && !localCached && data.quota?.remaining > 0) {
           triggered.current = true;
-          generateSummary();
+          generateSummary(activeTemplateId);
         }
       })
       .catch(() => {
         // Fallback: if server unreachable and autoTrigger, try generating
         if (autoTrigger && !localCached) {
           triggered.current = true;
-          generateSummary();
+          generateSummary(activeTemplateId);
         }
       })
       .finally(() => setServerLoading(false));
-  }, [taskId, autoTrigger, generateSummary]);
+  }, [taskId, activeTemplateId, autoTrigger, generateSummary]);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
   }, []);
 
   const canGenerate = !quota || quota.remaining > 0;
+  const showTabs = templates.length > 1;
 
   return (
     <div className="mt-2">
@@ -201,7 +222,7 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, spaceId, canConfi
             </Link>
           )}
           <button
-            onClick={generateSummary}
+            onClick={() => generateSummary()}
             disabled={loading || !canGenerate}
             className="text-xs px-3 py-1 rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
@@ -209,6 +230,24 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, spaceId, canConfi
           </button>
         </div>
       </div>
+
+      {showTabs && (
+        <div className="flex gap-3 mb-3 border-b border-border/30">
+          {templates.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTemplateId(t.id)}
+              className={`text-[11px] pb-1.5 border-b-2 transition-colors ${
+                activeTemplateId === t.id
+                  ? "border-primary text-foreground font-medium"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && <p className="text-xs text-danger mb-2">{error}</p>}
 

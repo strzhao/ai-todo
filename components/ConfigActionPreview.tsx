@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import type { ParsedSummaryConfigAction, SummaryConfig, SummaryDataSource } from "@/lib/types";
+import type { ParsedSummaryConfigAction, SummaryConfig, SummaryDataSource, PromptTemplate } from "@/lib/types";
 
 interface Props {
   actions: ParsedSummaryConfigAction[];
@@ -122,6 +122,73 @@ function ActionRow({ action }: { action: ParsedSummaryConfigAction }) {
     );
   }
 
+  if (action.type === "add_prompt_template" && action.template) {
+    return (
+      <div className="text-sm space-y-1">
+        <div className="flex items-start gap-2">
+          <span className="text-sage flex-shrink-0">＋</span>
+          <div className="flex-1">
+            <span>
+              添加总结模板「<span className="font-medium">{action.template.name ?? "未命名"}</span>」
+            </span>
+            {action.template.system_prompt && (
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="text-xs text-info ml-2 hover:underline"
+              >
+                {expanded ? "收起" : "查看 Prompt"}
+              </button>
+            )}
+          </div>
+        </div>
+        {expanded && action.template.system_prompt && (
+          <pre className="text-xs bg-muted rounded p-3 overflow-auto max-h-60 whitespace-pre-wrap text-muted-foreground">
+            {action.template.system_prompt}
+          </pre>
+        )}
+      </div>
+    );
+  }
+
+  if (action.type === "update_prompt_template" && action.template) {
+    return (
+      <div className="text-sm space-y-1">
+        <div className="flex items-start gap-2">
+          <span className="text-sage flex-shrink-0">✎</span>
+          <div className="flex-1">
+            <span>
+              修改模板「<span className="font-medium">{action.template_name ?? "未知"}</span>」
+            </span>
+            {action.template.system_prompt && (
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="text-xs text-info ml-2 hover:underline"
+              >
+                {expanded ? "收起" : "查看 Prompt"}
+              </button>
+            )}
+          </div>
+        </div>
+        {expanded && action.template.system_prompt && (
+          <pre className="text-xs bg-muted rounded p-3 overflow-auto max-h-60 whitespace-pre-wrap text-muted-foreground">
+            {action.template.system_prompt}
+          </pre>
+        )}
+      </div>
+    );
+  }
+
+  if (action.type === "remove_prompt_template") {
+    return (
+      <div className="flex items-start gap-2 text-sm">
+        <span className="text-destructive flex-shrink-0">×</span>
+        <span>
+          删除模板「<span className="font-medium">{action.template_name ?? "未知"}</span>」
+        </span>
+      </div>
+    );
+  }
+
   return null;
 }
 
@@ -130,10 +197,11 @@ function applyActions(
   defaults: { system_prompt: string; data_template: string },
   actions: ParsedSummaryConfigAction[],
   spaceId: string
-): { system_prompt: string | null; data_template: string | null; data_sources: SummaryDataSource[] } {
+): { system_prompt: string | null; data_template: string | null; data_sources: SummaryDataSource[]; prompt_templates: PromptTemplate[] } {
   let systemPrompt = config?.system_prompt ?? null;
   let dataTemplate = config?.data_template ?? null;
   let dataSources = [...(config?.data_sources ?? [])];
+  let promptTemplates = [...(config?.prompt_templates ?? [])];
 
   for (const action of actions) {
     switch (action.type) {
@@ -201,10 +269,38 @@ function applyActions(
         }
         break;
       }
+
+      case "add_prompt_template":
+        if (action.template) {
+          promptTemplates.push({
+            id: crypto.randomUUID(),
+            name: action.template.name ?? "新模板",
+            system_prompt: action.template.system_prompt ?? null,
+            data_template: action.template.data_template ?? null,
+          });
+        }
+        break;
+
+      case "update_prompt_template": {
+        const ptIdx = promptTemplates.findIndex(
+          (t) => t.name === action.template_name || t.id === action.template_id
+        );
+        if (ptIdx >= 0 && action.template) {
+          promptTemplates[ptIdx] = { ...promptTemplates[ptIdx], ...action.template };
+        }
+        break;
+      }
+
+      case "remove_prompt_template": {
+        promptTemplates = promptTemplates.filter(
+          (t) => t.name !== action.template_name && t.id !== action.template_id
+        );
+        break;
+      }
     }
   }
 
-  return { system_prompt: systemPrompt, data_template: dataTemplate, data_sources: dataSources };
+  return { system_prompt: systemPrompt, data_template: dataTemplate, data_sources: dataSources, prompt_templates: promptTemplates };
 }
 
 export function ConfigActionPreview({ actions, currentConfig, defaults, spaceId, onDone, onCancel }: Props) {

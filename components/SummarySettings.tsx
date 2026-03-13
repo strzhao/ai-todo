@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { ConfigActionPreview } from "@/components/ConfigActionPreview";
-import type { SummaryConfig, SummaryDataSource, ParsedSummaryConfigAction } from "@/lib/types";
+import type { SummaryConfig, SummaryDataSource, ParsedSummaryConfigAction, PromptTemplate } from "@/lib/types";
 
 interface Props {
   spaceId: string;
@@ -15,6 +15,7 @@ interface Props {
 export function SummarySettings({ spaceId, spaceName }: Props) {
   const [config, setConfig] = useState<SummaryConfig | null>(null);
   const [defaults, setDefaults] = useState<{ system_prompt: string; data_template: string } | null>(null);
+  const [templates, setTemplates] = useState<PromptTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [inputText, setInputText] = useState("");
   const [parsing, setParsing] = useState(false);
@@ -23,6 +24,7 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
   const [promptExpanded, setPromptExpanded] = useState(true);
   const [templateExpanded, setTemplateExpanded] = useState(false);
   const [resetting, setResetting] = useState<"prompt" | "template" | null>(null);
+  const [deletingTemplate, setDeletingTemplate] = useState<string | null>(null);
 
   // Summary preview state
   const [summaryContent, setSummaryContent] = useState("");
@@ -36,6 +38,7 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
       .then((data) => {
         setConfig(data.config);
         setDefaults(data.defaults);
+        if (data.templates) setTemplates(data.templates);
       })
       .finally(() => setLoading(false));
   }, [spaceId]);
@@ -74,8 +77,43 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
 
   function handlePreviewDone(updatedConfig: SummaryConfig) {
     setConfig(updatedConfig);
+    // Re-build template list: builtin default + custom templates from config
+    const builtinTemplate: PromptTemplate = {
+      id: "default",
+      name: "默认模板",
+      system_prompt: null,
+      data_template: null,
+      is_builtin: true,
+    };
+    setTemplates([builtinTemplate, ...(updatedConfig.prompt_templates ?? [])]);
     setPreview(null);
     setInputText("");
+  }
+
+  async function handleDeleteTemplate(templateId: string) {
+    setDeletingTemplate(templateId);
+    try {
+      const updatedTemplates = (config?.prompt_templates ?? []).filter((t) => t.id !== templateId);
+      const res = await fetch(`/api/spaces/${spaceId}/summary-config`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt_templates: updatedTemplates }),
+      });
+      if (res.ok) {
+        const data = await res.json() as { config: SummaryConfig };
+        setConfig(data.config);
+        const builtinTemplate: PromptTemplate = {
+          id: "default",
+          name: "默认模板",
+          system_prompt: null,
+          data_template: null,
+          is_builtin: true,
+        };
+        setTemplates([builtinTemplate, ...(data.config?.prompt_templates ?? [])]);
+      }
+    } finally {
+      setDeletingTemplate(null);
+    }
   }
 
   async function handleResetField(field: "prompt" | "template") {
@@ -240,6 +278,31 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
           )}
         </section>
 
+        {/* Prompt Templates */}
+        <section className="rounded-lg border border-border p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium">总结模板</h3>
+            <span className="text-[10px] text-muted-foreground">{templates.length} 个模板</span>
+          </div>
+          {templates.length === 0 ? (
+            <p className="text-xs text-muted-foreground">暂无模板，通过 AI 助手添加</p>
+          ) : (
+            <div className="space-y-2">
+              {templates.map((t) => (
+                <TemplateRow
+                  key={t.id}
+                  template={t}
+                  onDelete={t.is_builtin ? undefined : () => handleDeleteTemplate(t.id)}
+                  deleting={deletingTemplate === t.id}
+                />
+              ))}
+            </div>
+          )}
+          <p className="text-[10px] text-muted-foreground">
+            通过 AI 助手添加新模板，如：「添加一个风险分析模板」
+          </p>
+        </section>
+
         {/* Data Sources */}
         <section className="rounded-lg border border-border p-4 space-y-2">
           <h3 className="text-sm font-medium">外部数据源</h3>
@@ -269,7 +332,7 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
                 handleParse();
               }
             }}
-            placeholder={"描述你想要的变更...\n例：只保留问题与解决和风险提示\n例：添加一个 GitLab API 数据源，GET https://..."}
+            placeholder={"描述你想要的变更...\n例：添加一个风险分析模板，只关注逾期和阻塞\n例：只保留问题与解决和风险提示\n例：添加一个 GitLab API 数据源，GET https://..."}
             className="w-full resize-none rounded-md border border-border bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-sage"
             rows={5}
           />
@@ -337,6 +400,57 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
           )}
         </section>
       </div>
+    </div>
+  );
+}
+
+function TemplateRow({ template, onDelete, deleting }: { template: PromptTemplate; onDelete?: () => void; deleting?: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="py-2 space-y-1.5">
+      <div className="flex items-center gap-3">
+        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${template.is_builtin ? "bg-muted-foreground/30" : "bg-sage"}`} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm truncate">{template.name}</p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className={`text-[10px] px-1.5 py-0.5 rounded ${template.is_builtin ? "bg-muted text-muted-foreground" : "bg-sage-mist text-sage"}`}>
+            {template.is_builtin ? "内置" : "自定义"}
+          </span>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="text-[10px] text-muted-foreground hover:text-foreground"
+          >
+            {expanded ? "收起" : "展开"}
+          </button>
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              disabled={deleting}
+              className="text-[10px] text-destructive/60 hover:text-destructive disabled:opacity-40"
+            >
+              {deleting ? "..." : "删除"}
+            </button>
+          )}
+        </div>
+      </div>
+      {expanded && (
+        <div className="ml-[18px] space-y-1">
+          <p className="text-[10px] text-muted-foreground font-medium">Prompt:</p>
+          <pre className="text-[10px] bg-muted rounded p-2 overflow-auto max-h-40 whitespace-pre-wrap text-muted-foreground">
+            {template.system_prompt ?? "(使用默认 Prompt)"}
+          </pre>
+          {template.data_template && (
+            <>
+              <p className="text-[10px] text-muted-foreground font-medium mt-1">数据模板:</p>
+              <pre className="text-[10px] bg-muted rounded p-2 overflow-auto max-h-40 whitespace-pre-wrap text-muted-foreground">
+                {template.data_template}
+              </pre>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

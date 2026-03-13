@@ -153,10 +153,19 @@ export interface SummaryDataSource {
   timeout_ms?: number;        // 默认 10000
 }
 
+export interface PromptTemplate {
+  id: string;           // UUID，内置为 "default"
+  name: string;         // 如 "项目日报"、"风险分析"
+  system_prompt: string | null;  // null = 用 DEFAULT_SYSTEM_PROMPT
+  data_template: string | null;  // null = 用 DEFAULT_DATA_TEMPLATE
+  is_builtin?: boolean; // true = 内置模板，不可删除
+}
+
 export interface SummaryConfig {
   space_id: string;
   system_prompt: string | null;
   data_template: string | null;
+  prompt_templates: PromptTemplate[];
   data_sources: SummaryDataSource[];
   updated_at: string;
   updated_by: string | null;
@@ -168,7 +177,10 @@ export type SummaryConfigActionType =
   | "add_datasource"
   | "update_datasource"
   | "remove_datasource"
-  | "toggle_datasource";
+  | "toggle_datasource"
+  | "add_prompt_template"
+  | "update_prompt_template"
+  | "remove_prompt_template";
 
 export interface ParsedSummaryConfigAction {
   type: SummaryConfigActionType;
@@ -185,4 +197,8 @@ export interface ParsedSummaryConfigAction {
   datasource_name?: string;
   // toggle
   enabled?: boolean;
+  // add/update/remove prompt template
+  template?: Partial<PromptTemplate>;
+  template_id?: string;
+  template_name?: string;
 }

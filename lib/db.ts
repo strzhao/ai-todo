@@ -175,6 +175,19 @@ async function _doInitDb() {
     )
   `;
 
+  // 12b. Add prompt_templates column to summary config
+  await sql`ALTER TABLE ai_todo_summary_config ADD COLUMN IF NOT EXISTS prompt_templates JSONB DEFAULT '[]'`;
+
+  // 12c. Add template_id column to summary cache + update unique constraint
+  await sql`ALTER TABLE ai_todo_summary_cache ADD COLUMN IF NOT EXISTS template_id TEXT DEFAULT 'default'`;
+  // Migrate unique constraint to include template_id (idempotent via try/catch)
+  try {
+    await sql`ALTER TABLE ai_todo_summary_cache DROP CONSTRAINT IF EXISTS ai_todo_summary_cache_task_id_summary_date_key`;
+    await sql`ALTER TABLE ai_todo_summary_cache ADD CONSTRAINT ai_todo_summary_cache_task_date_template_key UNIQUE (task_id, summary_date, template_id)`;
+  } catch {
+    // Constraint already exists or old one already dropped
+  }
+
   // 13. Push subscriptions table (browser push notifications)
   await sql`
     CREATE TABLE IF NOT EXISTS ai_todo_push_subscriptions (
@@ -941,10 +954,10 @@ export interface SummaryCache {
   generated_at: string;
 }
 
-export async function getSummaryCache(taskId: string, date: string): Promise<SummaryCache | null> {
+export async function getSummaryCache(taskId: string, date: string, templateId: string = "default"): Promise<SummaryCache | null> {
   const { rows } = await sql.query(
-    `SELECT * FROM ai_todo_summary_cache WHERE task_id = $1 AND summary_date = $2 LIMIT 1`,
-    [taskId, date]
+    `SELECT * FROM ai_todo_summary_cache WHERE task_id = $1 AND summary_date = $2 AND template_id = $3 LIMIT 1`,
+    [taskId, date, templateId]
   );
   if (!rows[0]) return null;
   const generatedAt = new Date(rows[0].generated_at as string);
@@ -958,13 +971,13 @@ export async function getSummaryCache(taskId: string, date: string): Promise<Sum
   };
 }
 
-export async function upsertSummaryCache(taskId: string, date: string, content: string, userId: string): Promise<void> {
+export async function upsertSummaryCache(taskId: string, date: string, content: string, userId: string, templateId: string = "default"): Promise<void> {
   await sql.query(
-    `INSERT INTO ai_todo_summary_cache (task_id, summary_date, content, generated_by, generated_at)
-     VALUES ($1, $2, $3, $4, NOW())
-     ON CONFLICT (task_id, summary_date)
+    `INSERT INTO ai_todo_summary_cache (task_id, summary_date, content, generated_by, generated_at, template_id)
+     VALUES ($1, $2, $3, $4, NOW(), $5)
+     ON CONFLICT (task_id, summary_date, template_id)
      DO UPDATE SET content = EXCLUDED.content, generated_by = EXCLUDED.generated_by, generated_at = NOW()`,
-    [taskId, date, content, userId]
+    [taskId, date, content, userId, templateId]
   );
 }
 
@@ -990,19 +1003,32 @@ export async function incrementSummaryUsage(userId: string, date: string): Promi
 
 // ─── Summary Config ──────────────────────────────────────────────────────────
 
-import type { SummaryConfig, SummaryDataSource } from "./types";
+import type { SummaryConfig, SummaryDataSource, PromptTemplate } from "./types";
 
 export async function getSummaryConfig(spaceId: string): Promise<SummaryConfig | null> {
   const { rows } = await sql.query(
-    `SELECT space_id, system_prompt, data_template, data_sources, updated_at, updated_by
+    `SELECT space_id, system_prompt, data_template, data_sources, prompt_templates, updated_at, updated_by
      FROM ai_todo_summary_config WHERE space_id = $1 LIMIT 1`,
     [spaceId]
   );
   if (!rows[0]) return null;
+
+  let templates = (rows[0].prompt_templates ?? []) as PromptTemplate[];
+  // Backward compat: old config with system_prompt/data_template but no templates
+  if (templates.length === 0 && (rows[0].system_prompt || rows[0].data_template)) {
+    templates = [{
+      id: crypto.randomUUID(),
+      name: "自定义模板",
+      system_prompt: rows[0].system_prompt as string | null,
+      data_template: rows[0].data_template as string | null,
+    }];
+  }
+
   return {
     space_id: rows[0].space_id as string,
     system_prompt: rows[0].system_prompt as string | null,
     data_template: rows[0].data_template as string | null,
+    prompt_templates: templates,
     data_sources: (rows[0].data_sources ?? []) as SummaryDataSource[],
     updated_at: (rows[0].updated_at as Date).toISOString(),
     updated_by: rows[0].updated_by as string | null,
@@ -1011,7 +1037,7 @@ export async function getSummaryConfig(spaceId: string): Promise<SummaryConfig |
 
 export async function upsertSummaryConfig(
   spaceId: string,
-  config: { system_prompt?: string | null; data_template?: string | null; data_sources?: SummaryDataSource[] },
+  config: { system_prompt?: string | null; data_template?: string | null; data_sources?: SummaryDataSource[]; prompt_templates?: PromptTemplate[] },
   userId: string
 ): Promise<void> {
   const existing = await getSummaryConfig(spaceId);
@@ -1032,6 +1058,10 @@ export async function upsertSummaryConfig(
       fields.push(`data_sources = $${idx++}`);
       values.push(JSON.stringify(config.data_sources));
     }
+    if (config.prompt_templates !== undefined) {
+      fields.push(`prompt_templates = $${idx++}`);
+      values.push(JSON.stringify(config.prompt_templates));
+    }
     fields.push(`updated_at = NOW()`);
     fields.push(`updated_by = $${idx++}`);
     values.push(userId);
@@ -1043,13 +1073,14 @@ export async function upsertSummaryConfig(
     );
   } else {
     await sql.query(
-      `INSERT INTO ai_todo_summary_config (space_id, system_prompt, data_template, data_sources, updated_by)
-       VALUES ($1, $2, $3, $4, $5)`,
+      `INSERT INTO ai_todo_summary_config (space_id, system_prompt, data_template, data_sources, prompt_templates, updated_by)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
       [
         spaceId,
         config.system_prompt ?? null,
         config.data_template ?? null,
         JSON.stringify(config.data_sources ?? []),
+        JSON.stringify(config.prompt_templates ?? []),
         userId,
       ]
     );
