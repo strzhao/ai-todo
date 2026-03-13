@@ -38,27 +38,31 @@ export function getWeekStartMonday(baseDate: Date, weekOffset: number): Date {
   return addDays(d, mondayDelta + weekOffset * 7);
 }
 
+export function isSameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear()
+    && a.getMonth() === b.getMonth()
+    && a.getDate() === b.getDate();
+}
+
+export function isWeekend(d: Date): boolean {
+  const dow = d.getDay();
+  return dow === 0 || dow === 6;
+}
+
 /** 判断任务是否覆盖某一天（日期粒度） */
 export function taskCoversDay(task: Task, day: Date): boolean {
-  const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
-  const dayEnd = dayStart + 86400000;
-
   if (task.start_date && task.end_date) {
+    const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
+    const dayEnd = dayStart + 86400000;
     const s = new Date(task.start_date).getTime();
     const e = new Date(task.end_date).getTime();
     return s < dayEnd && e >= dayStart;
   }
-  if (task.start_date && !task.end_date) {
-    const s = new Date(task.start_date);
-    return s.getFullYear() === day.getFullYear()
-      && s.getMonth() === day.getMonth()
-      && s.getDate() === day.getDate();
+  if (task.start_date) {
+    return isSameDay(new Date(task.start_date), day);
   }
   if (task.due_date) {
-    const d = new Date(task.due_date);
-    return d.getFullYear() === day.getFullYear()
-      && d.getMonth() === day.getMonth()
-      && d.getDate() === day.getDate();
+    return isSameDay(new Date(task.due_date), day);
   }
   return false;
 }

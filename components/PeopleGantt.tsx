@@ -8,6 +8,8 @@ import {
   groupTasksByMember,
   getWeekStartMonday,
   taskCoversDay,
+  isSameDay,
+  isWeekend,
 } from "@/lib/gantt-utils";
 
 interface Props {
@@ -29,19 +31,6 @@ const PRIORITY_LABELS: Record<number, string> = {
 };
 
 const WEEKDAY_NAMES = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
-
-function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-function isWeekend(d: Date): boolean {
-  const dow = d.getDay();
-  return dow === 0 || dow === 6;
-}
 
 export function PeopleGantt({ tasks, members, onTaskClick }: Props) {
   const [weekOffset, setWeekOffset] = useState(0);
