@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.20.1",
+    date: "2026-03-13",
+    title: "人员甘特图周视图",
+    items: [
+      "人员视角改为周时间线网格，横轴 7 天、纵轴按人分组，一眼看清每天谁在做什么",
+      "支持上/下周切换，今日列高亮，周末淡色区分",
+      "跨天任务在每个覆盖日都显示，同天多任务纵向堆叠",
+    ],
+    notable: true,
+  },
+  {
     version: "1.20.0",
     date: "2026-03-12",
     title: "甘特图人员维度优化",

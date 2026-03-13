@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { daysBetween, addDays, getMemberName, groupTasksByMember } from "@/lib/gantt-utils";
+import { daysBetween, addDays, getMemberName, groupTasksByMember, getWeekStartMonday, taskCoversDay } from "@/lib/gantt-utils";
 import type { SpaceMember, Task } from "@/lib/types";
 
 function makeMember(email: string, displayName?: string | null, opts?: Partial<SpaceMember>): SpaceMember {
@@ -209,5 +209,78 @@ describe("groupTasksByMember", () => {
     expect(groups).toHaveLength(1);
     expect(groups[0].label).toBe("未指派");
     expect(groups[0].tasks).toHaveLength(2);
+  });
+});
+
+describe("getWeekStartMonday", () => {
+  it("周三 → 返回本周一", () => {
+    const wed = new Date(2026, 2, 11); // 2026-03-11 周三
+    const monday = getWeekStartMonday(wed, 0);
+    expect(monday.getFullYear()).toBe(2026);
+    expect(monday.getMonth()).toBe(2);
+    expect(monday.getDate()).toBe(9); // 周一
+  });
+
+  it("周日 → 返回上周一（中国习惯周日属于上一周）", () => {
+    const sun = new Date(2026, 2, 15); // 2026-03-15 周日
+    const monday = getWeekStartMonday(sun, 0);
+    expect(monday.getDate()).toBe(9);
+  });
+
+  it("周一 → 返回自身", () => {
+    const mon = new Date(2026, 2, 9);
+    const result = getWeekStartMonday(mon, 0);
+    expect(result.getDate()).toBe(9);
+  });
+
+  it("weekOffset=1 → 下周一", () => {
+    const wed = new Date(2026, 2, 11);
+    const nextMonday = getWeekStartMonday(wed, 1);
+    expect(nextMonday.getDate()).toBe(16);
+  });
+
+  it("weekOffset=-1 → 上周一", () => {
+    const wed = new Date(2026, 2, 11);
+    const prevMonday = getWeekStartMonday(wed, -1);
+    expect(prevMonday.getDate()).toBe(2);
+  });
+});
+
+describe("taskCoversDay", () => {
+  it("start_date + end_date 区间内的天 → true", () => {
+    const task = makeTask("1", { start_date: "2026-03-10", end_date: "2026-03-14" });
+    expect(taskCoversDay(task, new Date(2026, 2, 12))).toBe(true);
+  });
+
+  it("start_date + end_date 区间外的天 → false", () => {
+    const task = makeTask("1", { start_date: "2026-03-10", end_date: "2026-03-14" });
+    expect(taskCoversDay(task, new Date(2026, 2, 15))).toBe(false);
+  });
+
+  it("start_date + end_date 边界（start_date 当天）→ true", () => {
+    const task = makeTask("1", { start_date: "2026-03-10", end_date: "2026-03-14" });
+    expect(taskCoversDay(task, new Date(2026, 2, 10))).toBe(true);
+  });
+
+  it("start_date + end_date 边界（end_date 当天）→ true", () => {
+    const task = makeTask("1", { start_date: "2026-03-10", end_date: "2026-03-14" });
+    expect(taskCoversDay(task, new Date(2026, 2, 14))).toBe(true);
+  });
+
+  it("仅 start_date → 只在当天 true", () => {
+    const task = makeTask("1", { start_date: "2026-03-10" });
+    expect(taskCoversDay(task, new Date(2026, 2, 10))).toBe(true);
+    expect(taskCoversDay(task, new Date(2026, 2, 11))).toBe(false);
+  });
+
+  it("仅 due_date → 只在当天 true", () => {
+    const task = makeTask("1", { due_date: "2026-03-12" });
+    expect(taskCoversDay(task, new Date(2026, 2, 12))).toBe(true);
+    expect(taskCoversDay(task, new Date(2026, 2, 13))).toBe(false);
+  });
+
+  it("无日期 → false", () => {
+    const task = makeTask("1");
+    expect(taskCoversDay(task, new Date(2026, 2, 12))).toBe(false);
   });
 });

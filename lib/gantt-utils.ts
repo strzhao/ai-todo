@@ -30,6 +30,39 @@ function getTaskSortDate(t: Task): number {
   return new Date(t.created_at).getTime();
 }
 
+/** 计算指定偏移量的周一日期（中国习惯周一起始） */
+export function getWeekStartMonday(baseDate: Date, weekOffset: number): Date {
+  const d = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+  const dow = d.getDay(); // 0=周日
+  const mondayDelta = dow === 0 ? -6 : 1 - dow;
+  return addDays(d, mondayDelta + weekOffset * 7);
+}
+
+/** 判断任务是否覆盖某一天（日期粒度） */
+export function taskCoversDay(task: Task, day: Date): boolean {
+  const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
+  const dayEnd = dayStart + 86400000;
+
+  if (task.start_date && task.end_date) {
+    const s = new Date(task.start_date).getTime();
+    const e = new Date(task.end_date).getTime();
+    return s < dayEnd && e >= dayStart;
+  }
+  if (task.start_date && !task.end_date) {
+    const s = new Date(task.start_date);
+    return s.getFullYear() === day.getFullYear()
+      && s.getMonth() === day.getMonth()
+      && s.getDate() === day.getDate();
+  }
+  if (task.due_date) {
+    const d = new Date(task.due_date);
+    return d.getFullYear() === day.getFullYear()
+      && d.getMonth() === day.getMonth()
+      && d.getDate() === day.getDate();
+  }
+  return false;
+}
+
 export function groupTasksByMember(
   tasks: Task[],
   members: SpaceMember[],
