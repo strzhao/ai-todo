@@ -10,8 +10,10 @@ import {
 import {
   AUTH_STATE_COOKIE_NAME,
   applyAuthStateCookie,
+  applyGatewaySessionCookie,
   clearAuthStateCookie,
   createAuthStateCookieValue,
+  createGatewaySessionCookieValue,
   readAuthStateCookie,
   readGatewaySessionFromRequest,
   verifyAuthStateCookieValue,
@@ -92,6 +94,20 @@ export async function proxy(req: NextRequest) {
   const session = readGatewaySessionFromRequest(req);
   if (session) {
     return NextResponse.next();
+  }
+
+  // Path 3: Silent re-auth — gateway session 过期但 access_token 仍有效
+  const accessToken = req.cookies.get("access_token")?.value;
+  if (accessToken) {
+    const user = await getUserFromCookie(accessToken);
+    if (user) {
+      const response = NextResponse.next();
+      applyGatewaySessionCookie(
+        response,
+        createGatewaySessionCookieValue(user.id, user.email)
+      );
+      return response;
+    }
   }
 
   // No valid auth — return 401 for API and RSC prefetch requests

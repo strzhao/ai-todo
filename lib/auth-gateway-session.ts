@@ -111,7 +111,7 @@ export function verifyAuthStateCookieValue(raw: string, expectedState: string): 
   return { state, next, issuedAt, expiresAt };
 }
 
-export function createGatewaySessionCookieValue(userId: string, email: string, ttlSeconds = 43_200): string {
+export function createGatewaySessionCookieValue(userId: string, email: string, ttlSeconds = 2_592_000): string {
   const now = Date.now();
   return encodeSignedPayload({
     userId: String(userId || "").trim(),
@@ -179,7 +179,7 @@ export function applyGatewaySessionCookie(response: NextResponse, value: string)
     secure,
     httpOnly: true,
     sameSite: "lax",
-    maxAge: 43_200,
+    maxAge: 2_592_000,
   });
 }
 
