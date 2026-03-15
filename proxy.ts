@@ -99,8 +99,10 @@ export async function proxy(req: NextRequest) {
   // Path 3: Silent re-auth — gateway session 过期但 access_token 仍有效
   const accessToken = req.cookies.get("access_token")?.value;
   if (accessToken) {
+    console.log("[auth] silent_reauth_attempt", { path: pathname });
     const user = await getUserFromCookie(accessToken);
     if (user) {
+      console.log("[auth] silent_reauth_success", { email: user.email, path: pathname });
       const response = NextResponse.next();
       applyGatewaySessionCookie(
         response,
@@ -108,6 +110,7 @@ export async function proxy(req: NextRequest) {
       );
       return response;
     }
+    console.warn("[auth] silent_reauth_failed", { path: pathname });
   }
 
   // No valid auth — return 401 for API and RSC prefetch requests
