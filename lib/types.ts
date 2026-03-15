@@ -21,6 +21,8 @@ export interface Task {
   parent_id?: string;
   // Progress percentage (0-100)
   progress: number;
+  // 0=task(default), 1=note
+  type?: 0 | 1;
   // Pinned task = acts as a "space" (sidebar entry + members + invite)
   pinned?: boolean;
   invite_code?: string;
@@ -45,6 +47,8 @@ export interface ParsedTask {
   parent_target_id?: string;
   parent_target_title?: string;
   progress?: number;
+  // 0=task(default), 1=note
+  type?: 0 | 1;
   // Phase D: hierarchy — subtasks (max 1 level deep in AI output)
   children?: Omit<ParsedTask, "children">[];
 }
@@ -87,6 +91,7 @@ export interface ParsedActionChanges {
   tags?: string[];
   assignee_email?: string | null;
   progress?: number;
+  type?: 0 | 1;
 }
 
 export interface ParsedAction {

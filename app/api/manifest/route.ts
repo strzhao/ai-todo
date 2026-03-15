@@ -125,6 +125,27 @@ const manifest = {
       ],
     },
     {
+      id: "list_notes",
+      name: "notes:list",
+      description: "List all notes",
+      method: "GET",
+      path: "/api/tasks",
+      params: [],
+      fixed_query: { type: "1" },
+    },
+    {
+      id: "create_note",
+      name: "notes:create",
+      description: "Create a new note",
+      method: "POST",
+      path: "/api/tasks",
+      params: [
+        { name: "title", in: "body", type: "string", required: true, description: "Note content" },
+        { name: "tags", in: "body", type: "string[]", required: false, description: "Tags (comma-separated in CLI)" },
+      ],
+      fixed_body: { type: 1 },
+    },
+    {
       id: "list_spaces",
       name: "spaces:list",
       description: "List all spaces (pinned tasks)",

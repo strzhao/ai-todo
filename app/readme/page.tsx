@@ -17,6 +17,8 @@ const cliExamples = [
   { cmd: "ai-todo tasks:complete --id <id>", desc: "完成任务" },
   { cmd: "ai-todo tasks:delete --id <id>", desc: "删除任务" },
   { cmd: "ai-todo tasks:add-log --id <id> --content '完成第一阶段'", desc: "添加进展日志" },
+  { cmd: "ai-todo notes:list", desc: "列出所有笔记" },
+  { cmd: "ai-todo notes:create --title 'WebSocket 替代轮询的想法' --tags '技术,优化'", desc: "创建笔记" },
   { cmd: "ai-todo spaces:list", desc: "列出所有空间" },
   { cmd: "ai-todo spaces:create --name '项目空间'", desc: "创建空间" },
 ];
@@ -127,7 +129,7 @@ function CLIContent() {
 const quickStartSteps = [
   {
     title: "1. 在输入框写一句自然语言",
-    desc: "直接描述你想做的事，不用记命令。支持创建、更新、完成、删除、日报。",
+    desc: "直接描述你想做的事，不用记命令。支持创建任务、记笔记、更新、完成、删除、日报。",
   },
   {
     title: "2. 确认 AI 预览",
@@ -185,6 +187,11 @@ const actionExamples = [
     effect: "把已有任务移动到某父任务下，支持一句话批量移动多个任务。",
     examples: ["把调研任务移到项目计划下面", "把接口联调、联调复盘都挪到发布准备下面"],
   },
+  {
+    label: "记笔记",
+    effect: "记录想法、灵感、备忘，按时间线浏览，支持标签分类。",
+    examples: ["记一下今天和客户聊了需求变更", "想法：用 WebSocket 替代轮询", "笔记 #读书 三体读完了"],
+  },
 ];
 
 const collaborationTips = [
@@ -222,6 +229,10 @@ const faqs = [
   {
     q: "置顶和新建空间是什么关系？",
     a: "空间本质上是置顶后的顶层任务。你可以先建任务再置顶，也可以直接创建空间，后续体验一致。",
+  },
+  {
+    q: "笔记和任务有什么区别？",
+    a: "笔记没有截止日期和优先级，适合记录想法和灵感。给笔记加上截止日期或优先级后，会自动变成任务。",
   },
 ];
 

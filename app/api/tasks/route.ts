@@ -5,7 +5,7 @@ import { aiFlowLog, getAiTraceIdFromHeaders } from "@/lib/ai-flow-log";
 import { createRouteTimer } from "@/lib/route-timing";
 import { fireNotifications } from "@/lib/notifications";
 import type { CreateNotificationParams } from "@/lib/notifications";
-import type { ParsedTask } from "@/lib/types";
+import type { ParsedTask, Task } from "@/lib/types";
 
 export const preferredRegion = "hkg1";
 
@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
 
   const filter = req.nextUrl.searchParams.get("filter") as string | null;
   const spaceId = req.nextUrl.searchParams.get("space_id") ?? undefined;
+  const typeParam = req.nextUrl.searchParams.get("type");
 
   if (spaceId) {
     const member = await rt.track("db_query", async () => getTaskMemberRecord(spaceId, user.id));
@@ -24,15 +25,27 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // type=1 → notes only; type=0 or omitted → tasks only (backward compat)
+  const wantType = typeParam === "1" ? 1 : 0;
+
   let tasks;
-  if (filter === "today") {
+  if (wantType === 1) {
+    // Notes: return all notes sorted by created_at DESC (ignore filter/spaceId)
+    tasks = await rt.track("db_query", async () => getTasks(user.id, {}));
+    tasks = tasks.filter((t: Task) => (t.type ?? 0) === 1)
+      .sort((a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  } else if (filter === "today") {
     tasks = await rt.track("db_query", async () => getTodayTasks(user.id, spaceId));
+    tasks = tasks.filter((t: Task) => (t.type ?? 0) === 0);
   } else if (filter === "assigned") {
     tasks = await rt.track("db_query", async () => getTasks(user.id, { filter: "assigned" }));
+    tasks = tasks.filter((t: Task) => (t.type ?? 0) === 0);
   } else if (filter === "completed") {
     tasks = await rt.track("db_query", async () => getCompletedTasks(user.id, spaceId));
+    tasks = tasks.filter((t: Task) => (t.type ?? 0) === 0);
   } else {
     tasks = await rt.track("db_query", async () => getTasks(user.id, { spaceId }));
+    tasks = tasks.filter((t: Task) => (t.type ?? 0) === 0);
   }
 
   return rt.json(tasks);
@@ -44,7 +57,7 @@ export async function POST(req: NextRequest) {
   const user = await rt.track("auth", async () => getUserFromRequest(req));
   if (!user) return rt.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json() as ParsedTask & { space_id?: string; assignee_email?: string; parent_id?: string };
+  const body = await req.json() as ParsedTask & { space_id?: string; assignee_email?: string; parent_id?: string; type?: 0 | 1 };
   aiFlowLog("tasks.post.request", {
     trace_id: traceId ?? null,
     title: body.title,

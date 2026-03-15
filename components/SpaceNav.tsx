@@ -199,7 +199,8 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
 
         <div className="flex-1 space-y-0.5 overflow-y-auto">
           <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider px-3 mb-1">个人</p>
-          <Link href="/" className={navLinkCls(isTasksHome)}>全部任务</Link>
+          <Link href="/" className={navLinkCls(isTasksHome)}>任务</Link>
+          <Link href="/notes" className={navLinkCls(isActive("/notes"))}>笔记</Link>
 
           <div className="pt-4">
             <div className="flex items-center justify-between px-3 mb-1">
@@ -324,6 +325,9 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border/60 z-10 flex">
         <Link href="/" className={`flex-1 flex flex-col items-center py-3 text-xs gap-1 ${isTasksHome ? "text-primary" : "text-muted-foreground"}`}>
           <span className="text-base">📋</span>任务
+        </Link>
+        <Link href="/notes" className={`flex-1 flex flex-col items-center py-3 text-xs gap-1 ${pathname === "/notes" ? "text-primary" : "text-muted-foreground"}`}>
+          <span className="text-base">📝</span>笔记
         </Link>
         <Link href="/spaces" className={`flex-1 flex flex-col items-center py-3 text-xs gap-1 ${pathname.startsWith("/spaces") ? "text-primary" : "text-muted-foreground"}`}>
           <span className="text-base">👥</span>空间

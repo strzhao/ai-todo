@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.21.0",
+    date: "2026-03-15",
+    title: "轻量笔记",
+    items: [
+      "新增笔记功能，支持快速记录想法、灵感和备忘",
+      "输入「记一下...」「想法：...」「笔记 #标签」即可创建笔记",
+      "笔记视图按日期分组的卡片时间流，支持标签筛选",
+      "笔记加截止日期或优先级时自动变为任务，无缝互转",
+      "CLI 新增 notes:list / notes:create 命令",
+    ],
+    notable: true,
+  },
+  {
     version: "1.20.1",
     date: "2026-03-13",
     title: "人员甘特图周视图",

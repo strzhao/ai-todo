@@ -342,6 +342,14 @@
     }
   }
 
+  @keyframes highlight-sage {
+    0% { border-color: var(--home-accent); box-shadow: 0 0 0 1px var(--home-accent); }
+    100% { border-color: transparent; box-shadow: none; }
+  }
+  .animate-highlight-sage {
+    animation: highlight-sage 1s ease-out;
+  }
+
   .today-count-chip {
     color: var(--today-accent-strong);
     background-color: var(--today-accent-soft);

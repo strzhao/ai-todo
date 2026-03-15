@@ -20,9 +20,10 @@ interface Props {
   parentTaskTitle?: string;
   value?: string;
   onValueChange?: (value: string) => void;
+  placeholder?: string;
 }
 
-export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTaskId, parentTaskTitle, value, onValueChange }: Props) {
+export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTaskId, parentTaskTitle, value, onValueChange, placeholder: customPlaceholder }: Props) {
   const [internalText, setInternalText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -49,6 +50,7 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
   const activeMembers = members?.filter((m) => m.status === "active") ?? [];
 
   function getPlaceholder(): string {
+    if (customPlaceholder) return customPlaceholder;
     if (parentTaskTitle) {
       return `为「${parentTaskTitle}」添加子任务，或描述操作，支持 @成员`;
     }
@@ -80,6 +82,7 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
         status: t.status,
         priority: t.priority,
         ...(t.description ? { description: t.description } : {}),
+        ...((t.type ?? 0) === 1 ? { type: 1 } : {}),
       })) ?? [];
 
       aiFlowLog("NLInput.parse.request", {
