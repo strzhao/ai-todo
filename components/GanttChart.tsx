@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, memo } from "react";
 import type { Task, SpaceMember } from "@/lib/types";
 import { daysBetween, addDays, formatAxisDate, getMemberName } from "@/lib/gantt-utils";
 
@@ -30,13 +31,56 @@ const PRIORITY_TEXT_COLORS: Record<number, string> = {
   3: "text-paper",
 };
 
-export function GanttChart({ tasks, members, onTaskClick }: Props) {
-  const scheduled = tasks.filter(
+export const GanttChart = memo(function GanttChart({ tasks, members, onTaskClick }: Props) {
+  const scheduled = useMemo(() => tasks.filter(
     (t) => t.start_date || t.end_date || t.due_date
-  );
-  const unscheduled = tasks.filter(
+  ), [tasks]);
+  const unscheduled = useMemo(() => tasks.filter(
     (t) => !t.start_date && !t.end_date && !t.due_date
-  );
+  ), [tasks]);
+
+  const { rangeStart, totalDays, weekMarkers, todayLeftPct, showTodayLine } = useMemo(() => {
+    if (scheduled.length === 0) {
+      return { rangeStart: new Date(), totalDays: 1, weekMarkers: [] as Array<{ date: Date; leftPct: number }>, todayLeftPct: 0, showTodayLine: false };
+    }
+    const dates: Date[] = [];
+    for (const t of scheduled) {
+      if (t.start_date) dates.push(new Date(t.start_date));
+      if (t.end_date) dates.push(new Date(t.end_date));
+      if (t.due_date) dates.push(new Date(t.due_date));
+      dates.push(new Date(t.created_at));
+    }
+
+    const minDate = new Date(Math.min(...dates.map((d) => d.getTime())));
+    const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())));
+    const rs = addDays(minDate, -1);
+    const re = addDays(maxDate, 7);
+    const td = Math.max(daysBetween(rs, re), 1);
+
+    const wm: Array<{ date: Date; leftPct: number }> = [];
+    let cur = new Date(rs);
+    const dow = cur.getDay();
+    cur = addDays(cur, dow === 0 ? 1 : (8 - dow) % 7 || 7);
+    while (cur <= re) {
+      wm.push({ date: new Date(cur), leftPct: (daysBetween(rs, cur) / td) * 100 });
+      cur = addDays(cur, 7);
+    }
+
+    const today = new Date();
+    const tlp = (daysBetween(rs, today) / td) * 100;
+    return { rangeStart: rs, totalDays: td, weekMarkers: wm, todayLeftPct: tlp, showTodayLine: tlp >= 0 && tlp <= 100 };
+  }, [scheduled]);
+
+  // Pre-build member name lookup to avoid O(members) per task
+  const memberNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const t of tasks) {
+      if (t.assignee_email && !map.has(t.assignee_email)) {
+        map.set(t.assignee_email, getMemberName(t.assignee_email, members));
+      }
+    }
+    return map;
+  }, [tasks, members]);
 
   if (scheduled.length === 0 && unscheduled.length === 0) {
     return (
@@ -45,42 +89,6 @@ export function GanttChart({ tasks, members, onTaskClick }: Props) {
       </div>
     );
   }
-
-  // Compute axis range
-  const dates: Date[] = [];
-  for (const t of scheduled) {
-    if (t.start_date) dates.push(new Date(t.start_date));
-    if (t.end_date) dates.push(new Date(t.end_date));
-    if (t.due_date) dates.push(new Date(t.due_date));
-    dates.push(new Date(t.created_at));
-  }
-
-  const minDate = dates.length > 0
-    ? new Date(Math.min(...dates.map((d) => d.getTime())))
-    : new Date();
-  const maxDate = dates.length > 0
-    ? new Date(Math.max(...dates.map((d) => d.getTime())))
-    : addDays(new Date(), 14);
-
-  const rangeStart = addDays(minDate, -1);
-  const rangeEnd = addDays(maxDate, 7);
-  const totalDays = Math.max(daysBetween(rangeStart, rangeEnd), 1);
-
-  const weekMarkers: Array<{ date: Date; leftPct: number }> = [];
-  let cur = new Date(rangeStart);
-  const dayOfWeek = cur.getDay();
-  cur = addDays(cur, dayOfWeek === 0 ? 1 : (8 - dayOfWeek) % 7 || 7);
-  while (cur <= rangeEnd) {
-    weekMarkers.push({
-      date: new Date(cur),
-      leftPct: (daysBetween(rangeStart, cur) / totalDays) * 100,
-    });
-    cur = addDays(cur, 7);
-  }
-
-  const today = new Date();
-  const todayLeftPct = (daysBetween(rangeStart, today) / totalDays) * 100;
-  const showTodayLine = todayLeftPct >= 0 && todayLeftPct <= 100;
 
   return (
     <div className="text-xs">
@@ -95,7 +103,7 @@ export function GanttChart({ tasks, members, onTaskClick }: Props) {
             >
               {task.assignee_email ? (
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-sage-mist flex items-center justify-center text-[10px] font-medium text-sage">
-                  {getMemberName(task.assignee_email, members)[0]?.toUpperCase()}
+                  {memberNameMap.get(task.assignee_email!)?.[0]?.toUpperCase()}
                 </span>
               ) : (
                 <span className="flex-shrink-0 w-5" />
@@ -182,9 +190,9 @@ export function GanttChart({ tasks, members, onTaskClick }: Props) {
                     {!isDiamond && task.assignee_email && (
                       <span className={`absolute inset-0 flex items-center px-1.5 gap-1 text-[9px] ${textClass} font-medium overflow-hidden`}>
                         <span className="flex-shrink-0 w-3.5 h-3.5 rounded-full bg-white/30 flex items-center justify-center text-[8px]">
-                          {getMemberName(task.assignee_email, members)[0]?.toUpperCase()}
+                          {memberNameMap.get(task.assignee_email!)?.[0]?.toUpperCase()}
                         </span>
-                        <span className="truncate">{getMemberName(task.assignee_email, members)}</span>
+                        <span className="truncate">{memberNameMap.get(task.assignee_email!)}</span>
                       </span>
                     )}
                   </div>
@@ -216,4 +224,4 @@ export function GanttChart({ tasks, members, onTaskClick }: Props) {
       )}
     </div>
   );
-}
+});

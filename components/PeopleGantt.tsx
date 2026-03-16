@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, memo } from "react";
 import type { Task, SpaceMember } from "@/lib/types";
 import {
   addDays,
@@ -32,27 +32,29 @@ const PRIORITY_LABELS: Record<number, string> = {
 
 const WEEKDAY_NAMES = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 
-export function PeopleGantt({ tasks, members, onTaskClick }: Props) {
+export const PeopleGantt = memo(function PeopleGantt({ tasks, members, onTaskClick }: Props) {
   const [weekOffset, setWeekOffset] = useState(0);
 
   const today = new Date();
   const weekStart = getWeekStartMonday(today, weekOffset);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  const scheduled = tasks.filter(
+  const scheduled = useMemo(() => tasks.filter(
     (t) => t.start_date || t.end_date || t.due_date,
-  );
+  ), [tasks]);
 
   // 只保留本周有任务的成员组
-  const allGroups = groupTasksByMember(scheduled, members);
-  const groups = allGroups
-    .map((g) => {
-      const weekTasks = g.tasks.filter((t) =>
-        days.some((day) => taskCoversDay(t, day)),
-      );
-      return { ...g, weekTasks };
-    })
-    .filter((g) => g.weekTasks.length > 0);
+  const groups = useMemo(() => {
+    const allGroups = groupTasksByMember(scheduled, members);
+    return allGroups
+      .map((g) => {
+        const weekTasks = g.tasks.filter((t) =>
+          days.some((day) => taskCoversDay(t, day)),
+        );
+        return { ...g, weekTasks };
+      })
+      .filter((g) => g.weekTasks.length > 0);
+  }, [scheduled, members, days]);
 
   if (groups.length === 0) {
     return (
@@ -137,7 +139,7 @@ export function PeopleGantt({ tasks, members, onTaskClick }: Props) {
       </div>
     </div>
   );
-}
+});
 
 /* ---------- MemberRow ---------- */
 

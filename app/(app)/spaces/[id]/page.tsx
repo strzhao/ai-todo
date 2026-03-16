@@ -1,23 +1,44 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { NLInput } from "@/components/NLInput";
 import { ActionPreview } from "@/components/ActionPreview";
 import { TaskList } from "@/components/TaskList";
-import { GanttChart } from "@/components/GanttChart";
-import { PeopleGantt } from "@/components/PeopleGantt";
 import { DailySummary } from "@/components/DailySummary";
 import { SpaceSettings } from "@/components/SpaceSettings";
 import { SpaceNotes } from "@/components/SpaceNotes";
+
+const GanttChart = dynamic(() => import("@/components/GanttChart").then(m => ({ default: m.GanttChart })), { ssr: false });
+const PeopleGantt = dynamic(() => import("@/components/PeopleGantt").then(m => ({ default: m.PeopleGantt })), { ssr: false });
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { ParsedAction, Task, Space, SpaceMember, ActionResult } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
 
-// Recursively collect all descendants of a given parent
-function getDescendants(tasks: Task[], parentId: string): Task[] {
-  const direct = tasks.filter((t) => t.parent_id === parentId);
-  return direct.flatMap((t) => [t, ...getDescendants(tasks, t.id)]);
+// Build parent→children map once, then traverse O(n) instead of O(n²)
+function buildChildMap(tasks: Task[]): Map<string, Task[]> {
+  const map = new Map<string, Task[]>();
+  for (const t of tasks) {
+    if (t.parent_id) {
+      const arr = map.get(t.parent_id);
+      if (arr) arr.push(t);
+      else map.set(t.parent_id, [t]);
+    }
+  }
+  return map;
+}
+
+function getDescendantsFromMap(map: Map<string, Task[]>, parentId: string): Task[] {
+  const result: Task[] = [];
+  const stack = [...(map.get(parentId) ?? [])];
+  while (stack.length) {
+    const t = stack.pop()!;
+    result.push(t);
+    const children = map.get(t.id);
+    if (children) stack.push(...children);
+  }
+  return result;
 }
 
 interface SpacePageProps {
@@ -108,51 +129,81 @@ export default function SpacePage({ params }: SpacePageProps) {
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, ...updates } : t));
   }
 
-  function handleGanttTaskClick(id: string) {
+  const handleGanttTaskClick = useCallback((id: string) => {
     setTab("list");
     setTimeout(() => {
       const el = document.getElementById(`task-${id}`);
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 100);
-  }
+  }, []);
 
-  const activeMembers = members.filter((m) => m.status === "active");
-  const filteredTasks = filterMember === "all"
-    ? tasks
-    : tasks.filter((t) => t.assignee_id === filterMember || t.user_id === filterMember);
+  const activeMembers = useMemo(() => members.filter((m) => m.status === "active"), [members]);
+  const filteredTasks = useMemo(() =>
+    filterMember === "all"
+      ? tasks
+      : tasks.filter((t) => t.assignee_id === filterMember || t.user_id === filterMember),
+    [tasks, filterMember]
+  );
 
-  const focusedTask = focusedTaskId ? tasks.find((t) => t.id === focusedTaskId) : null;
+  const focusedTask = useMemo(() => focusedTaskId ? tasks.find((t) => t.id === focusedTaskId) ?? null : null, [tasks, focusedTaskId]);
 
   // Current focus layer (for AI parse + action resolution): only direct children, unfinished
-  const focusLayerTasks = focusedTaskId
-    ? tasks.filter((t) => t.parent_id === focusedTaskId)
-    : tasks.filter((t) => !t.parent_id);
+  const focusLayerTasks = useMemo(() =>
+    focusedTaskId
+      ? tasks.filter((t) => t.parent_id === focusedTaskId)
+      : tasks.filter((t) => !t.parent_id),
+    [tasks, focusedTaskId]
+  );
 
   // Add current container node (space root or focused parent) for expressions like "在 X 下新增..."
-  const aiContextTasks: Task[] = focusedTaskId
-    ? (focusedTask ? [focusedTask, ...focusLayerTasks] : focusLayerTasks)
-    : (space ? [space, ...focusLayerTasks] : focusLayerTasks);
+  const aiContextTasks = useMemo<Task[]>(() =>
+    focusedTaskId
+      ? (focusedTask ? [focusedTask, ...focusLayerTasks] : focusLayerTasks)
+      : (space ? [space, ...focusLayerTasks] : focusLayerTasks),
+    [focusedTaskId, focusedTask, focusLayerTasks, space]
+  );
 
   // Drill-down: each level only shows direct children, not all descendants
-  const displayTasks = focusedTaskId
-    ? filteredTasks.filter(t => t.parent_id === focusedTaskId)
-    : filteredTasks.filter(t => t.parent_id === spaceId || (t.space_id === spaceId && !t.parent_id));
+  const displayTasks = useMemo(() =>
+    focusedTaskId
+      ? filteredTasks.filter(t => t.parent_id === focusedTaskId)
+      : filteredTasks.filter(t => t.parent_id === spaceId || (t.space_id === spaceId && !t.parent_id)),
+    [filteredTasks, focusedTaskId, spaceId]
+  );
 
   // Completed tasks scoped to current level only
-  const focusedCompletedTasks = focusedTaskId
-    ? completedTasks.filter(t => t.parent_id === focusedTaskId)
-    : completedTasks.filter(t => t.parent_id === spaceId || (t.space_id === spaceId && !t.parent_id));
+  const focusedCompletedTasks = useMemo(() =>
+    focusedTaskId
+      ? completedTasks.filter(t => t.parent_id === focusedTaskId)
+      : completedTasks.filter(t => t.parent_id === spaceId || (t.space_id === spaceId && !t.parent_id)),
+    [completedTasks, focusedTaskId, spaceId]
+  );
+
+  // Pre-build parent→children maps for O(n) descendant lookups
+  const filteredChildMap = useMemo(() => buildChildMap(filteredTasks), [filteredTasks]);
+  const completedChildMap = useMemo(() => buildChildMap(completedTasks), [completedTasks]);
 
   // Progress stats use all descendants for accurate overall completion rate
-  const allDescendants = focusedTaskId ? getDescendants(filteredTasks, focusedTaskId) : filteredTasks;
-  const allCompletedDescendants = focusedTaskId ? getDescendants(completedTasks, focusedTaskId) : completedTasks;
-  const completedCount = allCompletedDescendants.length;
-  const totalCount = allDescendants.length + completedCount;
-  const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const { allDescendants, allCompletedDescendants, completedCount, totalCount, progressPct } = useMemo(() => {
+    const desc = focusedTaskId ? getDescendantsFromMap(filteredChildMap, focusedTaskId) : filteredTasks;
+    const compDesc = focusedTaskId ? getDescendantsFromMap(completedChildMap, focusedTaskId) : completedTasks;
+    const cc = compDesc.length;
+    const tc = desc.length + cc;
+    return {
+      allDescendants: desc,
+      allCompletedDescendants: compDesc,
+      completedCount: cc,
+      totalCount: tc,
+      progressPct: tc > 0 ? Math.round((cc / tc) * 100) : 0,
+    };
+  }, [focusedTaskId, filteredChildMap, completedChildMap, filteredTasks, completedTasks]);
 
-  const ganttTasks = focusedTaskId
-    ? [...allDescendants, ...allCompletedDescendants]
-    : [...tasks, ...completedTasks];
+  const ganttTasks = useMemo(() =>
+    focusedTaskId
+      ? [...allDescendants, ...allCompletedDescendants]
+      : [...tasks, ...completedTasks],
+    [focusedTaskId, allDescendants, allCompletedDescendants, tasks, completedTasks]
+  );
 
   // Child count map for drill-down: tells TaskItem how many children each task has
   const childCountMap = useMemo(() => {

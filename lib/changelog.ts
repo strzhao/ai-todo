@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.24.2",
+    date: "2026-03-16",
+    title: "甘特图性能优化",
+    items: [
+      "复杂项目空间切换甘特图不再卡顿",
+      "任务树遍历算法从 O(n²) 优化至 O(n)，大量任务场景显著提速",
+      "甘特图组件懒加载，不影响任务列表加载速度",
+    ],
+  },
+  {
     version: "1.24.1",
     date: "2026-03-16",
     title: "移动端任务详情",
