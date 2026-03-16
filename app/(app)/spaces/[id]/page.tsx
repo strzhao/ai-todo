@@ -76,11 +76,13 @@ export default function SpacePage({ params }: SpacePageProps) {
   useEffect(() => {
     params.then(({ id }) => {
       setSpaceId(id);
+      const t0 = performance.now();
       Promise.all([
         fetch(`/api/spaces/${id}`).then((r) => r.json()),
         fetch(`/api/tasks?space_id=${id}`).then((r) => r.json()),
         fetch(`/api/tasks?space_id=${id}&filter=completed`).then((r) => r.json()).catch(() => []),
       ]).then(([spaceData, tasksData, completedData]: [{ space: Space; members: SpaceMember[] }, Task[], Task[]]) => {
+        console.log(`[perf] API fetch: ${(performance.now() - t0).toFixed(0)}ms, tasks: ${tasksData.length}, completed: ${Array.isArray(completedData) ? completedData.length : 0}`);
         setSpace(spaceData.space);
         setMembers(spaceData.members);
         setTasks(tasksData);
@@ -188,10 +190,12 @@ export default function SpacePage({ params }: SpacePageProps) {
 
   // Progress stats use all descendants for accurate overall completion rate
   const { allDescendants, allCompletedDescendants, completedCount, totalCount, progressPct } = useMemo(() => {
+    const t0 = performance.now();
     const desc = focusedTaskId ? getDescendantsFromMap(filteredChildMap, focusedTaskId) : filteredTasks;
     const compDesc = focusedTaskId ? getDescendantsFromMap(completedChildMap, focusedTaskId) : completedTasks;
     const cc = compDesc.length;
     const tc = desc.length + cc;
+    console.log(`[perf] getDescendants: ${(performance.now() - t0).toFixed(1)}ms, active: ${desc.length}, completed: ${cc}`);
     return {
       allDescendants: desc,
       allCompletedDescendants: compDesc,
@@ -201,12 +205,13 @@ export default function SpacePage({ params }: SpacePageProps) {
     };
   }, [focusedTaskId, filteredChildMap, completedChildMap, filteredTasks, completedTasks]);
 
-  const ganttTasks = useMemo(() =>
-    focusedTaskId
+  const ganttTasks = useMemo(() => {
+    const result = focusedTaskId
       ? [...allDescendants, ...allCompletedDescendants]
-      : [...tasks, ...completedTasks],
-    [focusedTaskId, allDescendants, allCompletedDescendants, tasks, completedTasks]
-  );
+      : [...tasks, ...completedTasks];
+    console.log(`[perf] ganttTasks: ${result.length} tasks`);
+    return result;
+  }, [focusedTaskId, allDescendants, allCompletedDescendants, tasks, completedTasks]);
 
   // Child count map for drill-down: tells TaskItem how many children each task has
   const childCountMap = useMemo(() => {
