@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, memo } from "react";
+import { useMemo, memo, useState, useRef, useCallback, useEffect } from "react";
 import type { Task, SpaceMember } from "@/lib/types";
 import { daysBetween, addDays, formatAxisDate, getMemberName } from "@/lib/gantt-utils";
 
@@ -30,6 +30,11 @@ const PRIORITY_TEXT_COLORS: Record<number, string> = {
   2: "text-info-foreground",
   3: "text-paper",
 };
+
+const ROW_HEIGHT = 40; // h-10 = 2.5rem = 40px
+const HEADER_HEIGHT = 32; // h-8 = 2rem = 32px
+const OVERSCAN = 5; // extra rows above/below viewport
+const MAX_VISIBLE_HEIGHT = 600; // max container height in px
 
 export const GanttChart = memo(function GanttChart({ tasks, members, onTaskClick }: Props) {
   const scheduled = useMemo(() => tasks.filter(
@@ -82,6 +87,57 @@ export const GanttChart = memo(function GanttChart({ tasks, members, onTaskClick
     return map;
   }, [tasks, members]);
 
+  // Pre-compute bar positions for all scheduled tasks
+  const barData = useMemo(() => scheduled.map((task) => {
+    const taskStart = task.start_date
+      ? new Date(task.start_date)
+      : task.due_date
+      ? addDays(new Date(task.due_date), -1)
+      : new Date(task.created_at);
+
+    const taskEnd = task.end_date
+      ? new Date(task.end_date)
+      : task.due_date
+      ? new Date(task.due_date)
+      : addDays(taskStart, 1);
+
+    const leftPct = (daysBetween(rangeStart, taskStart) / totalDays) * 100;
+    const duration = Math.max(daysBetween(taskStart, taskEnd), 0.5);
+    const widthPct = Math.max((duration / totalDays) * 100, 1);
+    const isDiamond = !task.start_date && !task.end_date;
+
+    return { task, leftPct, widthPct, isDiamond, taskStart, taskEnd };
+  }), [scheduled, rangeStart, totalDays]);
+
+  // Virtual scrolling state
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+
+  const totalContentHeight = scheduled.length * ROW_HEIGHT;
+  const containerHeight = Math.min(totalContentHeight, MAX_VISIBLE_HEIGHT);
+  const needsVirtualization = scheduled.length > 30;
+
+  const { startIdx, endIdx } = useMemo(() => {
+    if (!needsVirtualization) return { startIdx: 0, endIdx: scheduled.length };
+    const start = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
+    const visibleCount = Math.ceil(containerHeight / ROW_HEIGHT) + OVERSCAN * 2;
+    const end = Math.min(scheduled.length, start + visibleCount);
+    return { startIdx: start, endIdx: end };
+  }, [scrollTop, scheduled.length, containerHeight, needsVirtualization]);
+
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    setScrollTop(e.currentTarget.scrollTop);
+  }, []);
+
+  // Sync horizontal scroll between header and body
+  const timelineHeaderRef = useRef<HTMLDivElement>(null);
+  const timelineBodyRef = useRef<HTMLDivElement>(null);
+
+  const handleHorizontalScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const scrollLeft = e.currentTarget.scrollLeft;
+    if (timelineHeaderRef.current) timelineHeaderRef.current.scrollLeft = scrollLeft;
+  }, []);
+
   if (scheduled.length === 0 && unscheduled.length === 0) {
     return (
       <div className="py-12 text-center text-sm text-muted-foreground">
@@ -90,13 +146,55 @@ export const GanttChart = memo(function GanttChart({ tasks, members, onTaskClick
     );
   }
 
+  const visibleBarData = barData.slice(startIdx, endIdx);
+  const topPadding = startIdx * ROW_HEIGHT;
+  const bottomPadding = (scheduled.length - endIdx) * ROW_HEIGHT;
+  const timelineWidth = Math.max(totalDays * 16, 400);
+
   return (
     <div className="text-xs">
+      {/* Sticky header row */}
       <div className="flex">
-        {/* Left fixed label column */}
         <div className="flex-shrink-0 w-40">
           <div className="h-8 border-b border-r border-border/50" />
-          {scheduled.map((task) => (
+        </div>
+        <div className="flex-1 overflow-hidden" ref={timelineHeaderRef}>
+          <div style={{ minWidth: `${timelineWidth}px`, position: "relative" }}>
+            <div className="h-8 border-b border-border/50 relative bg-muted/20">
+              {weekMarkers.map((wm, i) => (
+                <div
+                  key={i}
+                  className="absolute top-0 bottom-0 flex items-center"
+                  style={{ left: `${wm.leftPct}%` }}
+                >
+                  <div className="h-full w-px bg-border/30" />
+                  <span className="text-[10px] text-muted-foreground ml-1 whitespace-nowrap">
+                    {formatAxisDate(wm.date)}
+                  </span>
+                </div>
+              ))}
+              {showTodayLine && (
+                <div
+                  className="absolute top-0 bottom-0 w-px bg-warning opacity-60 z-10"
+                  style={{ left: `${todayLeftPct}%` }}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Scrollable body */}
+      <div
+        ref={scrollContainerRef}
+        className="flex overflow-y-auto"
+        style={{ maxHeight: needsVirtualization ? `${containerHeight}px` : undefined }}
+        onScroll={handleScroll}
+      >
+        {/* Left fixed label column */}
+        <div className="flex-shrink-0 w-40">
+          {needsVirtualization && topPadding > 0 && <div style={{ height: topPadding }} />}
+          {visibleBarData.map(({ task }) => (
             <div
               key={task.id}
               className="h-10 border-b border-r border-border/30 flex items-center px-2 gap-1.5 overflow-hidden"
@@ -120,50 +218,14 @@ export const GanttChart = memo(function GanttChart({ tasks, members, onTaskClick
               />
             </div>
           ))}
+          {needsVirtualization && bottomPadding > 0 && <div style={{ height: bottomPadding }} />}
         </div>
 
         {/* Right scrollable timeline */}
-        <div className="flex-1 overflow-x-auto">
-          <div style={{ minWidth: `${Math.max(totalDays * 16, 400)}px`, position: "relative" }}>
-            <div className="h-8 border-b border-border/50 relative bg-muted/20">
-              {weekMarkers.map((wm, i) => (
-                <div
-                  key={i}
-                  className="absolute top-0 bottom-0 flex items-center"
-                  style={{ left: `${wm.leftPct}%` }}
-                >
-                  <div className="h-full w-px bg-border/30" />
-                  <span className="text-[10px] text-muted-foreground ml-1 whitespace-nowrap">
-                    {formatAxisDate(wm.date)}
-                  </span>
-                </div>
-              ))}
-              {showTodayLine && (
-                <div
-                  className="absolute top-0 bottom-0 w-px bg-warning opacity-60 z-10"
-                  style={{ left: `${todayLeftPct}%` }}
-                />
-              )}
-            </div>
-
-            {scheduled.map((task) => {
-              const taskStart = task.start_date
-                ? new Date(task.start_date)
-                : task.due_date
-                ? addDays(new Date(task.due_date), -1)
-                : new Date(task.created_at);
-
-              const taskEnd = task.end_date
-                ? new Date(task.end_date)
-                : task.due_date
-                ? new Date(task.due_date)
-                : addDays(taskStart, 1);
-
-              const leftPct = (daysBetween(rangeStart, taskStart) / totalDays) * 100;
-              const duration = Math.max(daysBetween(taskStart, taskEnd), 0.5);
-              const widthPct = Math.max((duration / totalDays) * 100, 1);
-              const isDiamond = !task.start_date && !task.end_date;
-
+        <div className="flex-1 overflow-x-auto" ref={timelineBodyRef} onScroll={handleHorizontalScroll}>
+          <div style={{ minWidth: `${timelineWidth}px`, position: "relative" }}>
+            {needsVirtualization && topPadding > 0 && <div style={{ height: topPadding }} />}
+            {visibleBarData.map(({ task, leftPct, widthPct, isDiamond }) => {
               const colorClass = PRIORITY_COLORS[task.priority] ?? PRIORITY_COLORS[2];
               const borderClass = PRIORITY_BORDER_COLORS[task.priority] ?? PRIORITY_BORDER_COLORS[2];
               const textClass = PRIORITY_TEXT_COLORS[task.priority] ?? PRIORITY_TEXT_COLORS[2];
@@ -199,6 +261,7 @@ export const GanttChart = memo(function GanttChart({ tasks, members, onTaskClick
                 </div>
               );
             })}
+            {needsVirtualization && bottomPadding > 0 && <div style={{ height: bottomPadding }} />}
           </div>
         </div>
       </div>
