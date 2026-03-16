@@ -30,8 +30,8 @@ export async function GET(req: NextRequest) {
 
   let tasks;
   if (wantType === 1) {
-    // Notes: return all notes sorted by created_at DESC (ignore filter/spaceId)
-    tasks = await rt.track("db_query", async () => getTasks(user.id, {}));
+    // Notes: optionally scoped to a space
+    tasks = await rt.track("db_query", async () => getTasks(user.id, spaceId ? { spaceId } : {}));
     tasks = tasks.filter((t: Task) => (t.type ?? 0) === 1)
       .sort((a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   } else if (filter === "today") {

@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.23.0",
+    date: "2026-03-16",
+    title: "空间笔记",
+    items: [
+      "空间页面新增「笔记」Tab，支持在项目空间内记录笔记",
+      "空间笔记独立于全局笔记，按空间隔离",
+      "支持内联创建、标签筛选、日期分组",
+    ],
+  },
+  {
     version: "1.22.0",
     date: "2026-03-15",
     title: "轻量笔记",

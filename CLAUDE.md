@@ -126,7 +126,7 @@ app/
     spaces/
       page.tsx                  # 空间列表
       new/page.tsx              # 创建空间
-      [id]/page.tsx             # 空间任务视图（进度条 + 成员筛选 + @mention + ?focus=taskId 聚焦态 + 设置抽屉）
+      [id]/page.tsx             # 空间任务视图（进度条 + 成员筛选 + @mention + ?focus=taskId 聚焦态 + 笔记 Tab + 设置抽屉）
   auth/callback/page.tsx        # 统一授权回跳页（authorized/state 校验）
   join/[invite_code]/page.tsx   # 加入空间（独立布局，无 AppShell）
   api/
@@ -165,6 +165,7 @@ components/
   AssigneeBadge.tsx             # 显示非自己的负责人徽章
   TaskSkeleton.tsx              # 加载骨架屏（3 行）
   SpaceSettings.tsx             # 空间设置面板（Sheet 抽屉内容：邀请链接 + 成员管理 + 归档 + 解散）
+  SpaceNotes.tsx                # 空间笔记面板（space_id 过滤 + 内联创建 + 标签筛选 + 日期分组）
   EmptyState.tsx                # 空状态展示组件
   (已删除 NotificationBell.tsx，通知改为图标直接导航到 /notifications 页面)
   NotificationList.tsx          # 通知列表（Popover / 全屏页共用）

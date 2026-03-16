@@ -9,6 +9,7 @@ import { GanttChart } from "@/components/GanttChart";
 import { PeopleGantt } from "@/components/PeopleGantt";
 import { DailySummary } from "@/components/DailySummary";
 import { SpaceSettings } from "@/components/SpaceSettings";
+import { SpaceNotes } from "@/components/SpaceNotes";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { ParsedAction, Task, Space, SpaceMember, ActionResult } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
@@ -40,10 +41,11 @@ export default function SpacePage({ params }: SpacePageProps) {
   const searchParams = useSearchParams();
   const focusedTaskId = searchParams.get("focus");
 
-  const [tab, setTab] = useState<"list" | "gantt" | "summary">(() => {
+  const [tab, setTab] = useState<"list" | "gantt" | "summary" | "notes">(() => {
     const t = searchParams.get("tab");
     if (t === "gantt") return "gantt";
     if (t === "summary") return "summary";
+    if (t === "notes") return "notes";
     return "list";
   });
 
@@ -256,6 +258,12 @@ export default function SpacePage({ params }: SpacePageProps) {
         >
           AI 总结
         </button>
+        <button
+          onClick={() => setTab("notes")}
+          className={`text-xs px-3 py-1 rounded-md border transition-colors ${tab === "notes" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-foreground"}`}
+        >
+          笔记
+        </button>
       </div>
 
       {tab === "list" && (
@@ -357,6 +365,10 @@ export default function SpacePage({ params }: SpacePageProps) {
           spaceId={spaceId}
           canConfigure={space?.my_role === "owner" || space?.my_role === "admin"}
         />
+      )}
+
+      {tab === "notes" && (
+        <SpaceNotes spaceId={spaceId} />
       )}
 
       <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
