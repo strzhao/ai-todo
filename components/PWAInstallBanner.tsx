@@ -13,7 +13,7 @@ export function PWAInstallBanner() {
   const { canPrompt, isStandalone, platform, promptInstall } = usePWAInstall();
   const [visible, setVisible] = useState(false);
   const [pushBannerVisible, setPushBannerVisible] = useState(false);
-  const [showIOSSteps, setShowIOSSteps] = useState(false);
+  const [showSteps, setShowSteps] = useState(false);
   const [closing, setClosing] = useState(false);
 
   // Listen for PushPromptBanner visibility to avoid showing both banners
@@ -63,7 +63,7 @@ export function PWAInstallBanner() {
   }
 
   async function handleInstall() {
-    if (platform === "chromium") {
+    if (canPrompt) {
       const accepted = await promptInstall();
       if (accepted) {
         animateClose();
@@ -76,6 +76,8 @@ export function PWAInstallBanner() {
   if (!visible || pushBannerVisible) return null;
 
   const isIOS = platform === "ios";
+  // Chromium without native prompt — show manual steps
+  const needsManualSteps = isIOS || (platform === "chromium" && !canPrompt);
 
   return (
     <div
@@ -106,32 +108,47 @@ export function PWAInstallBanner() {
           </button>
         </div>
 
-        {/* iOS step-by-step guide */}
-        {isIOS && showIOSSteps && (
+        {/* Step-by-step guide (iOS or Chromium without native prompt) */}
+        {needsManualSteps && showSteps && (
           <div className="mt-3 space-y-2 text-xs text-foreground bg-sage-mist rounded-lg p-3">
-            <div className="flex items-center gap-2">
-              <span className="shrink-0 w-5 h-5 rounded-full bg-sage text-white text-xs flex items-center justify-center font-medium">1</span>
-              <span>
-                点击底部工具栏的{" "}
-                <IOSShareIcon className="inline-block align-text-bottom mx-0.5" />
-                {" "}分享按钮
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="shrink-0 w-5 h-5 rounded-full bg-sage text-white text-xs flex items-center justify-center font-medium">2</span>
-              <span>向下滑动，选择「添加到主屏幕」</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="shrink-0 w-5 h-5 rounded-full bg-sage text-white text-xs flex items-center justify-center font-medium">3</span>
-              <span>点击右上角「添加」即可</span>
-            </div>
+            {isIOS ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-sage text-white text-xs flex items-center justify-center font-medium">1</span>
+                  <span>
+                    点击底部工具栏的{" "}
+                    <IOSShareIcon className="inline-block align-text-bottom mx-0.5" />
+                    {" "}分享按钮
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-sage text-white text-xs flex items-center justify-center font-medium">2</span>
+                  <span>向下滑动，选择「添加到主屏幕」</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-sage text-white text-xs flex items-center justify-center font-medium">3</span>
+                  <span>点击右上角「添加」即可</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-sage text-white text-xs flex items-center justify-center font-medium">1</span>
+                  <span>点击地址栏右侧的 <strong>安装</strong> 图标（或浏览器菜单 ⋮）</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-sage text-white text-xs flex items-center justify-center font-medium">2</span>
+                  <span>选择「安装 AI Todo」或「将此站点作为应用安装」</span>
+                </div>
+              </>
+            )}
           </div>
         )}
 
         {/* Action buttons */}
         <div className="mt-3 flex gap-2">
-          {isIOS ? (
-            showIOSSteps ? (
+          {needsManualSteps ? (
+            showSteps ? (
               <button
                 onClick={handleDismiss}
                 className="flex-1 text-sm text-white bg-sage hover:bg-sage-light px-4 py-2 rounded-lg transition-colors font-medium"
@@ -147,7 +164,7 @@ export function PWAInstallBanner() {
                   以后再说
                 </button>
                 <button
-                  onClick={() => setShowIOSSteps(true)}
+                  onClick={() => setShowSteps(true)}
                   className="flex-1 text-sm text-white bg-sage hover:bg-sage-light px-4 py-2 rounded-lg transition-colors font-medium"
                 >
                   查看步骤

@@ -29,6 +29,12 @@ function getIsIOS(): boolean {
   return /iPhone|iPad|iPod/.test(navigator.userAgent);
 }
 
+function getIsChromium(): boolean {
+  if (typeof navigator === "undefined") return false;
+  // All Chromium browsers (Chrome, Edge, Opera, Brave) have "Chrome/" in UA
+  return /Chrome\//.test(navigator.userAgent);
+}
+
 export function usePWAInstall(): PWAInstallState {
   const deferredPrompt = useRef<BeforeInstallPromptEvent | null>(null);
   const [canPrompt, setCanPrompt] = useState(false);
@@ -74,7 +80,9 @@ export function usePWAInstall(): PWAInstallState {
     ? "chromium"
     : getIsIOS()
       ? "ios"
-      : "unsupported";
+      : getIsChromium()
+        ? "chromium"
+        : "unsupported";
 
   return { canPrompt, isStandalone, platform, promptInstall };
 }
