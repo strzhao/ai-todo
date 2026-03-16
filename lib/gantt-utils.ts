@@ -67,6 +67,24 @@ export function taskCoversDay(task: Task, day: Date): boolean {
   return false;
 }
 
+/** 判断任务是否与一个时间区间重叠（避免对每天重复调用 taskCoversDay） */
+export function taskCoversRange(task: Task, rangeStartMs: number, rangeEndMs: number): boolean {
+  if (task.start_date && task.end_date) {
+    const s = new Date(task.start_date).getTime();
+    const e = new Date(task.end_date).getTime();
+    return s < rangeEndMs && e >= rangeStartMs;
+  }
+  if (task.start_date) {
+    const s = new Date(task.start_date).getTime();
+    return s >= rangeStartMs && s < rangeEndMs;
+  }
+  if (task.due_date) {
+    const d = new Date(task.due_date).getTime();
+    return d >= rangeStartMs && d < rangeEndMs;
+  }
+  return false;
+}
+
 export function groupTasksByMember(
   tasks: Task[],
   members: SpaceMember[],

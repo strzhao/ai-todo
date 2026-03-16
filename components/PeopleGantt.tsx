@@ -8,6 +8,7 @@ import {
   groupTasksByMember,
   getWeekStartMonday,
   taskCoversDay,
+  taskCoversRange,
   isSameDay,
   isWeekend,
 } from "@/lib/gantt-utils";
@@ -36,25 +37,44 @@ export const PeopleGantt = memo(function PeopleGantt({ tasks, members, onTaskCli
   const [weekOffset, setWeekOffset] = useState(0);
 
   const today = new Date();
-  const weekStart = getWeekStartMonday(today, weekOffset);
-  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const weekStart = useMemo(() => getWeekStartMonday(today, weekOffset), [weekOffset]);
+  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
 
   const scheduled = useMemo(() => tasks.filter(
     (t) => t.start_date || t.end_date || t.due_date,
   ), [tasks]);
 
-  // 只保留本周有任务的成员组
+  // Pre-compute week range timestamps once for fast interval overlap check
+  const weekRangeMs = useMemo(() => ({
+    start: weekStart.getTime(),
+    end: addDays(weekStart, 7).getTime(),
+  }), [weekStart]);
+
+  // Filter to week + group by member in one pass
   const groups = useMemo(() => {
     const allGroups = groupTasksByMember(scheduled, members);
     return allGroups
       .map((g) => {
+        // Use range check instead of 7x taskCoversDay per task
         const weekTasks = g.tasks.filter((t) =>
-          days.some((day) => taskCoversDay(t, day)),
+          taskCoversRange(t, weekRangeMs.start, weekRangeMs.end),
         );
         return { ...g, weekTasks };
       })
       .filter((g) => g.weekTasks.length > 0);
-  }, [scheduled, members, days]);
+  }, [scheduled, members, weekRangeMs]);
+
+  // Pre-compute day→tasks mapping per group to avoid filtering in MemberRow render
+  const groupDayTasks = useMemo(() => {
+    const result = new Map<string, Task[][]>();
+    for (const g of groups) {
+      const dayBuckets: Task[][] = days.map((day) =>
+        g.weekTasks.filter((t) => taskCoversDay(t, day))
+      );
+      result.set(g.member?.email ?? "unassigned", dayBuckets);
+    }
+    return result;
+  }, [groups, days]);
 
   if (groups.length === 0) {
     return (
@@ -126,15 +146,20 @@ export const PeopleGantt = memo(function PeopleGantt({ tasks, members, onTaskCli
           })}
 
           {/* 成员行 */}
-          {groups.map((g) => (
-            <MemberRow
-              key={g.member?.email ?? "unassigned"}
-              group={g}
-              days={days}
-              today={today}
-              onTaskClick={onTaskClick}
-            />
-          ))}
+          {groups.map((g) => {
+            const key = g.member?.email ?? "unassigned";
+            const dayBuckets = groupDayTasks.get(key) ?? [];
+            return (
+              <MemberRow
+                key={key}
+                group={g}
+                dayBuckets={dayBuckets}
+                days={days}
+                today={today}
+                onTaskClick={onTaskClick}
+              />
+            );
+          })}
         </div>
       </div>
     </div>
@@ -149,12 +174,13 @@ interface MemberRowProps {
     label: string;
     weekTasks: Task[];
   };
+  dayBuckets: Task[][];
   days: Date[];
   today: Date;
   onTaskClick?: (id: string) => void;
 }
 
-function MemberRow({ group, days, today, onTaskClick }: MemberRowProps) {
+const MemberRow = memo(function MemberRow({ group, dayBuckets, days, today, onTaskClick }: MemberRowProps) {
   return (
     <>
       {/* 成员名（左列） */}
@@ -172,9 +198,9 @@ function MemberRow({ group, days, today, onTaskClick }: MemberRowProps) {
         </div>
       </div>
 
-      {/* 7 个日格子 */}
+      {/* 7 个日格子 — dayBuckets 已预计算，无需再 filter */}
       {days.map((day, i) => {
-        const dayTasks = group.weekTasks.filter((t) => taskCoversDay(t, day));
+        const dayTasks = dayBuckets[i] ?? [];
         const isToday = isSameDay(day, today);
 
         return (
@@ -196,7 +222,7 @@ function MemberRow({ group, days, today, onTaskClick }: MemberRowProps) {
       })}
     </>
   );
-}
+});
 
 /* ---------- TaskChip ---------- */
 
