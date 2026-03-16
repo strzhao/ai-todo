@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.24.1",
+    date: "2026-03-16",
+    title: "移动端任务详情",
+    items: [
+      "手机端点击任务可展开查看完整描述和进展记录",
+      "新增移动端展开指示器，操作更直观",
+    ],
+  },
+  {
     version: "1.24.0",
     date: "2026-03-16",
     title: "PWA 安装引导",

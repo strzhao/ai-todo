@@ -156,6 +156,25 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
     window.dispatchEvent(new Event("tasks-changed"));
   }
 
+  // ─── Title click: edit on desktop, toggle detail on mobile ────────
+  function handleTitleClick() {
+    if (window.matchMedia("(min-width: 768px)").matches) {
+      startEdit();
+    } else {
+      setDetailOpen((v) => !v);
+    }
+  }
+
+  function handleMobileDetailToggle() {
+    if (!window.matchMedia("(min-width: 768px)").matches) {
+      setDetailOpen((v) => !v);
+    }
+  }
+
+  function toggleDetail() {
+    setDetailOpen((v) => !v);
+  }
+
   // ─── Title editing ─────────────────────────────────────────────────
   function startEdit() {
     setEditTitle(task.title);
@@ -276,14 +295,16 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
           ) : (
             <p
               className="text-base font-medium leading-6 truncate cursor-text hover:text-primary/80 transition-colors"
-              onClick={startEdit}
+              onClick={handleTitleClick}
               title="单击编辑"
             >
               <RichText text={task.title} truncate />
             </p>
           )}
           {task.description && (
-            <RichText text={task.description} truncate className="text-sm text-muted-foreground mt-0.5" />
+            <div className="text-sm text-muted-foreground mt-0.5 truncate md:pointer-events-none cursor-pointer md:cursor-default" onClick={handleMobileDetailToggle}>
+              <RichText text={task.description} truncate />
+            </div>
           )}
 
           {/* Interactive badge row */}
@@ -523,9 +544,19 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
           </span>
         )}
 
+        {/* Mobile detail toggle */}
+        <button
+          onClick={toggleDetail}
+          className="md:hidden flex-shrink-0 h-7 w-7 flex items-center justify-center text-muted-foreground/60"
+          aria-label="展开详情"
+          tabIndex={-1}
+        >
+          <span className={`text-xs transition-transform ${detailOpen ? "rotate-90" : ""}`}>›</span>
+        </button>
+
         {/* Detail expand */}
         <button
-          onClick={() => setDetailOpen((v) => !v)}
+          onClick={toggleDetail}
           className="hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 items-center justify-center text-sm text-muted-foreground hover:text-foreground"
           title="查看详情"
           tabIndex={-1}
