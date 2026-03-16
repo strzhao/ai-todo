@@ -34,8 +34,6 @@ const PRIORITY_LABELS: Record<number, string> = {
 const WEEKDAY_NAMES = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 
 export const PeopleGantt = memo(function PeopleGantt({ tasks, members, onTaskClick }: Props) {
-  console.log(`[perf] PeopleGantt render start, tasks: ${tasks.length}`);
-  const renderStart = performance.now();
   const [weekOffset, setWeekOffset] = useState(0);
 
   const today = new Date();
@@ -79,7 +77,6 @@ export const PeopleGantt = memo(function PeopleGantt({ tasks, members, onTaskCli
   }, [groups, days]);
 
   if (groups.length === 0) {
-    console.log(`[perf] PeopleGantt empty, render: ${(performance.now() - renderStart).toFixed(1)}ms, scheduled: ${scheduled.length}`);
     return (
       <div className="py-12 text-center text-sm text-muted-foreground">
         {scheduled.length === 0
@@ -89,7 +86,6 @@ export const PeopleGantt = memo(function PeopleGantt({ tasks, members, onTaskCli
     );
   }
 
-  console.log(`[perf] PeopleGantt render done: ${(performance.now() - renderStart).toFixed(1)}ms, groups: ${groups.length}`);
   return (
     <div className="text-xs">
       {/* 周导航 */}

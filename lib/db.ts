@@ -322,21 +322,11 @@ export async function getTasks(userId: string, options: GetTasksOptions = {}): P
   }
 
   if (spaceId) {
+    // space_id is denormalized on all tasks within a space — no recursive CTE needed
     const { rows } = await sql.query(
-      `WITH RECURSIVE descendants AS (
-         SELECT id
-         FROM ai_todo_tasks
-         WHERE parent_id = $1 OR space_id = $1
-         UNION
-         SELECT t.id
-         FROM ai_todo_tasks t
-         JOIN descendants d ON t.parent_id = d.id
-       )
-       SELECT t.*
-       FROM ai_todo_tasks t
-       JOIN descendants d ON d.id = t.id
-       WHERE t.status != 2
-       ORDER BY t.priority ASC, t.created_at DESC`,
+      `SELECT * FROM ai_todo_tasks
+       WHERE space_id = $1 AND status != 2
+       ORDER BY priority ASC, created_at DESC`,
       [spaceId]
     );
     return rows.map(rowToTask);
@@ -362,22 +352,11 @@ export async function getAllActiveTasks(userId: string): Promise<Task[]> {
 export async function getTodayTasks(userId: string, spaceId?: string): Promise<Task[]> {
   if (spaceId) {
     const { rows } = await sql.query(
-      `WITH RECURSIVE descendants AS (
-         SELECT id
-         FROM ai_todo_tasks
-         WHERE parent_id = $1 OR space_id = $1
-         UNION
-         SELECT t.id
-         FROM ai_todo_tasks t
-         JOIN descendants d ON t.parent_id = d.id
-       )
-       SELECT t.*
-       FROM ai_todo_tasks t
-       JOIN descendants d ON d.id = t.id
-       WHERE t.status != 2
-         AND t.due_date >= NOW()::DATE
-         AND t.due_date < NOW()::DATE + INTERVAL '1 day'
-       ORDER BY t.priority ASC, t.due_date ASC`,
+      `SELECT * FROM ai_todo_tasks
+       WHERE space_id = $1 AND status != 2
+         AND due_date >= NOW()::DATE
+         AND due_date < NOW()::DATE + INTERVAL '1 day'
+       ORDER BY priority ASC, due_date ASC`,
       [spaceId]
     );
     return rows.map(rowToTask);
@@ -398,20 +377,9 @@ export async function getTodayTasks(userId: string, spaceId?: string): Promise<T
 export async function getCompletedTasks(userId: string, spaceId?: string): Promise<Task[]> {
   if (spaceId) {
     const { rows } = await sql.query(
-      `WITH RECURSIVE descendants AS (
-         SELECT id
-         FROM ai_todo_tasks
-         WHERE parent_id = $1 OR space_id = $1
-         UNION
-         SELECT t.id
-         FROM ai_todo_tasks t
-         JOIN descendants d ON t.parent_id = d.id
-       )
-       SELECT t.*
-       FROM ai_todo_tasks t
-       JOIN descendants d ON d.id = t.id
-       WHERE t.status = 2
-       ORDER BY t.completed_at DESC
+      `SELECT * FROM ai_todo_tasks
+       WHERE space_id = $1 AND status = 2
+       ORDER BY completed_at DESC
        LIMIT 20`,
       [spaceId]
     );
@@ -877,9 +845,25 @@ export async function getTaskLogs(taskId: string): Promise<TaskLog[]> {
 }
 
 export async function getDescendantTasks(parentId: string): Promise<Task[]> {
+  // Try fast path: if parentId is a space (pinned task), use indexed space_id
+  const { rows: spaceCheck } = await sql.query(
+    `SELECT 1 FROM ai_todo_tasks WHERE id = $1 AND pinned = true LIMIT 1`,
+    [parentId]
+  );
+  if (spaceCheck.length > 0) {
+    const { rows } = await sql.query(
+      `SELECT * FROM ai_todo_tasks
+       WHERE space_id = $1
+       ORDER BY priority ASC, created_at DESC
+       LIMIT 500`,
+      [parentId]
+    );
+    return rows.map(rowToTask);
+  }
+  // Fallback: recursive CTE for non-space parent tasks
   const { rows } = await sql.query(
     `WITH RECURSIVE descendants AS (
-       SELECT * FROM ai_todo_tasks WHERE parent_id = $1 OR space_id = $1
+       SELECT * FROM ai_todo_tasks WHERE parent_id = $1
        UNION ALL
        SELECT t.* FROM ai_todo_tasks t
        JOIN descendants d ON t.parent_id = d.id

@@ -50,7 +50,7 @@ beforeEach(() => {
 });
 
 describe("getTasks with spaceId", () => {
-  it("SQL 包含 parent_id = $1 OR space_id = $1 的统一递归 CTE", async () => {
+  it("使用 space_id 索引直接查询（非递归 CTE）", async () => {
     mockQuery.mockResolvedValueOnce({
       rows: [makeRow("t1"), makeRow("t2")],
     });
@@ -59,8 +59,8 @@ describe("getTasks with spaceId", () => {
 
     expect(mockQuery).toHaveBeenCalledOnce();
     const sqlText = mockQuery.mock.calls[0][0] as string;
-    expect(sqlText).toContain("parent_id = $1 OR space_id = $1");
-    expect(sqlText).not.toContain("scoped AS");
+    expect(sqlText).toContain("space_id = $1");
+    expect(sqlText).not.toContain("WITH RECURSIVE");
     expect(mockQuery.mock.calls[0][1]).toEqual(["space1"]);
     expect(result).toHaveLength(2);
     expect(result[0].id).toBe("t1");
@@ -79,7 +79,7 @@ describe("getTasks with spaceId", () => {
 });
 
 describe("getCompletedTasks with spaceId", () => {
-  it("SQL 包含 parent_id = $1 OR space_id = $1 的统一递归 CTE", async () => {
+  it("使用 space_id 索引直接查询（非递归 CTE）", async () => {
     mockQuery.mockResolvedValueOnce({
       rows: [makeRow("t1", { status: 2, completed_at: new Date() })],
     });
@@ -88,8 +88,8 @@ describe("getCompletedTasks with spaceId", () => {
 
     expect(mockQuery).toHaveBeenCalledOnce();
     const sqlText = mockQuery.mock.calls[0][0] as string;
-    expect(sqlText).toContain("parent_id = $1 OR space_id = $1");
-    expect(sqlText).not.toContain("scoped AS");
+    expect(sqlText).toContain("space_id = $1");
+    expect(sqlText).not.toContain("WITH RECURSIVE");
     expect(sqlText).toContain("status = 2");
     expect(result).toHaveLength(1);
   });
@@ -104,15 +104,15 @@ describe("getCompletedTasks with spaceId", () => {
 });
 
 describe("getTodayTasks with spaceId", () => {
-  it("SQL 包含 parent_id = $1 OR space_id = $1 的统一递归 CTE", async () => {
+  it("使用 space_id 索引直接查询（非递归 CTE）", async () => {
     mockQuery.mockResolvedValueOnce({ rows: [] });
 
     await getTodayTasks("user1", "space1");
 
     expect(mockQuery).toHaveBeenCalledOnce();
     const sqlText = mockQuery.mock.calls[0][0] as string;
-    expect(sqlText).toContain("parent_id = $1 OR space_id = $1");
-    expect(sqlText).not.toContain("scoped AS");
+    expect(sqlText).toContain("space_id = $1");
+    expect(sqlText).not.toContain("WITH RECURSIVE");
     expect(sqlText).toContain("due_date");
   });
 
