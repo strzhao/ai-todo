@@ -3,6 +3,7 @@ import { getServerUser } from "@/lib/server-auth";
 import { getSpacesByUser, initDb, getUserActivation } from "@/lib/db";
 import { SpaceNav } from "@/components/SpaceNav";
 import { PushPromptBanner } from "@/components/PushPromptBanner";
+import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getServerUser();
@@ -25,6 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* Desktop: offset for sidebar; mobile: offset for bottom tab */}
       <main className="main-content pb-16 md:pb-0">
         <PushPromptBanner />
+        <PWAInstallBanner />
         {children}
       </main>
     </div>

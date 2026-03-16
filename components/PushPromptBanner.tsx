@@ -31,6 +31,7 @@ export function PushPromptBanner() {
       if (visits < MIN_VISITS) return;
 
       setVisible(true);
+      window.dispatchEvent(new CustomEvent("push-banner-visible", { detail: true }));
     })();
   }, []);
 
@@ -40,12 +41,16 @@ export function PushPromptBanner() {
     setLoading(true);
     const ok = await subscribeToPush();
     setLoading(false);
-    if (ok) setVisible(false);
+    if (ok) {
+      setVisible(false);
+      window.dispatchEvent(new CustomEvent("push-banner-visible", { detail: false }));
+    }
   }
 
   function handleDismiss() {
     localStorage.setItem(DISMISS_KEY, String(Date.now()));
     setVisible(false);
+    window.dispatchEvent(new CustomEvent("push-banner-visible", { detail: false }));
   }
 
   return (

@@ -172,6 +172,7 @@ components/
   NotificationItem.tsx          # 单条通知行
   NotificationSettings.tsx      # 通知偏好设置（应用内 + 邮件 + 推送开关矩阵）
   PushPromptBanner.tsx          # 推送提醒横幅（访问 3 次后智能提示开启推送）
+  PWAInstallBanner.tsx          # PWA 安装引导横幅（访问 5 次后提示添加到主屏幕，Chrome 一键安装 / iOS 步骤引导）
   ServiceWorkerRegistrar.tsx    # Service Worker 注册（app 加载时自动注册）
 lib/
   types.ts                      # Task、ParsedTask、ParsedAction、ActionResult、TaskLog、AppNotification 等接口
@@ -195,6 +196,7 @@ lib/
   notification-utils.ts         # 通知工具函数（getNotificationUrl 统一链接计算）
   push.ts                       # Web Push 服务端推送（sendPushToUser、VAPID 配置）
   use-push.ts                   # 客户端推送订阅 hook（subscribeToPush、unsubscribeFromPush）
+  use-pwa-install.ts            # PWA 安装能力 hook（平台检测 + beforeinstallprompt 管理）
   db.ts                         # Vercel Postgres CRUD（tasks + task_members + task_logs + push_subscriptions）；空间 = pinned 任务
 __tests__/
   task-utils.test.ts            # buildTree 单元测试

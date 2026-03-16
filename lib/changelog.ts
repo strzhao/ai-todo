@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.24.0",
+    date: "2026-03-16",
+    title: "PWA 安装引导",
+    items: [
+      "智能安装引导：活跃用户自动提示将 AI Todo 添加到主屏幕",
+      "Chrome/Edge 一键安装，iOS Safari 步骤图示引导",
+      "引导时机精心设计，不与推送提示同时出现",
+    ],
+  },
+  {
     version: "1.23.0",
     date: "2026-03-16",
     title: "空间笔记",
