@@ -1,6 +1,6 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { NextRequest } from "next/server";
-import { readGatewaySessionFromRequest } from "@/lib/auth-gateway-session";
+import { readGatewaySessionFromRequest, verifyGatewaySessionCookieValue } from "@/lib/auth-gateway-session";
 
 interface AuthUser {
   id: string;
@@ -41,9 +41,15 @@ export async function getUserFromRequest(req: NextRequest): Promise<AuthUser | n
   // Path 1: Bearer token (CLI / API clients)
   const authHeader = req.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.slice(7);
     try {
-      return await verifyToken(authHeader.slice(7));
+      return await verifyToken(token);
     } catch {
+      // JWT failed — try session token (CLI long-lived token)
+      const session = verifyGatewaySessionCookieValue(token);
+      if (session) {
+        return { id: session.userId, email: session.email };
+      }
       return null;
     }
   }

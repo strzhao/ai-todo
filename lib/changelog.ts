@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.27.1",
+    date: "2026-03-17",
+    title: "CLI 登录态持久化",
+    items: [
+      "CLI 登录后使用 90 天长效 session token，不再频繁掉线",
+      "服务端 Bearer 认证支持 session token 回退，向后兼容旧版 CLI",
+    ],
+  },
+  {
     version: "1.27.0",
     date: "2026-03-17",
     title: "甘特图任务详情抽屉",

@@ -59,6 +59,7 @@ export async function proxy(req: NextRequest) { ... }
 - `proxy.ts` 在访问受保护页面/API时先校验本域 `access_token`，过期自动调用 auth 服务 `/api/auth/refresh`
 - 不再在本项目内维护验证码登录页和 `/api/auth/[action]` 多 action 认证代理
 - **本地开发**：`.env.local` 设置 `AUTH_DEV_BYPASS=true` + `AUTH_DEV_EMAIL` + `AUTH_DEV_USER_ID` 可跳过认证（生产环境不设置）
+- **CLI 认证**：`/api/auth/cli-token` 颁发 HMAC-SHA256 签名的 `session_token`（90天有效），CLI 优先使用 `session_token` 做 Bearer 认证；`getUserFromRequest` 在 JWT 验证失败后自动回退到 session token 验证
 
 ### API 路由约定
 每个 API 路由文件的标准样板：

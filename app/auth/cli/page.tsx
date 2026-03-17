@@ -35,12 +35,12 @@ export default function CLIAuthPage() {
           return;
         }
 
-        const { access_token, user_id, email } = await tokenRes.json();
+        const { access_token, session_token, user_id, email } = await tokenRes.json();
 
         const callbackRes = await fetch(`http://localhost:${port}/callback`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ access_token, user_id, email, state }),
+          body: JSON.stringify({ access_token, session_token, user_id, email, state }),
         });
 
         if (!callbackRes.ok) {
