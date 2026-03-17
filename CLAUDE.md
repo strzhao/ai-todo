@@ -153,7 +153,6 @@ components/
   SpaceNav.tsx                  # 侧边栏导航（桌面）+ 底部 Tab（移动端）+ 当前空间一级任务目录 + 通知铃铛
   NLInput.tsx                   # 自然语言输入框，Cmd+K 聚焦，@ 触发成员菜单，传 tasks + parent_task 上下文给 AI；聚焦态下 placeholder 提示父任务名
   ActionPreview.tsx             # 统一操作预览 + 执行（create/update/complete/delete/add_log/move）
-  GanttChart.tsx                # 甘特图（任务维度，纯 CSS，按优先级着色，today 参考线，未排期列表）
   PeopleGantt.tsx               # 甘特图（人员维度，Y轴=人，每人一行多任务平铺）
   TaskDetail.tsx                # 任务详情内联面板（描述编辑 + 日期 + 进展评论流）
   ParsePreviewCard.tsx          # AI 解析预览 + 确认创建（支持空间/负责人，单任务路径）

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { daysBetween, addDays, getMemberName, groupTasksByMember, getWeekStartMonday, taskCoversDay, groupByTopLevel } from "@/lib/gantt-utils";
+import { daysBetween, addDays, getMemberName, groupTasksByMember, getWeekStartMonday, taskCoversDay } from "@/lib/gantt-utils";
 import type { SpaceMember, Task } from "@/lib/types";
 
 function makeMember(email: string, displayName?: string | null, opts?: Partial<SpaceMember>): SpaceMember {
@@ -282,80 +282,5 @@ describe("taskCoversDay", () => {
   it("无日期 → false", () => {
     const task = makeTask("1");
     expect(taskCoversDay(task, new Date(2026, 2, 12))).toBe(false);
-  });
-});
-
-describe("groupByTopLevel", () => {
-  it("无子任务时每个任务独占一行", () => {
-    const tasks = [
-      makeTask("a", { space_id: "space-1" }),
-      makeTask("b", { space_id: "space-1" }),
-    ];
-    const rows = groupByTopLevel(tasks);
-    expect(rows).toHaveLength(2);
-    expect(rows[0].children).toHaveLength(0);
-    expect(rows[1].children).toHaveLength(0);
-  });
-
-  it("子任务归入一级任务行", () => {
-    const tasks = [
-      makeTask("root", { space_id: "space-1" }),
-      makeTask("child1", { parent_id: "root", space_id: "space-1", start_date: "2026-03-10" }),
-      makeTask("child2", { parent_id: "root", space_id: "space-1", due_date: "2026-03-15" }),
-    ];
-    const rows = groupByTopLevel(tasks);
-    expect(rows).toHaveLength(1);
-    expect(rows[0].rootTask.id).toBe("root");
-    expect(rows[0].children).toHaveLength(2);
-    expect(rows[0].unscheduledCount).toBe(0);
-  });
-
-  it("无排期子任务计入 unscheduledCount", () => {
-    const tasks = [
-      makeTask("root", { space_id: "space-1" }),
-      makeTask("child1", { parent_id: "root", space_id: "space-1", start_date: "2026-03-10" }),
-      makeTask("child2", { parent_id: "root", space_id: "space-1" }), // 无排期
-    ];
-    const rows = groupByTopLevel(tasks);
-    expect(rows).toHaveLength(1);
-    expect(rows[0].children).toHaveLength(1);
-    expect(rows[0].unscheduledCount).toBe(1);
-  });
-
-  it("深度嵌套（孙子任务）全部展平为 children", () => {
-    const tasks = [
-      makeTask("root", { space_id: "space-1" }),
-      makeTask("child", { parent_id: "root", space_id: "space-1", start_date: "2026-03-10" }),
-      makeTask("grandchild", { parent_id: "child", space_id: "space-1", due_date: "2026-03-12" }),
-    ];
-    const rows = groupByTopLevel(tasks);
-    expect(rows).toHaveLength(1);
-    expect(rows[0].children).toHaveLength(2);
-    expect(rows[0].children.map(c => c.id).sort()).toEqual(["child", "grandchild"]);
-  });
-
-  it("parent_id === space_id 视为一级任务", () => {
-    const tasks = [
-      makeTask("root", { parent_id: "space-1", space_id: "space-1" }),
-      makeTask("child", { parent_id: "root", space_id: "space-1", start_date: "2026-03-10" }),
-    ];
-    const rows = groupByTopLevel(tasks);
-    expect(rows).toHaveLength(1);
-    expect(rows[0].rootTask.id).toBe("root");
-  });
-
-  it("空数组返回空", () => {
-    expect(groupByTopLevel([])).toEqual([]);
-  });
-
-  it("子任务按 start_date 排序", () => {
-    const tasks = [
-      makeTask("root", { space_id: "space-1" }),
-      makeTask("late", { parent_id: "root", space_id: "space-1", start_date: "2026-03-20" }),
-      makeTask("early", { parent_id: "root", space_id: "space-1", start_date: "2026-03-05" }),
-    ];
-    const rows = groupByTopLevel(tasks);
-    expect(rows[0].children[0].id).toBe("early");
-    expect(rows[0].children[1].id).toBe("late");
   });
 });

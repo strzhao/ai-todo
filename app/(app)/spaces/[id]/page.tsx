@@ -13,7 +13,6 @@ import { SpaceNotes } from "@/components/SpaceNotes";
 const GanttLoading = () => (
   <div className="py-12 text-center text-sm text-muted-foreground animate-pulse">加载甘特图...</div>
 );
-const GanttChart = dynamic(() => import("@/components/GanttChart").then(m => ({ default: m.GanttChart })), { ssr: false, loading: GanttLoading });
 const PeopleGantt = dynamic(() => import("@/components/PeopleGantt").then(m => ({ default: m.PeopleGantt })), { ssr: false, loading: GanttLoading });
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { ParsedAction, Task, Space, SpaceMember, ActionResult } from "@/lib/types";
@@ -59,7 +58,6 @@ export default function SpacePage({ params }: SpacePageProps) {
   const [loading, setLoading] = useState(true);
   const [filterMember, setFilterMember] = useState<string>("all");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [ganttSub, setGanttSub] = useState<"task" | "people">("people");
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -388,25 +386,7 @@ export default function SpacePage({ params }: SpacePageProps) {
 
       {tab === "gantt" && (
         <>
-          <div className="flex gap-3 mb-3 border-b border-border/30">
-            <button
-              onClick={() => setGanttSub("people")}
-              className={`text-[11px] pb-1.5 border-b-2 transition-colors ${ganttSub === "people" ? "border-primary text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-            >
-              人员
-            </button>
-            <button
-              onClick={() => setGanttSub("task")}
-              className={`text-[11px] pb-1.5 border-b-2 transition-colors ${ganttSub === "task" ? "border-primary text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-            >
-              任务
-            </button>
-          </div>
-          {ganttSub === "people" ? (
-            <PeopleGantt tasks={ganttTasks} members={members} onTaskClick={handleGanttTaskClick} />
-          ) : (
-            <GanttChart tasks={ganttTasks} members={members} onTaskClick={handleGanttTaskClick} />
-          )}
+          <PeopleGantt tasks={ganttTasks} members={members} onTaskClick={handleGanttTaskClick} />
         </>
       )}
 
