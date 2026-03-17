@@ -51,11 +51,13 @@ export function isWeekend(d: Date): boolean {
 
 /** 判断任务是否覆盖某一天（日期粒度） */
 export function taskCoversDay(task: Task, day: Date): boolean {
-  if (task.start_date && task.end_date) {
+  // start_date + (end_date || due_date) → 跨天范围
+  const effectiveEnd = task.end_date || (task.start_date && task.due_date ? task.due_date : null);
+  if (task.start_date && effectiveEnd) {
     const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
     const dayEnd = dayStart + 86400000;
     const s = new Date(task.start_date).getTime();
-    const e = new Date(task.end_date).getTime();
+    const e = new Date(effectiveEnd).getTime();
     return s < dayEnd && e >= dayStart;
   }
   if (task.start_date) {
@@ -69,9 +71,11 @@ export function taskCoversDay(task: Task, day: Date): boolean {
 
 /** 判断任务是否与一个时间区间重叠（避免对每天重复调用 taskCoversDay） */
 export function taskCoversRange(task: Task, rangeStartMs: number, rangeEndMs: number): boolean {
-  if (task.start_date && task.end_date) {
+  // start_date + (end_date || due_date) → 跨天范围
+  const effectiveEnd = task.end_date || (task.start_date && task.due_date ? task.due_date : null);
+  if (task.start_date && effectiveEnd) {
     const s = new Date(task.start_date).getTime();
-    const e = new Date(task.end_date).getTime();
+    const e = new Date(effectiveEnd).getTime();
     return s < rangeEndMs && e >= rangeStartMs;
   }
   if (task.start_date) {

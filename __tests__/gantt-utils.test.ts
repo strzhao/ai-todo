@@ -283,6 +283,15 @@ describe("taskCoversDay", () => {
     const task = makeTask("1");
     expect(taskCoversDay(task, new Date(2026, 2, 12))).toBe(false);
   });
+
+  it("start_date + due_date（无 end_date）→ 跨天范围", () => {
+    const task = makeTask("1", { start_date: "2026-03-10", due_date: "2026-03-12" });
+    expect(taskCoversDay(task, new Date(2026, 2, 10))).toBe(true);  // start
+    expect(taskCoversDay(task, new Date(2026, 2, 11))).toBe(true);  // middle
+    expect(taskCoversDay(task, new Date(2026, 2, 12))).toBe(true);  // due (end)
+    expect(taskCoversDay(task, new Date(2026, 2, 13))).toBe(false); // after
+    expect(taskCoversDay(task, new Date(2026, 2, 9))).toBe(false);  // before
+  });
 });
 
 describe("computeTaskBars", () => {
@@ -347,5 +356,14 @@ describe("computeTaskBars", () => {
   it("无日期的任务被忽略", () => {
     const task = makeTask("1"); // no dates
     expect(computeTaskBars([task], days)).toEqual([]);
+  });
+
+  it("start_date + due_date（无 end_date）→ due_date 作为结束日期跨天", () => {
+    // Tue start, Thu due → col 1-3 = 3 cols
+    const task = makeTask("1", { start_date: "2026-03-10", due_date: "2026-03-12" });
+    const bars = computeTaskBars([task], days);
+    expect(bars).toHaveLength(1);
+    expect(bars[0].startCol).toBe(1);
+    expect(bars[0].spanCols).toBe(3);
   });
 });
