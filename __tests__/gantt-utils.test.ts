@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { daysBetween, addDays, getMemberName, groupTasksByMember, getWeekStartMonday, taskCoversDay } from "@/lib/gantt-utils";
+import { daysBetween, addDays, getMemberName, groupTasksByMember, getWeekStartMonday, taskCoversDay, computeTaskBars } from "@/lib/gantt-utils";
 import type { SpaceMember, Task } from "@/lib/types";
 
 function makeMember(email: string, displayName?: string | null, opts?: Partial<SpaceMember>): SpaceMember {
@@ -282,5 +282,70 @@ describe("taskCoversDay", () => {
   it("无日期 → false", () => {
     const task = makeTask("1");
     expect(taskCoversDay(task, new Date(2026, 2, 12))).toBe(false);
+  });
+});
+
+describe("computeTaskBars", () => {
+  // Week: Mon 2026-03-09 to Sun 2026-03-15
+  const days = Array.from({ length: 7 }, (_, i) => new Date(2026, 2, 9 + i));
+
+  it("单日任务（仅 due_date）→ spanCols=1", () => {
+    const task = makeTask("1", { due_date: "2026-03-11" }); // Wed = col 2
+    const bars = computeTaskBars([task], days);
+    expect(bars).toHaveLength(1);
+    expect(bars[0].startCol).toBe(2);
+    expect(bars[0].spanCols).toBe(1);
+    expect(bars[0].row).toBe(0);
+  });
+
+  it("跨 3 天任务（start_date + end_date）→ 正确 startCol/spanCols", () => {
+    const task = makeTask("1", { start_date: "2026-03-10", end_date: "2026-03-12" }); // Tue-Thu = col 1-3
+    const bars = computeTaskBars([task], days);
+    expect(bars).toHaveLength(1);
+    expect(bars[0].startCol).toBe(1);
+    expect(bars[0].spanCols).toBe(3);
+  });
+
+  it("两个时间重叠任务 → 分配到不同 row", () => {
+    const t1 = makeTask("1", { start_date: "2026-03-10", end_date: "2026-03-12" }); // col 1-3
+    const t2 = makeTask("2", { start_date: "2026-03-11", end_date: "2026-03-13" }); // col 2-4
+    const bars = computeTaskBars([t1, t2], days);
+    expect(bars).toHaveLength(2);
+    const rows = new Set(bars.map((b) => b.row));
+    expect(rows.size).toBe(2); // different rows
+  });
+
+  it("任务开始于上周 → startCol clamped 到 0", () => {
+    const task = makeTask("1", { start_date: "2026-03-07", end_date: "2026-03-11" }); // starts before week, ends Wed
+    const bars = computeTaskBars([task], days);
+    expect(bars).toHaveLength(1);
+    expect(bars[0].startCol).toBe(0); // clamped to Monday
+    expect(bars[0].spanCols).toBe(3); // Mon-Wed = 3 cols
+  });
+
+  it("任务延续到下周 → endCol clamped 到 6", () => {
+    const task = makeTask("1", { start_date: "2026-03-13", end_date: "2026-03-18" }); // Fri to next Wed
+    const bars = computeTaskBars([task], days);
+    expect(bars).toHaveLength(1);
+    expect(bars[0].startCol).toBe(4); // Fri = col 4
+    expect(bars[0].spanCols).toBe(3); // Fri-Sun = 3 cols (clamped)
+  });
+
+  it("两个不重叠任务 → 共享 row 0", () => {
+    const t1 = makeTask("1", { due_date: "2026-03-09" }); // Mon = col 0
+    const t2 = makeTask("2", { due_date: "2026-03-12" }); // Thu = col 3
+    const bars = computeTaskBars([t1, t2], days);
+    expect(bars).toHaveLength(2);
+    expect(bars[0].row).toBe(0);
+    expect(bars[1].row).toBe(0);
+  });
+
+  it("空任务列表 → 空结果", () => {
+    expect(computeTaskBars([], days)).toEqual([]);
+  });
+
+  it("无日期的任务被忽略", () => {
+    const task = makeTask("1"); // no dates
+    expect(computeTaskBars([task], days)).toEqual([]);
   });
 });

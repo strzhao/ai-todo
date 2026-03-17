@@ -7,11 +7,12 @@ import {
   formatAxisDate,
   groupTasksByMember,
   getWeekStartMonday,
-  taskCoversDay,
   taskCoversRange,
   isSameDay,
   isWeekend,
+  computeTaskBars,
 } from "@/lib/gantt-utils";
+import type { TaskBar } from "@/lib/gantt-utils";
 
 interface Props {
   tasks: Task[];
@@ -64,14 +65,11 @@ export const PeopleGantt = memo(function PeopleGantt({ tasks, members, onTaskCli
       .filter((g) => g.weekTasks.length > 0);
   }, [scheduled, members, weekRangeMs]);
 
-  // Pre-compute day→tasks mapping per group to avoid filtering in MemberRow render
-  const groupDayTasks = useMemo(() => {
-    const result = new Map<string, Task[][]>();
+  // Pre-compute TaskBar layout per group
+  const groupTaskBars = useMemo(() => {
+    const result = new Map<string, TaskBar[]>();
     for (const g of groups) {
-      const dayBuckets: Task[][] = days.map((day) =>
-        g.weekTasks.filter((t) => taskCoversDay(t, day))
-      );
-      result.set(g.member?.email ?? "unassigned", dayBuckets);
+      result.set(g.member?.email ?? "unassigned", computeTaskBars(g.weekTasks, days));
     }
     return result;
   }, [groups, days]);
@@ -148,12 +146,12 @@ export const PeopleGantt = memo(function PeopleGantt({ tasks, members, onTaskCli
           {/* 成员行 */}
           {groups.map((g) => {
             const key = g.member?.email ?? "unassigned";
-            const dayBuckets = groupDayTasks.get(key) ?? [];
+            const bars = groupTaskBars.get(key) ?? [];
             return (
               <MemberRow
                 key={key}
                 group={g}
-                dayBuckets={dayBuckets}
+                bars={bars}
                 days={days}
                 today={today}
                 onTaskClick={onTaskClick}
@@ -174,13 +172,16 @@ interface MemberRowProps {
     label: string;
     weekTasks: Task[];
   };
-  dayBuckets: Task[][];
+  bars: TaskBar[];
   days: Date[];
   today: Date;
   onTaskClick?: (id: string) => void;
 }
 
-const MemberRow = memo(function MemberRow({ group, dayBuckets, days, today, onTaskClick }: MemberRowProps) {
+const MemberRow = memo(function MemberRow({ group, bars, days, today, onTaskClick }: MemberRowProps) {
+  const maxRow = bars.reduce((max, b) => Math.max(max, b.row), -1);
+  const containerHeight = Math.max(52, (maxRow + 1) * (BAR_HEIGHT + BAR_GAP) + BAR_PAD_TOP * 2);
+
   return (
     <>
       {/* 成员名（左列） */}
@@ -198,62 +199,84 @@ const MemberRow = memo(function MemberRow({ group, dayBuckets, days, today, onTa
         </div>
       </div>
 
-      {/* 7 个日格子 — dayBuckets 已预计算，无需再 filter */}
-      {days.map((day, i) => {
-        const dayTasks = dayBuckets[i] ?? [];
-        const isToday = isSameDay(day, today);
-
-        return (
-          <div
-            key={i}
-            className={`min-h-[52px] p-1 border-b border-r border-border/20 flex flex-col gap-1
-              ${isToday ? "bg-sage-mist/20" : ""}
-              ${!isToday && isWeekend(day) ? "bg-muted/15" : ""}`}
-          >
-            {dayTasks.map((task) => (
-              <TaskChip
-                key={task.id}
-                task={task}
-                onClick={() => onTaskClick?.(task.id)}
+      {/* 日期区域：合并 7 列 */}
+      <div style={{ gridColumn: "2 / -1", position: "relative" }}>
+        {/* Layer 1: 7 个背景格 */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
+          {days.map((day, i) => {
+            const isToday = isSameDay(day, today);
+            return (
+              <div
+                key={i}
+                className={`border-b border-r border-border/20
+                  ${isToday ? "bg-sage-mist/20" : ""}
+                  ${!isToday && isWeekend(day) ? "bg-muted/15" : ""}`}
+                style={{ minHeight: `${containerHeight}px` }}
               />
-            ))}
-          </div>
-        );
-      })}
+            );
+          })}
+        </div>
+        {/* Layer 2: 任务横条 */}
+        <div className="absolute inset-0" style={{ pointerEvents: "none" }}>
+          {bars.map((bar) => (
+            <TaskBarEl
+              key={bar.task.id}
+              bar={bar}
+              onClick={() => onTaskClick?.(bar.task.id)}
+            />
+          ))}
+        </div>
+      </div>
     </>
   );
 });
 
-/* ---------- TaskChip ---------- */
+/* ---------- TaskBarEl ---------- */
 
-function TaskChip({ task, onClick }: { task: Task; onClick: () => void }) {
-  const isCompleted = task.status === 2;
+const BAR_HEIGHT = 24;
+const BAR_GAP = 4;
+const BAR_PAD_TOP = 4;
+const BAR_INSET = 2; // px inset from cell edge
+
+function TaskBarEl({ bar, onClick }: { bar: TaskBar; onClick: () => void }) {
+  const isCompleted = bar.task.status === 2;
   const borderClass =
-    PRIORITY_LEFT_BORDER[task.priority] ?? PRIORITY_LEFT_BORDER[2];
+    PRIORITY_LEFT_BORDER[bar.task.priority] ?? PRIORITY_LEFT_BORDER[2];
+
+  const left = `calc(${(bar.startCol / 7) * 100}% + ${BAR_INSET}px)`;
+  const width = `calc(${(bar.spanCols / 7) * 100}% - ${BAR_INSET * 2}px)`;
+  const top = BAR_PAD_TOP + bar.row * (BAR_HEIGHT + BAR_GAP);
 
   return (
     <div
-      className={`border-l-[3px] ${borderClass} rounded-r bg-muted/40 px-1.5 py-1
-        cursor-pointer hover:bg-muted/70 transition-colors
+      className={`absolute border-l-[3px] ${borderClass} rounded-r bg-muted/40
+        cursor-pointer hover:bg-muted/70 transition-colors flex items-center gap-1 px-1.5
         ${isCompleted ? "opacity-45" : ""}`}
+      style={{
+        left,
+        width,
+        top: `${top}px`,
+        height: `${BAR_HEIGHT}px`,
+        pointerEvents: "auto",
+      }}
       onClick={onClick}
     >
-      <div
+      <span
         className={`text-[11px] leading-tight truncate ${
           isCompleted
             ? "line-through text-muted-foreground"
             : "text-foreground"
         }`}
       >
-        {task.title}
-      </div>
-      {!isCompleted && task.priority <= 1 && (
+        {bar.task.title}
+      </span>
+      {!isCompleted && bar.task.priority <= 1 && (
         <span
-          className={`text-[9px] font-medium ${
-            task.priority === 0 ? "text-danger" : "text-warning"
+          className={`text-[9px] font-medium flex-shrink-0 ${
+            bar.task.priority === 0 ? "text-danger" : "text-warning"
           }`}
         >
-          {PRIORITY_LABELS[task.priority]}
+          {PRIORITY_LABELS[bar.task.priority]}
         </span>
       )}
     </div>

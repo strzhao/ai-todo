@@ -122,3 +122,79 @@ export function groupTasksByMember(
 
   return result;
 }
+
+/* ---------- TaskBar layout for dual-layer gantt ---------- */
+
+export interface TaskBar {
+  task: Task;
+  startCol: number;  // 0-6, clamped to visible week
+  spanCols: number;  // 1-7
+  row: number;       // vertical stacking row index
+}
+
+/**
+ * Compute horizontal bar positions for tasks within a 7-day week.
+ * Returns TaskBar[] with greedy row packing (no overlaps).
+ */
+export function computeTaskBars(weekTasks: Task[], days: Date[]): TaskBar[] {
+  if (days.length !== 7) return [];
+
+  const dayStarts = days.map((d) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(),
+  );
+
+  const bars: Omit<TaskBar, "row">[] = [];
+
+  for (const task of weekTasks) {
+    let startCol = -1;
+    let endCol = -1;
+
+    for (let i = 0; i < 7; i++) {
+      if (taskCoversDay(task, days[i])) {
+        if (startCol === -1) startCol = i;
+        endCol = i;
+      }
+    }
+
+    if (startCol === -1) continue; // task doesn't cover any day in this week
+
+    bars.push({
+      task,
+      startCol,
+      spanCols: endCol - startCol + 1,
+    });
+  }
+
+  // Sort by startCol then by wider spans first (for better packing)
+  bars.sort((a, b) => a.startCol - b.startCol || b.spanCols - a.spanCols);
+
+  // Greedy row assignment
+  const rows: boolean[][] = []; // rows[r][col] = occupied
+
+  const result: TaskBar[] = [];
+
+  for (const bar of bars) {
+    let assignedRow = -1;
+    for (let r = 0; r < rows.length; r++) {
+      let conflict = false;
+      for (let c = bar.startCol; c < bar.startCol + bar.spanCols; c++) {
+        if (rows[r][c]) { conflict = true; break; }
+      }
+      if (!conflict) { assignedRow = r; break; }
+    }
+
+    if (assignedRow === -1) {
+      assignedRow = rows.length;
+      rows.push(new Array(7).fill(false));
+    }
+
+    // Mark columns occupied
+    for (let c = bar.startCol; c < bar.startCol + bar.spanCols; c++) {
+      rows[assignedRow][c] = true;
+    }
+
+    result.push({ ...bar, row: assignedRow });
+  }
+
+  return result;
+}

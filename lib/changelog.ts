@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.26.0",
+    date: "2026-03-17",
+    title: "甘特图多日任务横条展示",
+    items: [
+      "跨多天的任务在甘特图中显示为连续横条，不再每天重复显示",
+      "重叠任务自动错行排列，避免互相遮挡",
+      "跨周任务自动裁剪到当前周范围",
+    ],
+    notable: true,
+  },
+  {
     version: "1.25.0",
     date: "2026-03-17",
     title: "甘特图精简",
