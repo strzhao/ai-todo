@@ -4,6 +4,7 @@ import { CONFIG_DIR, CREDENTIALS_PATH } from "./config.js";
 
 export interface Credentials {
   access_token: string;
+  session_token?: string;
   user_id: string;
   email: string;
 }

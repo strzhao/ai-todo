@@ -33,7 +33,7 @@ export async function login(tokenDirect?: string): Promise<void> {
         req.on("data", (chunk) => { body += chunk; });
         req.on("end", () => {
           try {
-            const data = JSON.parse(body) as Credentials & { state: string };
+            const data = JSON.parse(body) as Credentials & { state: string; session_token?: string };
 
             if (data.state !== state) {
               res.writeHead(400, {
@@ -46,6 +46,7 @@ export async function login(tokenDirect?: string): Promise<void> {
 
             saveCredentials({
               access_token: data.access_token,
+              session_token: data.session_token,
               user_id: data.user_id,
               email: data.email,
             });

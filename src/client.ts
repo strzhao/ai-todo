@@ -28,7 +28,7 @@ export async function apiRequest(
   }
 
   const headers: Record<string, string> = {
-    Authorization: `Bearer ${creds.access_token}`,
+    Authorization: `Bearer ${creds.session_token || creds.access_token}`,
   };
 
   let body: string | undefined;
