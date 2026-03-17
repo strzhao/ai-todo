@@ -85,6 +85,70 @@ export function taskCoversRange(task: Task, rangeStartMs: number, rangeEndMs: nu
   return false;
 }
 
+export interface GanttRow {
+  rootTask: Task;           // 一级任务
+  children: Task[];         // 所有后代中有排期的（按 start_date 排序）
+  unscheduledCount: number; // 无排期子任务数
+}
+
+/** 将 flat Task[] 按一级任务分组，子任务归入对应一级任务行 */
+export function groupByTopLevel(tasks: Task[]): GanttRow[] {
+  // 1. 识别一级任务：没有 parent_id 或 parent_id 等于 space_id
+  const topLevel: Task[] = [];
+  const childMap = new Map<string, Task[]>(); // parentId → direct children
+
+  for (const t of tasks) {
+    if (!t.parent_id || t.parent_id === t.space_id) {
+      topLevel.push(t);
+    } else {
+      const list = childMap.get(t.parent_id);
+      if (list) list.push(t);
+      else childMap.set(t.parent_id, [t]);
+    }
+  }
+
+  // 2. 递归收集所有后代
+  function collectDescendants(parentId: string): Task[] {
+    const direct = childMap.get(parentId);
+    if (!direct) return [];
+    const result: Task[] = [];
+    for (const child of direct) {
+      result.push(child);
+      result.push(...collectDescendants(child.id));
+    }
+    return result;
+  }
+
+  // 3. 组装 GanttRow
+  const rows: GanttRow[] = [];
+  for (const root of topLevel) {
+    const descendants = collectDescendants(root.id);
+    const scheduled = descendants.filter(
+      (t) => t.start_date || t.end_date || t.due_date
+    );
+    const unscheduledCount = descendants.length - scheduled.length;
+
+    // 按 start_date 排序
+    scheduled.sort((a, b) => getTaskSortDate(a) - getTaskSortDate(b));
+
+    rows.push({ rootTask: root, children: scheduled, unscheduledCount });
+  }
+
+  // 按一级任务的排期时间排序（有排期的在前，无排期的在后）
+  rows.sort((a, b) => {
+    const aHasDate = !!(a.rootTask.start_date || a.rootTask.end_date || a.rootTask.due_date);
+    const bHasDate = !!(b.rootTask.start_date || b.rootTask.end_date || b.rootTask.due_date);
+    if (aHasDate !== bHasDate) return aHasDate ? -1 : 1;
+    // 有子任务排期的也视为有日期
+    if (!aHasDate && !bHasDate) {
+      if (a.children.length !== b.children.length) return b.children.length - a.children.length;
+    }
+    return getTaskSortDate(a.rootTask) - getTaskSortDate(b.rootTask);
+  });
+
+  return rows;
+}
+
 export function groupTasksByMember(
   tasks: Task[],
   members: SpaceMember[],

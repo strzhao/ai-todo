@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.25.0",
+    date: "2026-03-17",
+    title: "甘特图分组视图",
+    items: [
+      "甘特图任务视图改为按一级任务分组，子任务堆叠在同一行内，行数大幅减少",
+      "支持展开/折叠查看子任务详情",
+      "折叠态最多显示 3 个子任务条形，点击「更多」可展开",
+    ],
+    notable: true,
+  },
+  {
     version: "1.24.2",
     date: "2026-03-16",
     title: "甘特图性能优化",
