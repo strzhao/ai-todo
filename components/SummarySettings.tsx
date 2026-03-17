@@ -21,8 +21,6 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
   const [preview, setPreview] = useState<ParsedSummaryConfigAction[] | null>(null);
-  const [promptExpanded, setPromptExpanded] = useState(true);
-  const [templateExpanded, setTemplateExpanded] = useState(false);
   const [resetting, setResetting] = useState<"prompt" | "template" | null>(null);
   const [deletingTemplate, setDeletingTemplate] = useState<string | null>(null);
 
@@ -116,6 +114,29 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
     }
   }
 
+  async function handleRenameTemplate(templateId: string, newName: string) {
+    const updatedTemplates = (config?.prompt_templates ?? []).map((t) =>
+      t.id === templateId ? { ...t, name: newName } : t
+    );
+    const res = await fetch(`/api/spaces/${spaceId}/summary-config`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt_templates: updatedTemplates }),
+    });
+    if (res.ok) {
+      const data = await res.json() as { config: SummaryConfig };
+      setConfig(data.config);
+      const builtinTemplate: PromptTemplate = {
+        id: "default",
+        name: "默认模板",
+        system_prompt: null,
+        data_template: null,
+        is_builtin: true,
+      };
+      setTemplates([builtinTemplate, ...(data.config?.prompt_templates ?? [])]);
+    }
+  }
+
   async function handleResetField(field: "prompt" | "template") {
     setResetting(field);
     try {
@@ -201,83 +222,6 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* ── Left: Config Display ── */}
       <div className="space-y-4 min-w-0">
-        {/* System Prompt */}
-        <section className="rounded-lg border border-border p-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-medium">系统 Prompt</h3>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded ${isCustomPrompt ? "bg-sage-mist text-sage" : "bg-muted text-muted-foreground"}`}>
-                {isCustomPrompt ? "已自定义" : "默认"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              {isCustomPrompt && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs h-7"
-                  onClick={() => handleResetField("prompt")}
-                  disabled={resetting === "prompt"}
-                >
-                  {resetting === "prompt" ? "恢复中..." : "恢复默认"}
-                </Button>
-              )}
-              <button
-                onClick={() => setPromptExpanded(!promptExpanded)}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                {promptExpanded ? "收起" : "展开"}
-              </button>
-            </div>
-          </div>
-          {promptExpanded && (
-            <pre className="text-xs bg-muted rounded p-3 overflow-auto max-h-80 whitespace-pre-wrap text-muted-foreground">
-              {currentPrompt}
-            </pre>
-          )}
-        </section>
-
-        {/* Data Template */}
-        <section className="rounded-lg border border-border p-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-medium">数据模板</h3>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded ${isCustomTemplate ? "bg-sage-mist text-sage" : "bg-muted text-muted-foreground"}`}>
-                {isCustomTemplate ? "已自定义" : "默认"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              {isCustomTemplate && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs h-7"
-                  onClick={() => handleResetField("template")}
-                  disabled={resetting === "template"}
-                >
-                  {resetting === "template" ? "恢复中..." : "恢复默认"}
-                </Button>
-              )}
-              <button
-                onClick={() => setTemplateExpanded(!templateExpanded)}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                {templateExpanded ? "收起" : "展开"}
-              </button>
-            </div>
-          </div>
-          {templateExpanded && (
-            <pre className="text-xs bg-muted rounded p-3 overflow-auto max-h-80 whitespace-pre-wrap text-muted-foreground">
-              {currentTemplate}
-            </pre>
-          )}
-          {templateExpanded && (
-            <p className="text-[10px] text-muted-foreground">
-              可用变量：{"{{date}}"} {"{{project_name}}"} {"{{task_tree}}"} {"{{all_logs}}"} {"{{today_logs}}"} {"{{stats}}"} {"{{ds.变量名}}"}
-            </p>
-          )}
-        </section>
-
         {/* Prompt Templates */}
         <section className="rounded-lg border border-border p-4 space-y-2">
           <div className="flex items-center justify-between">
@@ -293,13 +237,20 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
                   key={t.id}
                   template={t}
                   onDelete={t.is_builtin ? undefined : () => handleDeleteTemplate(t.id)}
+                  onRename={t.is_builtin ? undefined : (newName) => handleRenameTemplate(t.id, newName)}
                   deleting={deletingTemplate === t.id}
+                  defaultPrompt={t.is_builtin ? currentPrompt : undefined}
+                  defaultTemplate={t.is_builtin ? currentTemplate : undefined}
+                  isCustomPrompt={t.is_builtin ? isCustomPrompt : undefined}
+                  isCustomTemplate={t.is_builtin ? isCustomTemplate : undefined}
+                  onResetField={t.is_builtin ? handleResetField : undefined}
+                  resetting={t.is_builtin ? resetting : undefined}
                 />
               ))}
             </div>
           )}
           <p className="text-[10px] text-muted-foreground">
-            通过 AI 助手添加新模板，如：「添加一个风险分析模板」
+            通过 AI 助手添加或修改模板
           </p>
         </section>
 
@@ -332,7 +283,7 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
                 handleParse();
               }
             }}
-            placeholder={"描述你想要的变更...\n例：添加一个风险分析模板，只关注逾期和阻塞\n例：只保留问题与解决和风险提示\n例：添加一个 GitLab API 数据源，GET https://..."}
+            placeholder={"描述你想要的变更...\n例：添加一个风险分析模板，只关注逾期和阻塞\n例：修改风险分析模板，增加人力投入分析\n例：把风险分析模板改名为每周风险报告\n例：添加一个 GitLab API 数据源"}
             className="w-full resize-none rounded-md border border-border bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-sage"
             rows={5}
           />
@@ -404,20 +355,88 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
   );
 }
 
-function TemplateRow({ template, onDelete, deleting }: { template: PromptTemplate; onDelete?: () => void; deleting?: boolean }) {
+function TemplateRow({
+  template,
+  onDelete,
+  onRename,
+  deleting,
+  defaultPrompt,
+  defaultTemplate,
+  isCustomPrompt,
+  isCustomTemplate,
+  onResetField,
+  resetting,
+}: {
+  template: PromptTemplate;
+  onDelete?: () => void;
+  onRename?: (newName: string) => void;
+  deleting?: boolean;
+  defaultPrompt?: string;
+  defaultTemplate?: string;
+  isCustomPrompt?: boolean;
+  isCustomTemplate?: boolean;
+  onResetField?: (field: "prompt" | "template") => void;
+  resetting?: "prompt" | "template" | null;
+}) {
   const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(template.name);
+
+  function commitRename() {
+    const trimmed = editName.trim();
+    setEditing(false);
+    if (trimmed && trimmed !== template.name && onRename) {
+      onRename(trimmed);
+    } else {
+      setEditName(template.name);
+    }
+  }
 
   return (
     <div className="py-2 space-y-1.5">
       <div className="flex items-center gap-3">
         <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${template.is_builtin ? "bg-muted-foreground/30" : "bg-sage"}`} />
         <div className="flex-1 min-w-0">
-          <p className="text-sm truncate">{template.name}</p>
+          {editing ? (
+            <input
+              autoFocus
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              onBlur={commitRename}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitRename();
+                if (e.key === "Escape") { setEditing(false); setEditName(template.name); }
+              }}
+              className="text-sm w-full bg-muted rounded px-1.5 py-0.5 outline-none focus:ring-1 focus:ring-sage"
+            />
+          ) : (
+            <span className="text-sm truncate flex items-center gap-1.5">
+              {template.name}
+              {onRename && (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="text-muted-foreground/50 hover:text-muted-foreground"
+                  title="重命名"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                </button>
+              )}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
-          <span className={`text-[10px] px-1.5 py-0.5 rounded ${template.is_builtin ? "bg-muted text-muted-foreground" : "bg-sage-mist text-sage"}`}>
-            {template.is_builtin ? "内置" : "自定义"}
-          </span>
+          {template.is_builtin ? (
+            <>
+              {isCustomPrompt && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-sage-mist text-sage">已自定义</span>
+              )}
+              {!isCustomPrompt && !isCustomTemplate && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">默认</span>
+              )}
+            </>
+          ) : (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-sage-mist text-sage">自定义</span>
+          )}
           <button
             onClick={() => setExpanded(!expanded)}
             className="text-[10px] text-muted-foreground hover:text-foreground"
@@ -435,7 +454,52 @@ function TemplateRow({ template, onDelete, deleting }: { template: PromptTemplat
           )}
         </div>
       </div>
-      {expanded && (
+      {expanded && template.is_builtin && defaultPrompt !== undefined && (
+        <div className="ml-[18px] space-y-2">
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] text-muted-foreground font-medium">系统 Prompt</p>
+              {isCustomPrompt && onResetField && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-[10px] h-5 px-1.5"
+                  onClick={() => onResetField("prompt")}
+                  disabled={resetting === "prompt"}
+                >
+                  {resetting === "prompt" ? "恢复中..." : "恢复默认"}
+                </Button>
+              )}
+            </div>
+            <pre className="text-[10px] bg-muted rounded p-2 overflow-auto max-h-40 whitespace-pre-wrap text-muted-foreground">
+              {defaultPrompt}
+            </pre>
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] text-muted-foreground font-medium">数据模板</p>
+              {isCustomTemplate && onResetField && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-[10px] h-5 px-1.5"
+                  onClick={() => onResetField("template")}
+                  disabled={resetting === "template"}
+                >
+                  {resetting === "template" ? "恢复中..." : "恢复默认"}
+                </Button>
+              )}
+            </div>
+            <pre className="text-[10px] bg-muted rounded p-2 overflow-auto max-h-40 whitespace-pre-wrap text-muted-foreground">
+              {defaultTemplate}
+            </pre>
+            <p className="text-[10px] text-muted-foreground">
+              可用变量：{"{{date}}"} {"{{project_name}}"} {"{{task_tree}}"} {"{{all_logs}}"} {"{{today_logs}}"} {"{{stats}}"} {"{{ds.变量名}}"}
+            </p>
+          </div>
+        </div>
+      )}
+      {expanded && !template.is_builtin && (
         <div className="ml-[18px] space-y-1">
           <p className="text-[10px] text-muted-foreground font-medium">Prompt:</p>
           <pre className="text-[10px] bg-muted rounded p-2 overflow-auto max-h-40 whitespace-pre-wrap text-muted-foreground">

@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.28.0",
+    date: "2026-03-17",
+    title: "AI 总结设置优化",
+    items: [
+      "修复删除模板后模板仍然显示的 bug",
+      "以模板列表为核心重新组织设置页面结构",
+      "模板支持 inline 重命名（点击铅笔图标编辑）",
+      "AI 助手支持二次修改已有模板（如「修改风险分析模板，增加人力投入分析」）",
+    ],
+  },
+  {
     version: "1.27.1",
     date: "2026-03-17",
     title: "CLI 登录态持久化",

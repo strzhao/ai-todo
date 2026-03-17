@@ -997,16 +997,7 @@ export async function getSummaryConfig(spaceId: string): Promise<SummaryConfig |
   );
   if (!rows[0]) return null;
 
-  let templates = (rows[0].prompt_templates ?? []) as PromptTemplate[];
-  // Backward compat: old config with system_prompt/data_template but no templates
-  if (templates.length === 0 && (rows[0].system_prompt || rows[0].data_template)) {
-    templates = [{
-      id: crypto.randomUUID(),
-      name: "自定义模板",
-      system_prompt: rows[0].system_prompt as string | null,
-      data_template: rows[0].data_template as string | null,
-    }];
-  }
+  const templates = (rows[0].prompt_templates ?? []) as PromptTemplate[];
 
   return {
     space_id: rows[0].space_id as string,
