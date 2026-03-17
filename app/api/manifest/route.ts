@@ -216,7 +216,9 @@ const manifest = {
       description: "Display all active tasks as a JSON tree with nested children",
       method: "GET",
       path: "/api/tasks/tree",
-      params: [],
+      params: [
+        { name: "space_id", in: "query", type: "string", required: false, description: "Space ID to show space task tree (all members)" },
+      ],
     },
     {
       id: "get_summary_config",
