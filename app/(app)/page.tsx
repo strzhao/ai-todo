@@ -11,6 +11,22 @@ import type { ParsedAction, Task, ActionResult } from "@/lib/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/** Collect all descendant IDs recursively from a flat task list */
+function collectDescendantIds(tasks: Task[], parentId: string): Set<string> {
+  const ids = new Set<string>();
+  const stack = [parentId];
+  while (stack.length) {
+    const pid = stack.pop()!;
+    for (const t of tasks) {
+      if (t.parent_id === pid && !ids.has(t.id)) {
+        ids.add(t.id);
+        stack.push(t.id);
+      }
+    }
+  }
+  return ids;
+}
+
 function isDueToday(iso?: string) {
   if (!iso) return false;
   const dueAt = new Date(iso).getTime();
@@ -84,12 +100,19 @@ export default function TaskHomePage() {
     if (result.completed?.length) {
       for (const id of result.completed) {
         const done = tasks.find((t) => t.id === id);
-        setTasks((prev) => sortTasksWithTodayFirst(prev.filter((t) => t.id !== id && t.parent_id !== id)));
+        const descendantIds = collectDescendantIds(tasks, id);
+        setTasks((prev) => sortTasksWithTodayFirst(prev.filter((t) => t.id !== id && !descendantIds.has(t.id))));
         if (done) setCompletedTasks((prev) => [{ ...done, status: 2 as const }, ...prev].slice(0, 20));
       }
     }
     if (result.deleted?.length) {
-      setTasks((prev) => sortTasksWithTodayFirst(prev.filter((t) => !result.deleted!.includes(t.id) && !result.deleted!.includes(t.parent_id ?? ""))));
+      setTasks((prev) => {
+        const allDeletedIds = new Set(result.deleted!);
+        for (const id of result.deleted!) {
+          for (const did of collectDescendantIds(prev, id)) allDeletedIds.add(did);
+        }
+        return sortTasksWithTodayFirst(prev.filter((t) => !allDeletedIds.has(t.id)));
+      });
     }
     const hasSuccess = Boolean(
       result.created?.length ||
@@ -107,13 +130,15 @@ export default function TaskHomePage() {
 
   function handleComplete(id: string) {
     const completed = tasks.find((t) => t.id === id);
-    setTasks((prev) => sortTasksWithTodayFirst(prev.filter((t) => t.id !== id && t.parent_id !== id)));
+    const descendantIds = collectDescendantIds(tasks, id);
+    setTasks((prev) => sortTasksWithTodayFirst(prev.filter((t) => t.id !== id && !descendantIds.has(t.id))));
     if (completed) setCompletedTasks((prev) => [{ ...completed, status: 2 as const }, ...prev].slice(0, 20));
     window.dispatchEvent(new Event("tasks-changed"));
   }
 
   function handleDelete(id: string) {
-    setTasks((prev) => sortTasksWithTodayFirst(prev.filter((t) => t.id !== id && t.parent_id !== id)));
+    const descendantIds = collectDescendantIds(tasks, id);
+    setTasks((prev) => sortTasksWithTodayFirst(prev.filter((t) => t.id !== id && !descendantIds.has(t.id))));
     window.dispatchEvent(new Event("tasks-changed"));
   }
 

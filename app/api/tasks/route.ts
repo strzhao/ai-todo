@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { getTasks, getTodayTasks, getCompletedTasks, createTask, getTaskMemberRecord } from "@/lib/db";
+import { getTasks, getTodayTasks, getCompletedTasks, createTask, getTaskMemberRecord, getTaskById } from "@/lib/db";
 import { aiFlowLog, getAiTraceIdFromHeaders } from "@/lib/ai-flow-log";
 import { createRouteTimer } from "@/lib/route-timing";
 import { fireNotifications } from "@/lib/notifications";
@@ -67,6 +67,25 @@ export async function POST(req: NextRequest) {
   });
   if (!body.title?.trim()) {
     return rt.json({ error: "title is required" }, { status: 400 });
+  }
+
+  // Validate parent_id exists + auto-inherit space_id from parent
+  if (body.parent_id) {
+    const parent = await rt.track("db_query", async () => getTaskById(body.parent_id!));
+    if (!parent) {
+      return rt.json({ error: "Parent task not found" }, { status: 400 });
+    }
+    // Auto-inherit space_id: pinned parent → use parent's own ID; otherwise use parent's space_id
+    if (!body.space_id) {
+      body.space_id = parent.pinned ? parent.id : (parent.space_id ?? undefined);
+    }
+    // Cross-space check: parent must belong to same space
+    if (body.space_id) {
+      const parentSpace = parent.pinned ? parent.id : parent.space_id;
+      if (parentSpace !== body.space_id) {
+        return rt.json({ error: "Parent task does not belong to the specified space" }, { status: 400 });
+      }
+    }
   }
 
   if (body.space_id) {

@@ -96,12 +96,21 @@ export default function SpacePage({ params }: SpacePageProps) {
     if (result.completed?.length) {
       for (const id of result.completed) {
         const done = tasks.find((t) => t.id === id);
-        setTasks((prev) => prev.filter((t) => t.id !== id && t.parent_id !== id));
+        const childMap = buildChildMap(tasks);
+        const descendantIds = new Set(getDescendantsFromMap(childMap, id).map(t => t.id));
+        setTasks((prev) => prev.filter((t) => t.id !== id && !descendantIds.has(t.id)));
         if (done) setCompletedTasks((prev) => [{ ...done, status: 2 as const }, ...prev].slice(0, 20));
       }
     }
     if (result.deleted?.length) {
-      setTasks((prev) => prev.filter((t) => !result.deleted!.includes(t.id) && !result.deleted!.includes(t.parent_id ?? "")));
+      setTasks((prev) => {
+        const childMap = buildChildMap(prev);
+        const allDeletedIds = new Set(result.deleted!);
+        for (const id of result.deleted!) {
+          for (const t of getDescendantsFromMap(childMap, id)) allDeletedIds.add(t.id);
+        }
+        return prev.filter((t) => !allDeletedIds.has(t.id));
+      });
     }
     const hasSuccess = Boolean(
       result.created?.length ||
@@ -119,13 +128,17 @@ export default function SpacePage({ params }: SpacePageProps) {
 
   function handleComplete(id: string) {
     const done = tasks.find((t) => t.id === id);
-    setTasks((prev) => prev.filter((t) => t.id !== id && t.parent_id !== id));
+    const childMap = buildChildMap(tasks);
+    const descendantIds = new Set(getDescendantsFromMap(childMap, id).map(t => t.id));
+    setTasks((prev) => prev.filter((t) => t.id !== id && !descendantIds.has(t.id)));
     if (done) setCompletedTasks((prev) => [{ ...done, status: 2 as const }, ...prev].slice(0, 20));
     window.dispatchEvent(new Event("tasks-changed"));
   }
 
   function handleDelete(id: string) {
-    setTasks((prev) => prev.filter((t) => t.id !== id && t.parent_id !== id));
+    const childMap = buildChildMap(tasks);
+    const descendantIds = new Set(getDescendantsFromMap(childMap, id).map(t => t.id));
+    setTasks((prev) => prev.filter((t) => t.id !== id && !descendantIds.has(t.id)));
     window.dispatchEvent(new Event("tasks-changed"));
   }
 

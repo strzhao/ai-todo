@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { initDb, getAllActiveTasks } from "@/lib/db";
+import { initDb, getAllActiveTasks, getTasks, getTaskMemberRecord } from "@/lib/db";
 import { buildTree } from "@/lib/task-utils";
 import type { TaskNode } from "@/lib/task-utils";
 
@@ -41,7 +41,22 @@ export async function GET(req: NextRequest) {
   }
 
   await initDb();
-  const tasks = await getAllActiveTasks(user.id);
+
+  const spaceId = req.nextUrl.searchParams.get("space_id");
+
+  let tasks;
+  if (spaceId) {
+    // Verify membership
+    const member = await getTaskMemberRecord(spaceId, user.id);
+    if (!member || member.status !== "active") {
+      return NextResponse.json({ error: "Not a space member" }, { status: 403 });
+    }
+    // Get all active tasks in this space (all members)
+    tasks = await getTasks(user.id, { spaceId });
+  } else {
+    tasks = await getAllActiveTasks(user.id);
+  }
+
   const roots = buildTree(tasks);
   sortNodes(roots);
 
