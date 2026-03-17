@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { NLInput } from "@/components/NLInput";
 import { ActionPreview } from "@/components/ActionPreview";
 import { TaskList } from "@/components/TaskList";
+import { TaskDetail } from "@/components/TaskDetail";
 import { DailySummary } from "@/components/DailySummary";
 import { SpaceSettings } from "@/components/SpaceSettings";
 import { SpaceNotes } from "@/components/SpaceNotes";
@@ -17,6 +18,7 @@ const PeopleGantt = dynamic(() => import("@/components/PeopleGantt").then(m => (
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { ParsedAction, Task, Space, SpaceMember, ActionResult } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
+import { formatDateTime } from "@/lib/date-utils";
 
 // Build parent→children map once, then traverse O(n) instead of O(n²)
 function buildChildMap(tasks: Task[]): Map<string, Task[]> {
@@ -58,6 +60,7 @@ export default function SpacePage({ params }: SpacePageProps) {
   const [loading, setLoading] = useState(true);
   const [filterMember, setFilterMember] = useState<string>("all");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [ganttSelectedTask, setGanttSelectedTask] = useState<Task | null>(null);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -131,12 +134,9 @@ export default function SpacePage({ params }: SpacePageProps) {
   }
 
   const handleGanttTaskClick = useCallback((id: string) => {
-    setTab("list");
-    setTimeout(() => {
-      const el = document.getElementById(`task-${id}`);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 100);
-  }, []);
+    const task = tasks.find(t => t.id === id) ?? completedTasks.find(t => t.id === id);
+    if (task) setGanttSelectedTask(task);
+  }, [tasks, completedTasks]);
 
   const activeMembers = useMemo(() => members.filter((m) => m.status === "active"), [members]);
   const filteredTasks = useMemo(() =>
@@ -403,6 +403,108 @@ export default function SpacePage({ params }: SpacePageProps) {
       {tab === "notes" && (
         <SpaceNotes spaceId={spaceId} />
       )}
+
+      <Sheet open={!!ganttSelectedTask} onOpenChange={(open) => { if (!open) setGanttSelectedTask(null); }}>
+        <SheetContent>
+          {ganttSelectedTask && (() => {
+            const t = ganttSelectedTask;
+            const isCompleted = t.status === 2;
+            const assignee = members.find(m => m.email === t.assignee_email);
+            const hasChildren = (childCountMap[t.id] ?? 0) > 0;
+            return (
+              <>
+                <SheetHeader>
+                  <div className="flex items-center gap-2">
+                    {t.priority <= 1 && (
+                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                        t.priority === 0 ? "bg-danger-soft text-danger" : "bg-warning-soft text-warning"
+                      }`}>
+                        {t.priority === 0 ? "P0" : "P1"}
+                      </span>
+                    )}
+                    <SheetTitle className={isCompleted ? "line-through text-muted-foreground" : ""}>
+                      {t.title}
+                    </SheetTitle>
+                  </div>
+                </SheetHeader>
+                <div className="flex-1 overflow-y-auto">
+                  {/* 元信息 */}
+                  <div className="px-6 py-4 space-y-2.5 text-sm border-b border-border/40">
+                    {assignee && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <span className="w-16 shrink-0 text-xs">负责人</span>
+                        <span className="text-foreground">{getDisplayLabel(assignee.email, assignee)}</span>
+                      </div>
+                    )}
+                    {(t.due_date || t.start_date || t.end_date) && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <span className="w-16 shrink-0 text-xs">日期</span>
+                        <span className="text-foreground">
+                          {t.start_date && t.end_date
+                            ? `${formatDateTime(t.start_date)} → ${formatDateTime(t.end_date)}`
+                            : formatDateTime(t.due_date || t.start_date || t.end_date)}
+                        </span>
+                      </div>
+                    )}
+                    {t.tags && t.tags.length > 0 && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <span className="w-16 shrink-0 text-xs">标签</span>
+                        <div className="flex gap-1 flex-wrap">
+                          {t.tags.map(tag => (
+                            <span key={tag} className="text-xs px-1.5 py-0.5 rounded bg-muted text-charcoal">#{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* TaskDetail: 描述 + 日报 */}
+                  <TaskDetail
+                    task={t}
+                    members={members}
+                    onUpdate={(id, updates) => {
+                      handleUpdate(id, updates);
+                      setGanttSelectedTask(prev => prev?.id === id ? { ...prev, ...updates } : prev);
+                    }}
+                    readonly={isCompleted}
+                  />
+
+                  {/* 底部操作 */}
+                  <div className="px-6 py-4 border-t border-border/40 flex gap-2">
+                    {!isCompleted && (
+                      <button
+                        onClick={async () => {
+                          await fetch(`/api/tasks/${t.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ status: 2 }),
+                          });
+                          handleComplete(t.id);
+                          setGanttSelectedTask(null);
+                        }}
+                        className="text-xs px-3 py-1.5 rounded-md bg-sage text-white hover:bg-sage-light transition-colors"
+                      >
+                        标记完成
+                      </button>
+                    )}
+                    {hasChildren && (
+                      <button
+                        onClick={() => {
+                          setGanttSelectedTask(null);
+                          router.push(`/spaces/${spaceId}?focus=${t.id}`);
+                        }}
+                        className="text-xs px-3 py-1.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
+                      >
+                        查看子任务 ({childCountMap[t.id]})
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
 
       <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
         <SheetContent>

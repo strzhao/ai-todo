@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.27.0",
+    date: "2026-03-17",
+    title: "甘特图任务详情抽屉",
+    items: [
+      "点击甘特图任务条，右侧弹出详情抽屉，可查看和编辑任务",
+      "抽屉内显示负责人、日期、标签等元信息",
+      "支持编辑描述、添加进展日报、标记完成",
+      "有子任务时可直接跳转到子任务视图",
+    ],
+    notable: true,
+  },
+  {
     version: "1.26.0",
     date: "2026-03-17",
     title: "甘特图多日任务横条展示",
