@@ -208,4 +208,7 @@ export interface ParsedSummaryConfigAction {
   template?: Partial<PromptTemplate>;
   template_id?: string;
   template_name?: string;
+  // client-side toggle state (update vs save-as)
+  _originalType?: SummaryConfigActionType;
+  _originalTemplateName?: string;
 }
