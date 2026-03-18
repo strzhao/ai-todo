@@ -155,7 +155,7 @@ components/
   NLInput.tsx                   # 自然语言输入框，Cmd+K 聚焦，@ 触发成员菜单，传 tasks + parent_task 上下文给 AI；聚焦态下 placeholder 提示父任务名
   ActionPreview.tsx             # 统一操作预览 + 执行（create/update/complete/delete/add_log/move）
   PeopleGantt.tsx               # 甘特图（人员维度，Y轴=人，每人一行多任务平铺）
-  TaskDetail.tsx                # 任务详情内联面板（描述编辑 + 日期 + 进展评论流）
+  TaskDetail.tsx                # 任务详情编辑面板（标题 + 优先级 + 日期 + 标签 + 进度 + 负责人 + 描述 + 日志 + 完成/删除，standalone/embedded 双模式），后续任务查看和编辑统一使用此组件
   ParsePreviewCard.tsx          # AI 解析预览 + 确认创建（支持空间/负责人，单任务路径）
   MultiTaskPreview.tsx          # 多任务/层级任务预览 + 批量创建（先建父任务再建子任务）
   DateTimePicker.tsx             # 日期时间选择器（Popover 日历 + 时间输入 + 快捷按钮）

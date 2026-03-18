@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.29.0",
+    date: "2026-03-18",
+    title: "任务详情面板全功能编辑",
+    items: [
+      "甘特图/任务抽屉内支持编辑标题、优先级、日期、标签、进度、负责人",
+      "任务列表展开详情也可直接编辑元数据，无需回到列表行操作",
+      "TaskDetail 统一为基础编辑组件，支持 standalone/embedded 双模式",
+    ],
+  },
+  {
     version: "1.28.0",
     date: "2026-03-17",
     title: "AI 总结设置优化",

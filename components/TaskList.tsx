@@ -45,7 +45,7 @@ function CompletedTaskNode({
       </div>
       {isExpanded && (
         <div className="mx-1 mb-2 mt-1 border border-border/40 rounded-lg bg-muted/20 overflow-hidden">
-          <TaskDetail task={node} currentUserEmail={currentUserEmail} members={members} readonly />
+          <TaskDetail task={node} currentUserEmail={currentUserEmail} members={members} readonly mode="embedded" />
         </div>
       )}
       {node.subtasks.length > 0 &&

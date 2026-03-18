@@ -610,7 +610,7 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
       {/* Detail panel — only description + logs */}
       {detailOpen && (
         <div className="mx-1 mb-3 mt-1 border border-border/40 rounded-lg bg-muted/20 overflow-hidden">
-          <TaskDetail task={task} currentUserEmail={currentUserEmail} members={members} onUpdate={onUpdate} />
+          <TaskDetail task={task} currentUserEmail={currentUserEmail} members={members} onUpdate={onUpdate} mode="embedded" />
         </div>
       )}
 
