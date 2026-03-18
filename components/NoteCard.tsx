@@ -27,6 +27,7 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(note.title);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const deleteTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -98,6 +99,25 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
             >
               {note.title}
             </p>
+          )}
+          {note.description && !editing && (
+            <div className="mt-1.5">
+              <p
+                className={`text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap ${
+                  !expanded ? "line-clamp-4" : ""
+                }`}
+              >
+                {note.description}
+              </p>
+              {note.description.split("\n").length > 4 && (
+                <button
+                  onClick={() => setExpanded(!expanded)}
+                  className="text-[10px] text-sage mt-1 hover:underline"
+                >
+                  {expanded ? "收起" : "展开全部"}
+                </button>
+              )}
+            </div>
           )}
         </div>
         <button

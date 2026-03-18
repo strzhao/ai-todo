@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.30.1",
+    date: "2026-03-19",
+    title: "修复 AI 总结转笔记内容不显示",
+    items: [
+      "修复 AI 总结转为笔记后，笔记页面只显示标题不显示正文内容的问题",
+      "笔记卡片支持展示 description 内容，长内容可折叠/展开",
+    ],
+  },
+  {
     version: "1.30.0",
     date: "2026-03-18",
     title: "AI 总结多空间联动 + 转笔记",
