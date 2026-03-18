@@ -28,7 +28,12 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
   const [summaryContent, setSummaryContent] = useState("");
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [previewTemplateId, setPreviewTemplateId] = useState("default");
   const abortRef = useRef<AbortController | null>(null);
+
+  // AI optimize state
+  const [aiTargetTemplate, setAiTargetTemplate] = useState<PromptTemplate | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     fetch(`/api/spaces/${spaceId}/summary-config`)
@@ -48,10 +53,13 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
     setPreview(null);
 
     try {
+      const contextPrefix = aiTargetTemplate
+        ? `[针对模板「${aiTargetTemplate.name}」（ID: ${aiTargetTemplate.id}）进行优化] `
+        : "";
       const res = await fetch(`/api/spaces/${spaceId}/summary-config/parse`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: inputText.trim() }),
+        body: JSON.stringify({ text: contextPrefix + inputText.trim() }),
       });
 
       if (!res.ok) {
@@ -86,6 +94,7 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
     setTemplates([builtinTemplate, ...(updatedConfig.prompt_templates ?? [])]);
     setPreview(null);
     setInputText("");
+    setAiTargetTemplate(null);
   }
 
   async function handleDeleteTemplate(templateId: string) {
@@ -172,7 +181,7 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
       const res = await fetch(`/api/tasks/${spaceId}/summary`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: new Date().toISOString().slice(0, 10) }),
+        body: JSON.stringify({ date: new Date().toISOString().slice(0, 10), template_id: previewTemplateId }),
         signal: controller.signal,
       });
 
@@ -197,7 +206,7 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
     } finally {
       setSummaryLoading(false);
     }
-  }, [spaceId]);
+  }, [spaceId, previewTemplateId]);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
@@ -245,6 +254,11 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
                   isCustomTemplate={t.is_builtin ? isCustomTemplate : undefined}
                   onResetField={t.is_builtin ? handleResetField : undefined}
                   resetting={t.is_builtin ? resetting : undefined}
+                  onAiOptimize={() => {
+                    setAiTargetTemplate(t);
+                    setInputText(t.is_builtin ? "优化默认总结模板：" : `优化模板「${t.name}」：`);
+                    setTimeout(() => textareaRef.current?.focus(), 100);
+                  }}
                 />
               ))}
             </div>
@@ -275,6 +289,7 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
         <section className="rounded-lg border border-sage/30 bg-sage-mist/30 p-4 space-y-3">
           <h3 className="text-sm font-medium">AI 配置助手</h3>
           <textarea
+            ref={textareaRef}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={(e) => {
@@ -327,6 +342,28 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
             </button>
           </div>
 
+          {templates.length > 1 && (
+            <div className="flex gap-3 border-b border-border/30">
+              {templates.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    setPreviewTemplateId(t.id);
+                    setSummaryContent("");
+                    setSummaryError(null);
+                  }}
+                  className={`text-[11px] pb-1.5 border-b-2 transition-colors ${
+                    previewTemplateId === t.id
+                      ? "border-primary text-foreground font-medium"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          )}
+
           {summaryError && (
             <p className="text-xs text-destructive">{summaryError}</p>
           )}
@@ -366,6 +403,7 @@ function TemplateRow({
   isCustomTemplate,
   onResetField,
   resetting,
+  onAiOptimize,
 }: {
   template: PromptTemplate;
   onDelete?: () => void;
@@ -377,6 +415,7 @@ function TemplateRow({
   isCustomTemplate?: boolean;
   onResetField?: (field: "prompt" | "template") => void;
   resetting?: "prompt" | "template" | null;
+  onAiOptimize?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -436,6 +475,14 @@ function TemplateRow({
             </>
           ) : (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-sage-mist text-sage">自定义</span>
+          )}
+          {onAiOptimize && (
+            <button
+              onClick={onAiOptimize}
+              className="text-[10px] text-sage hover:text-sage-light"
+            >
+              AI 优化
+            </button>
           )}
           <button
             onClick={() => setExpanded(!expanded)}

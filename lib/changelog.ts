@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.30.0",
+    date: "2026-03-19",
+    title: "AI 总结模版管理增强",
+    items: [
+      "模板列表新增「AI 优化」入口，一键预填指令优化已有模板",
+      "AI 修改模板时支持「更新原模板/另存为新模板」切换",
+      "总结预览区支持多模板 Tab 切换，按模板分别生成和预览",
+    ],
+  },
+  {
     version: "1.29.0",
     date: "2026-03-18",
     title: "任务详情面板全功能编辑",

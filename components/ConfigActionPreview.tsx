@@ -13,7 +13,7 @@ interface Props {
   onCancel: () => void;
 }
 
-function ActionRow({ action }: { action: ParsedSummaryConfigAction }) {
+function ActionRow({ action, onToggleSaveMode }: { action: ParsedSummaryConfigAction; onToggleSaveMode?: (mode: "update" | "save_as") => void }) {
   const [expanded, setExpanded] = useState(false);
 
   if (action.type === "update_prompt") {
@@ -123,6 +123,47 @@ function ActionRow({ action }: { action: ParsedSummaryConfigAction }) {
   }
 
   if (action.type === "add_prompt_template" && action.template) {
+    if (onToggleSaveMode) {
+      return (
+        <div className="text-sm space-y-1">
+          <div className="flex items-start gap-2">
+            <span className="text-sage flex-shrink-0">＋</span>
+            <div className="flex-1">
+              <span>
+                另存为新模板「<span className="font-medium">{action.template.name ?? "未命名"}</span>」
+              </span>
+              {action.template.system_prompt && (
+                <button
+                  onClick={() => setExpanded(!expanded)}
+                  className="text-xs text-info ml-2 hover:underline"
+                >
+                  {expanded ? "收起" : "查看 Prompt"}
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-1.5 ml-5">
+            <button
+              onClick={() => onToggleSaveMode("update")}
+              className="text-[10px] px-2 py-0.5 rounded bg-muted text-muted-foreground transition-colors"
+            >
+              更新原模板
+            </button>
+            <button
+              onClick={() => onToggleSaveMode("save_as")}
+              className="text-[10px] px-2 py-0.5 rounded bg-sage text-white transition-colors"
+            >
+              另存为新模板
+            </button>
+          </div>
+          {expanded && action.template.system_prompt && (
+            <pre className="text-xs bg-muted rounded p-3 overflow-auto max-h-60 whitespace-pre-wrap text-muted-foreground">
+              {action.template.system_prompt}
+            </pre>
+          )}
+        </div>
+      );
+    }
     return (
       <div className="text-sm space-y-1">
         <div className="flex items-start gap-2">
@@ -169,6 +210,24 @@ function ActionRow({ action }: { action: ParsedSummaryConfigAction }) {
             )}
           </div>
         </div>
+        {onToggleSaveMode && (
+          <div className="flex gap-1.5 ml-5">
+            <button
+              onClick={() => onToggleSaveMode("update")}
+              className={`text-[10px] px-2 py-0.5 rounded transition-colors ${
+                action.type === "update_prompt_template" ? "bg-sage text-white" : "bg-muted text-muted-foreground"
+              }`}
+            >
+              更新原模板
+            </button>
+            <button
+              onClick={() => onToggleSaveMode("save_as")}
+              className="text-[10px] px-2 py-0.5 rounded bg-muted text-muted-foreground transition-colors"
+            >
+              另存为新模板
+            </button>
+          </div>
+        )}
         {expanded && action.template.system_prompt && (
           <pre className="text-xs bg-muted rounded p-3 overflow-auto max-h-60 whitespace-pre-wrap text-muted-foreground">
             {action.template.system_prompt}
@@ -305,11 +364,12 @@ function applyActions(
 
 export function ConfigActionPreview({ actions, currentConfig, defaults, spaceId, onDone, onCancel }: Props) {
   const [executing, setExecuting] = useState(false);
+  const [localActions, setLocalActions] = useState(actions);
 
   async function handleConfirm() {
     setExecuting(true);
     try {
-      const merged = applyActions(currentConfig, defaults, actions, spaceId);
+      const merged = applyActions(currentConfig, defaults, localActions, spaceId);
       const res = await fetch(`/api/spaces/${spaceId}/summary-config`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -329,13 +389,49 @@ export function ConfigActionPreview({ actions, currentConfig, defaults, spaceId,
     <div className="rounded-lg border border-border bg-card p-4 space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">
-          AI 理解：{actions.length} 项配置变更
+          AI 理解：{localActions.length} 项配置变更
         </p>
       </div>
 
       <div className="space-y-2 py-1">
-        {actions.map((action, i) => (
-          <ActionRow key={i} action={action} />
+        {localActions.map((action, i) => (
+          <ActionRow
+            key={i}
+            action={action}
+            onToggleSaveMode={
+              (action.type === "update_prompt_template" || (action.type === "add_prompt_template" && action._originalType === "update_prompt_template"))
+                ? (mode) => {
+                    setLocalActions((prev) =>
+                      prev.map((a, j) => {
+                        if (j !== i) return a;
+                        if (mode === "save_as") {
+                          return {
+                            ...a,
+                            type: "add_prompt_template",
+                            _originalType: "update_prompt_template",
+                            _originalTemplateName: a.template_name ?? a._originalTemplateName,
+                            template: {
+                              ...a.template!,
+                              name: `${a.template_name ?? a._originalTemplateName ?? "模板"}（优化版）`,
+                            },
+                          } as ParsedSummaryConfigAction;
+                        } else {
+                          return {
+                            ...a,
+                            type: "update_prompt_template",
+                            template_name: a._originalTemplateName ?? a.template_name,
+                            template: {
+                              ...a.template!,
+                              name: a._originalTemplateName ?? a.template_name ?? a.template?.name,
+                            },
+                          } as ParsedSummaryConfigAction;
+                        }
+                      })
+                    );
+                  }
+                : undefined
+            }
+          />
         ))}
       </div>
 
@@ -344,7 +440,7 @@ export function ConfigActionPreview({ actions, currentConfig, defaults, spaceId,
           取消
         </Button>
         <Button size="sm" onClick={handleConfirm} disabled={executing}>
-          {executing ? "应用中..." : `应用变更 (${actions.length})`}
+          {executing ? "应用中..." : `应用变更 (${localActions.length})`}
         </Button>
       </div>
     </div>
