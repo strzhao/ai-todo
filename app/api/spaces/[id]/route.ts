@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!space) return rt.json({ error: "Not found" }, { status: 404 });
 
   const myMember = members.find((m) => m.user_id === user.id);
-  return rt.json({ space: { ...space, name: space.title, my_role: myMember?.role ?? "member" }, members });
+  return rt.json({ space: { ...space, name: space.title, my_role: myMember?.role ?? "member", my_user_id: user.id }, members });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
