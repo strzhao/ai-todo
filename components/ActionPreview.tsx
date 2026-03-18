@@ -194,6 +194,18 @@ function ActionRow({ action, allTasks, parentTaskId, spaceId, members }: { actio
     );
   }
 
+  if (action.type === "reopen") {
+    return (
+      <div className={`flex items-start gap-2 text-sm ${notFound ? "text-destructive" : ""}`}>
+        <span className="flex-shrink-0 text-sage">↺</span>
+        <span>
+          重新打开「<span className="font-medium">{displayTitle}</span>」
+          {notFound && <span className="text-xs ml-1 text-destructive">（未找到匹配任务）</span>}
+        </span>
+      </div>
+    );
+  }
+
   return null;
 }
 
@@ -389,6 +401,15 @@ export function ActionPreview({ actions, raw, allTasks, spaceId, members, parent
             body: JSON.stringify({ content: action.log_content }),
           });
           result.logged = [...(result.logged ?? []), { taskId: task.id }];
+        }
+
+        if (action.type === "reopen") {
+          const res = await fetch(`/api/tasks/${task.id}`, {
+            method: "PATCH",
+            headers: jsonHeaders,
+            body: JSON.stringify({ reopen: true }),
+          });
+          if (res.ok) result.reopened = [...(result.reopened ?? []), task.id];
         }
       } catch (err) {
         aiFlowLog("ActionPreview.action.error", {

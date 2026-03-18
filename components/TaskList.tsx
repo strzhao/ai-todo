@@ -14,6 +14,7 @@ function CompletedTaskNode({
   setExpandedCompletedId,
   currentUserEmail,
   members,
+  onReopen,
   depth = 0,
 }: {
   node: TaskNode;
@@ -21,9 +22,30 @@ function CompletedTaskNode({
   setExpandedCompletedId: (id: string | null) => void;
   currentUserEmail?: string;
   members?: TaskMember[];
+  onReopen?: (id: string) => void;
   depth?: number;
 }) {
+  const [reopening, setReopening] = useState(false);
   const isExpanded = expandedCompletedId === node.id;
+
+  async function handleReopen(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (reopening || !onReopen) return;
+    setReopening(true);
+    try {
+      const res = await fetch(`/api/tasks/${node.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reopen: true }),
+      });
+      if (res.ok) {
+        onReopen(node.id);
+      }
+    } finally {
+      setReopening(false);
+    }
+  }
+
   return (
     <div style={depth > 0 ? { paddingLeft: `${depth * 1.75}rem` } : undefined}>
       <div
@@ -41,6 +63,15 @@ function CompletedTaskNode({
             </p>
           )}
         </div>
+        {onReopen && (
+          <button
+            onClick={handleReopen}
+            disabled={reopening}
+            className="text-[10px] px-2 py-0.5 rounded border border-sage/30 text-sage hover:bg-sage/10 disabled:opacity-40 transition-colors flex-shrink-0 mt-0.5"
+          >
+            {reopening ? "..." : "重新打开"}
+          </button>
+        )}
         <span className="text-[10px] text-muted-foreground/40 mt-1 flex-shrink-0">{isExpanded ? "▲" : "▼"}</span>
       </div>
       {isExpanded && (
@@ -57,6 +88,7 @@ function CompletedTaskNode({
             setExpandedCompletedId={setExpandedCompletedId}
             currentUserEmail={currentUserEmail}
             members={members}
+            onReopen={onReopen}
             depth={depth + 1}
           />
         ))}
@@ -71,6 +103,7 @@ interface Props {
   onComplete: (id: string) => void;
   onDelete: (id: string) => void;
   onUpdate?: (id: string, updates: Partial<Task>) => void;
+  onReopen?: (id: string) => void;
   emptyText?: string;
   emptySubtext?: string;
   currentUserEmail?: string;
@@ -90,6 +123,7 @@ export function TaskList({
   onComplete,
   onDelete,
   onUpdate,
+  onReopen,
   emptyText = "暂无任务",
   emptySubtext,
   currentUserEmail,
@@ -188,6 +222,7 @@ export function TaskList({
                   setExpandedCompletedId={setExpandedCompletedId}
                   currentUserEmail={currentUserEmail}
                   members={members}
+                  onReopen={onReopen}
                 />
               ))}
             </div>

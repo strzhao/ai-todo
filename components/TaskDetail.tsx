@@ -83,9 +83,10 @@ export function TaskDetail({
   const [members, setMembers] = useState<TaskMember[]>(membersProp ?? []);
   const [assigneeOpen, setAssigneeOpen] = useState(false);
 
-  // Completing / deleting
+  // Completing / deleting / reopening
   const [completing, setCompleting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [reopening, setReopening] = useState(false);
 
   // Sync props
   useEffect(() => { setDescription(task.description ?? ""); }, [task.description]);
@@ -242,6 +243,21 @@ export function TaskDetail({
       if (res.ok) onDelete?.(task.id);
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function handleReopen() {
+    if (reopening) return;
+    setReopening(true);
+    try {
+      const res = await fetch(`/api/tasks/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reopen: true }),
+      });
+      if (res.ok) onUpdate?.(task.id, { status: 0, completed_at: undefined });
+    } finally {
+      setReopening(false);
     }
   }
 
@@ -591,22 +607,34 @@ export function TaskDetail({
       )}
 
       {/* ── Bottom actions (standalone only) ──────────────────────── */}
-      {isStandalone && !readonly && !isCompleted && (
+      {isStandalone && !readonly && (
         <div className="flex gap-2 pt-2 border-t border-border/40">
-          <button
-            onClick={handleComplete}
-            disabled={completing}
-            className="text-xs px-3 py-1.5 rounded-md bg-sage text-white hover:bg-sage-light disabled:opacity-50 transition-colors"
-          >
-            {completing ? "完成中..." : "标记完成"}
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            className="text-xs px-3 py-1.5 rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
-          >
-            {deleting ? "删除中..." : "删除"}
-          </button>
+          {isCompleted ? (
+            <button
+              onClick={handleReopen}
+              disabled={reopening}
+              className="text-xs px-3 py-1.5 rounded-md bg-sage/10 text-sage border border-sage/30 hover:bg-sage/20 disabled:opacity-50 transition-colors"
+            >
+              {reopening ? "重新打开中..." : "重新打开"}
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={handleComplete}
+                disabled={completing}
+                className="text-xs px-3 py-1.5 rounded-md bg-sage text-white hover:bg-sage-light disabled:opacity-50 transition-colors"
+              >
+                {completing ? "完成中..." : "标记完成"}
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="text-xs px-3 py-1.5 rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
+              >
+                {deleting ? "删除中..." : "删除"}
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

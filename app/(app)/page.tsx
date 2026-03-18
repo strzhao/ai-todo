@@ -142,6 +142,13 @@ export default function TaskHomePage() {
     window.dispatchEvent(new Event("tasks-changed"));
   }
 
+  function handleReopen(id: string) {
+    const reopened = completedTasks.find((t) => t.id === id);
+    setCompletedTasks((prev) => prev.filter((t) => t.id !== id));
+    if (reopened) setTasks((prev) => sortTasksWithTodayFirst([...prev, { ...reopened, status: 0 as const, completed_at: undefined }]));
+    window.dispatchEvent(new Event("tasks-changed"));
+  }
+
   function handleUpdate(id: string, updates: Partial<Task>) {
     setTasks((prev) => sortTasksWithTodayFirst(prev.map((t) => t.id === id ? { ...t, ...updates } : t)));
   }
@@ -190,6 +197,7 @@ export default function TaskHomePage() {
         onComplete={handleComplete}
         onDelete={handleDelete}
         onUpdate={handleUpdate}
+        onReopen={handleReopen}
         emptyText="还没有任务"
         emptySubtext="试着输入一句话"
         highlightTodayDue

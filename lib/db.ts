@@ -475,6 +475,18 @@ export async function completeTask(taskId: string, userId: string): Promise<Task
   return rowToTask(rows[0]);
 }
 
+export async function reopenTask(taskId: string, userId: string): Promise<Task> {
+  const task = await getTaskForUser(taskId, userId);
+  if (!task) throw new Error("Task not found");
+
+  const { rows } = await sql`
+    UPDATE ai_todo_tasks SET status = 0, completed_at = NULL
+    WHERE id = ${taskId}
+    RETURNING *
+  `;
+  return rowToTask(rows[0]);
+}
+
 export async function deleteTask(taskId: string, userId: string): Promise<void> {
   const { rows: raw } = await sql`SELECT * FROM ai_todo_tasks WHERE id = ${taskId}`;
   if (!raw[0]) return;

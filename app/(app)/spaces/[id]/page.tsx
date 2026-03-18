@@ -141,6 +141,13 @@ export default function SpacePage({ params }: SpacePageProps) {
     window.dispatchEvent(new Event("tasks-changed"));
   }
 
+  function handleReopen(id: string) {
+    const reopened = completedTasks.find((t) => t.id === id);
+    setCompletedTasks((prev) => prev.filter((t) => t.id !== id));
+    if (reopened) setTasks((prev) => [...prev, { ...reopened, status: 0 as const, completed_at: undefined }]);
+    window.dispatchEvent(new Event("tasks-changed"));
+  }
+
   function handleUpdate(id: string, updates: Partial<Task>) {
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, ...updates } : t));
   }
@@ -387,6 +394,7 @@ export default function SpacePage({ params }: SpacePageProps) {
             onComplete={handleComplete}
             onDelete={handleDelete}
             onUpdate={handleUpdate}
+            onReopen={handleReopen}
             emptyText={focusedTaskId ? "该任务暂无子任务" : "空间内暂无任务"}
             emptySubtext={focusedTaskId ? "通过 AI 输入框为该任务添加子任务" : "输入一句话创建空间任务，支持 @成员 指派"}
             members={members}
