@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.34.0",
+    date: "2026-03-19",
+    title: "空间页面 Tab 支持 URL 定位",
+    items: [
+      "切换任务列表、甘特图、AI 总结、笔记 Tab 时自动更新 URL",
+      "通过 URL 访问可直接定位到对应 Tab，支持分享链接",
+    ],
+  },
+  {
     version: "1.33.0",
     date: "2026-03-19",
     title: "笔记支持 Markdown 渲染",

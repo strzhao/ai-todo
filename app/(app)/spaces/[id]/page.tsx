@@ -73,6 +73,15 @@ export default function SpacePage({ params }: SpacePageProps) {
     return "list";
   });
 
+  const switchTab = useCallback((newTab: "list" | "gantt" | "summary" | "notes") => {
+    setTab(newTab);
+    const params = new URLSearchParams(searchParams.toString());
+    if (newTab === "list") params.delete("tab");
+    else params.set("tab", newTab);
+    const qs = params.toString();
+    router.replace(`/spaces/${spaceId}${qs ? `?${qs}` : ""}`, { scroll: false });
+  }, [searchParams, spaceId, router]);
+
   useEffect(() => {
     params.then(({ id }) => {
       setSpaceId(id);
@@ -311,25 +320,25 @@ export default function SpacePage({ params }: SpacePageProps) {
 
       <div className="flex gap-1 mb-4">
         <button
-          onClick={() => setTab("list")}
+          onClick={() => switchTab("list")}
           className={`text-xs px-3 py-1 rounded-md border transition-colors ${tab === "list" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-foreground"}`}
         >
           任务列表
         </button>
         <button
-          onClick={() => setTab("gantt")}
+          onClick={() => switchTab("gantt")}
           className={`text-xs px-3 py-1 rounded-md border transition-colors ${tab === "gantt" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-foreground"}`}
         >
           甘特图
         </button>
         <button
-          onClick={() => setTab("summary")}
+          onClick={() => switchTab("summary")}
           className={`text-xs px-3 py-1 rounded-md border transition-colors ${tab === "summary" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-foreground"}`}
         >
           AI 总结
         </button>
         <button
-          onClick={() => setTab("notes")}
+          onClick={() => switchTab("notes")}
           className={`text-xs px-3 py-1 rounded-md border transition-colors ${tab === "notes" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-foreground"}`}
         >
           笔记
