@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.33.0",
+    date: "2026-03-19",
+    title: "笔记支持 Markdown 渲染",
+    items: [
+      "AI 总结转笔记、CLI 创建的笔记内容支持 Markdown 格式展示",
+      "支持标题、列表、表格、加粗等常用 Markdown 语法",
+    ],
+  },
+  {
     version: "1.32.0",
     date: "2026-03-19",
     title: "AI 总结模版管理增强",

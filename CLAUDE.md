@@ -161,7 +161,7 @@ components/
   DateTimePicker.tsx             # 日期时间选择器（Popover 日历 + 时间输入 + 快捷按钮）
   TaskItem.tsx                  # 单条任务行（内联编辑 + 键盘导航 + 子任务折叠展开）
   TaskList.tsx                  # 任务列表（buildTree 组装父子关系 + 骨架屏 + 已完成折叠）
-  NoteCard.tsx                  # 笔记卡片（标题 + 标签 + 时间 + 内联编辑）
+  NoteCard.tsx                  # 笔记卡片（标题 + 标签 + 时间 + 内联编辑 + Markdown 渲染）
   AssigneeBadge.tsx             # 显示非自己的负责人徽章
   TaskSkeleton.tsx              # 加载骨架屏（3 行）
   SpaceSettings.tsx             # 空间设置面板（Sheet 抽屉内容：邀请链接 + 成员管理 + 归档 + 解散）

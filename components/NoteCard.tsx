@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { Task } from "@/lib/types";
 
 interface Props {
@@ -102,13 +104,13 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
           )}
           {note.description && !editing && (
             <div className="mt-1.5">
-              <p
-                className={`text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap ${
-                  !expanded ? "line-clamp-4" : ""
+              <div
+                className={`prose-summary text-xs text-muted-foreground leading-relaxed ${
+                  !expanded ? "max-h-[5rem] overflow-hidden" : ""
                 }`}
               >
-                {note.description}
-              </p>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{note.description}</ReactMarkdown>
+              </div>
               {note.description.split("\n").length > 4 && (
                 <button
                   onClick={() => setExpanded(!expanded)}
