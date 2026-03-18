@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.31.0",
+    date: "2026-03-19",
+    title: "已完成任务支持重新打开",
+    items: [
+      "已完成任务可重新打开恢复为待办状态",
+      "已完成列表每条任务右侧新增「重新打开」按钮",
+      "任务详情面板在已完成状态下显示「重新打开」替代「标记完成」",
+      "支持自然语言操作：「重新打开/恢复/取消完成」触发 AI reopen 指令",
+    ],
+    notable: true,
+  },
+  {
     version: "1.30.1",
     date: "2026-03-19",
     title: "修复 AI 总结转笔记内容不显示",

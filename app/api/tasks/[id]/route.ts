@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { initDb, completeTask, deleteTask, updateTask, pinTask, unpinTask, getTaskForUser, TaskValidationError } from "@/lib/db";
+import { initDb, completeTask, reopenTask, deleteTask, updateTask, pinTask, unpinTask, getTaskForUser, TaskValidationError } from "@/lib/db";
 import { aiFlowLog, getAiTraceIdFromHeaders } from "@/lib/ai-flow-log";
 import { createRouteTimer } from "@/lib/route-timing";
 import { fireNotification, fireNotifications } from "@/lib/notifications";
@@ -16,7 +16,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   await initDb();
   const { id } = await params;
-  const body = await req.json() as { complete?: boolean; action?: "pin" | "unpin"; invite_mode?: string } & Partial<ParsedTask> & { assignee_email?: string | null; assigneeEmail?: string | null; start_date?: string | null; end_date?: string | null; parent_id?: string | null; progress?: number; type?: 0 | 1 };
+  const body = await req.json() as { complete?: boolean; reopen?: boolean; action?: "pin" | "unpin"; invite_mode?: string } & Partial<ParsedTask> & { assignee_email?: string | null; assigneeEmail?: string | null; start_date?: string | null; end_date?: string | null; parent_id?: string | null; progress?: number; type?: 0 | 1 };
   aiFlowLog("tasks.patch.request", {
     trace_id: traceId ?? null,
     task_id: id,
@@ -53,7 +53,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     if (body.complete) {
-      // Read task before completing to get assignee info
       const before = await rt.track("db_query", async () => getTaskForUser(id, user.id));
       const task = await rt.track("db_query", async () => completeTask(id, user.id));
       aiFlowLog("tasks.patch.complete", {
@@ -73,6 +72,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           actorEmail: user.email,
         });
       }
+      return rt.json(task);
+    }
+
+    if (body.reopen) {
+      const task = await rt.track("db_query", async () => reopenTask(id, user.id));
+      aiFlowLog("tasks.patch.reopen", {
+        trace_id: traceId ?? null,
+        task_id: task.id,
+      });
       return rt.json(task);
     }
 

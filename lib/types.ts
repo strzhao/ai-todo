@@ -95,7 +95,7 @@ export interface ParsedActionChanges {
 }
 
 export interface ParsedAction {
-  type: "create" | "update" | "complete" | "delete" | "add_log" | "move";
+  type: "create" | "update" | "complete" | "delete" | "add_log" | "move" | "reopen";
   // For create
   tasks?: ParsedTask[];
   // For update/complete/delete/add_log/move
@@ -116,6 +116,7 @@ export interface ActionResult {
   completed?: string[];  // task IDs
   deleted?: string[];    // task IDs
   logged?: Array<{ taskId: string }>;
+  reopened?: string[];   // task IDs
 }
 
 // ─── Notifications ──────────────────────────────────────────────────────────────
