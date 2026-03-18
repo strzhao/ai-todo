@@ -178,7 +178,10 @@ async function _doInitDb() {
   // 12b. Add prompt_templates column to summary config
   await sql`ALTER TABLE ai_todo_summary_config ADD COLUMN IF NOT EXISTS prompt_templates JSONB DEFAULT '[]'`;
 
-  // 12c. Add template_id column to summary cache + update unique constraint
+  // 12c. Add linked_spaces column to summary config
+  await sql`ALTER TABLE ai_todo_summary_config ADD COLUMN IF NOT EXISTS linked_spaces JSONB DEFAULT '[]'`;
+
+  // 12d. Add template_id column to summary cache + update unique constraint
   await sql`ALTER TABLE ai_todo_summary_cache ADD COLUMN IF NOT EXISTS template_id TEXT DEFAULT 'default'`;
   // Migrate unique constraint to include template_id (idempotent via try/catch)
   try {
@@ -987,11 +990,11 @@ export async function incrementSummaryUsage(userId: string, date: string): Promi
 
 // ─── Summary Config ──────────────────────────────────────────────────────────
 
-import type { SummaryConfig, SummaryDataSource, PromptTemplate } from "./types";
+import type { SummaryConfig, SummaryDataSource, PromptTemplate, LinkedSpace } from "./types";
 
 export async function getSummaryConfig(spaceId: string): Promise<SummaryConfig | null> {
   const { rows } = await sql.query(
-    `SELECT space_id, system_prompt, data_template, data_sources, prompt_templates, updated_at, updated_by
+    `SELECT space_id, system_prompt, data_template, data_sources, prompt_templates, linked_spaces, updated_at, updated_by
      FROM ai_todo_summary_config WHERE space_id = $1 LIMIT 1`,
     [spaceId]
   );
@@ -1005,6 +1008,7 @@ export async function getSummaryConfig(spaceId: string): Promise<SummaryConfig |
     data_template: rows[0].data_template as string | null,
     prompt_templates: templates,
     data_sources: (rows[0].data_sources ?? []) as SummaryDataSource[],
+    linked_spaces: (rows[0].linked_spaces ?? []) as LinkedSpace[],
     updated_at: (rows[0].updated_at as Date).toISOString(),
     updated_by: rows[0].updated_by as string | null,
   };
@@ -1012,7 +1016,7 @@ export async function getSummaryConfig(spaceId: string): Promise<SummaryConfig |
 
 export async function upsertSummaryConfig(
   spaceId: string,
-  config: { system_prompt?: string | null; data_template?: string | null; data_sources?: SummaryDataSource[]; prompt_templates?: PromptTemplate[] },
+  config: { system_prompt?: string | null; data_template?: string | null; data_sources?: SummaryDataSource[]; prompt_templates?: PromptTemplate[]; linked_spaces?: LinkedSpace[] },
   userId: string
 ): Promise<void> {
   const existing = await getSummaryConfig(spaceId);
@@ -1037,6 +1041,10 @@ export async function upsertSummaryConfig(
       fields.push(`prompt_templates = $${idx++}`);
       values.push(JSON.stringify(config.prompt_templates));
     }
+    if (config.linked_spaces !== undefined) {
+      fields.push(`linked_spaces = $${idx++}`);
+      values.push(JSON.stringify(config.linked_spaces));
+    }
     fields.push(`updated_at = NOW()`);
     fields.push(`updated_by = $${idx++}`);
     values.push(userId);
@@ -1048,14 +1056,15 @@ export async function upsertSummaryConfig(
     );
   } else {
     await sql.query(
-      `INSERT INTO ai_todo_summary_config (space_id, system_prompt, data_template, data_sources, prompt_templates, updated_by)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
+      `INSERT INTO ai_todo_summary_config (space_id, system_prompt, data_template, data_sources, prompt_templates, linked_spaces, updated_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [
         spaceId,
         config.system_prompt ?? null,
         config.data_template ?? null,
         JSON.stringify(config.data_sources ?? []),
         JSON.stringify(config.prompt_templates ?? []),
+        JSON.stringify(config.linked_spaces ?? []),
         userId,
       ]
     );

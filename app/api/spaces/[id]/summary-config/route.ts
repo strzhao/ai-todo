@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { initDb, getSummaryConfig, upsertSummaryConfig } from "@/lib/db";
+import { initDb, getSummaryConfig, upsertSummaryConfig, getPinnedTasksForUser } from "@/lib/db";
 import { requireSpaceMember, requireSpaceAdminOrOwner } from "@/lib/spaces";
-import type { SummaryDataSource, PromptTemplate } from "@/lib/types";
+import type { SummaryDataSource, PromptTemplate, LinkedSpace } from "@/lib/types";
 
 export const preferredRegion = "hkg1";
 
@@ -123,6 +123,12 @@ export async function GET(
 
   const config = await getSummaryConfig(id);
 
+  // Get all spaces user belongs to, exclude current space
+  const allSpaces = await getPinnedTasksForUser(user.id);
+  const available_spaces = allSpaces
+    .filter((s) => s.id !== id)
+    .map((s) => ({ id: s.id, title: s.title }));
+
   // Build full template list: builtin default + custom templates
   const builtinTemplate: PromptTemplate = {
     id: "default",
@@ -142,6 +148,8 @@ export async function GET(
       data_template: DEFAULT_DATA_TEMPLATE,
     },
     templates: allTemplates,
+    available_spaces,
+    linked_spaces: config?.linked_spaces ?? [],
   });
 }
 
@@ -166,6 +174,7 @@ export async function PUT(
     data_template?: string | null;
     data_sources?: SummaryDataSource[];
     prompt_templates?: PromptTemplate[];
+    linked_spaces?: LinkedSpace[];
   };
 
   // 回填被 mask 的 header 值：前端拿到的是 masked config，再 PUT 回来时需要还原

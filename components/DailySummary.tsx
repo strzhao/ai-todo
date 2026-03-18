@@ -78,6 +78,8 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, spaceId, canConfi
   const [activeTemplateId, setActiveTemplateId] = useState("default");
   const abortRef = useRef<AbortController | null>(null);
   const triggered = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   // Fetch templates on mount / spaceId change
   useEffect(() => {
@@ -188,6 +190,33 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, spaceId, canConfi
     return () => abortRef.current?.abort();
   }, []);
 
+  async function handleSaveAsNote() {
+    if (saving || saved || !summary) return;
+    setSaving(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: `AI 总结 · ${taskTitle} · ${today}`,
+          description: summary,
+          type: 1,
+          space_id: spaceId,
+          tags: ["AI总结"],
+        }),
+      });
+      if (!res.ok) throw new Error("保存失败");
+      setSaved(true);
+      window.dispatchEvent(new Event("tasks-changed"));
+      setTimeout(() => setSaved(false), 3000);
+    } catch {
+      setError("保存笔记失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const canGenerate = !quota || quota.remaining > 0;
   const showTabs = templates.length > 1;
 
@@ -228,6 +257,15 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, spaceId, canConfi
           >
             {loading ? "生成中..." : summary ? "重新生成" : "生成总结"}
           </button>
+          {summary && !loading && spaceId && (
+            <button
+              onClick={handleSaveAsNote}
+              disabled={saving || saved}
+              className="text-xs px-3 py-1 rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {saved ? "已保存" : saving ? "保存中..." : "转为笔记"}
+            </button>
+          )}
         </div>
       </div>
 

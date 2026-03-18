@@ -165,6 +165,9 @@ components/
   AssigneeBadge.tsx             # 显示非自己的负责人徽章
   TaskSkeleton.tsx              # 加载骨架屏（3 行）
   SpaceSettings.tsx             # 空间设置面板（Sheet 抽屉内容：邀请链接 + 成员管理 + 归档 + 解散）
+  DailySummary.tsx              # AI 总结面板（流式生成 + 多模板 Tab + 缓存 + 配额 + 转为笔记）
+  SummarySettings.tsx           # AI 总结设置（模板管理 + 关联空间 toggle + 外部数据源 + AI 配置助手 + 总结预览）
+  ConfigActionPreview.tsx       # AI 配置操作预览（展示解析出的配置变更列表 + 确认执行）
   SpaceNotes.tsx                # 空间笔记面板（space_id 过滤 + 内联创建 + 标签筛选 + 日期分组）
   EmptyState.tsx                # 空状态展示组件
   (已删除 NotificationBell.tsx，通知改为图标直接导航到 /notifications 页面)
@@ -175,7 +178,7 @@ components/
   PWAInstallBanner.tsx          # PWA 安装引导横幅（访问 5 次后提示添加到主屏幕，Chrome 一键安装 / iOS 步骤引导）
   ServiceWorkerRegistrar.tsx    # Service Worker 注册（app 加载时自动注册）
 lib/
-  types.ts                      # Task、ParsedTask、ParsedAction、ActionResult、TaskLog、AppNotification 等接口
+  types.ts                      # Task、ParsedTask、ParsedAction、ActionResult、TaskLog、AppNotification、SummaryConfig、LinkedSpace 等接口
   llm-client.ts                 # DeepSeek 客户端（55s 超时，AbortError 兜底）
   task-utils.ts                 # 纯函数：buildTree（flat Task[] → 树形 TaskNode[]）
   date-utils.ts                 # 纯函数：formatDateTime / toLocalISO / extractTime / extractDate / DateField 类型

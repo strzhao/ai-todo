@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.30.0",
+    date: "2026-03-18",
+    title: "AI 总结多空间联动 + 转笔记",
+    items: [
+      "AI 总结设置支持关联其他空间，生成总结时自动拉取关联空间的任务和进展数据",
+      "AI 总结面板新增「转为笔记」按钮，一键将总结保存为当前空间的笔记",
+      "关联空间数据含权限校验和截断保护，避免上下文过长",
+    ],
+    notable: true,
+  },
+  {
     version: "1.29.0",
     date: "2026-03-18",
     title: "任务详情面板全功能编辑",

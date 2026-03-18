@@ -161,12 +161,18 @@ export interface PromptTemplate {
   is_builtin?: boolean; // true = 内置模板，不可删除
 }
 
+export interface LinkedSpace {
+  space_id: string;
+  enabled: boolean;
+}
+
 export interface SummaryConfig {
   space_id: string;
   system_prompt: string | null;
   data_template: string | null;
   prompt_templates: PromptTemplate[];
   data_sources: SummaryDataSource[];
+  linked_spaces: LinkedSpace[];
   updated_at: string;
   updated_by: string | null;
 }

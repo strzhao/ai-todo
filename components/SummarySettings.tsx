@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { ConfigActionPreview } from "@/components/ConfigActionPreview";
-import type { SummaryConfig, SummaryDataSource, ParsedSummaryConfigAction, PromptTemplate } from "@/lib/types";
+import type { SummaryConfig, SummaryDataSource, ParsedSummaryConfigAction, PromptTemplate, LinkedSpace } from "@/lib/types";
 
 interface Props {
   spaceId: string;
@@ -24,6 +24,11 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
   const [resetting, setResetting] = useState<"prompt" | "template" | null>(null);
   const [deletingTemplate, setDeletingTemplate] = useState<string | null>(null);
 
+  // Linked spaces state
+  const [availableSpaces, setAvailableSpaces] = useState<{id: string; title: string}[]>([]);
+  const [linkedSpaces, setLinkedSpaces] = useState<LinkedSpace[]>([]);
+  const [togglingSpace, setTogglingSpace] = useState<string | null>(null);
+
   // Summary preview state
   const [summaryContent, setSummaryContent] = useState("");
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -37,6 +42,8 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
         setConfig(data.config);
         setDefaults(data.defaults);
         if (data.templates) setTemplates(data.templates);
+        if (data.available_spaces) setAvailableSpaces(data.available_spaces);
+        if (data.linked_spaces) setLinkedSpaces(data.linked_spaces);
       })
       .finally(() => setLoading(false));
   }, [spaceId]);
@@ -203,6 +210,35 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
     return () => abortRef.current?.abort();
   }, []);
 
+  async function handleToggleLinkedSpace(targetSpaceId: string, enabled: boolean) {
+    setTogglingSpace(targetSpaceId);
+    try {
+      const existing = linkedSpaces.find((ls) => ls.space_id === targetSpaceId);
+      let updated: LinkedSpace[];
+      if (existing) {
+        updated = linkedSpaces.map((ls) =>
+          ls.space_id === targetSpaceId ? { ...ls, enabled } : ls
+        );
+      } else {
+        updated = [...linkedSpaces, { space_id: targetSpaceId, enabled }];
+      }
+
+      const res = await fetch(`/api/spaces/${spaceId}/summary-config`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ linked_spaces: updated }),
+      });
+
+      if (res.ok) {
+        setLinkedSpaces(updated);
+        const data = await res.json() as { config: SummaryConfig | null };
+        if (data.config) setConfig(data.config);
+      }
+    } finally {
+      setTogglingSpace(null);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground py-8">
@@ -251,6 +287,33 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
           )}
           <p className="text-[10px] text-muted-foreground">
             通过 AI 助手添加或修改模板
+          </p>
+        </section>
+
+        {/* Linked Spaces */}
+        <section className="rounded-lg border border-border p-4 space-y-2">
+          <h3 className="text-sm font-medium">关联空间</h3>
+          {availableSpaces.length === 0 ? (
+            <p className="text-xs text-muted-foreground">暂无可关联的其他空间</p>
+          ) : (
+            <div className="space-y-2">
+              {availableSpaces.map((space) => {
+                const linked = linkedSpaces.find((ls) => ls.space_id === space.id);
+                const enabled = linked?.enabled ?? false;
+                return (
+                  <LinkedSpaceRow
+                    key={space.id}
+                    space={space}
+                    enabled={enabled}
+                    toggling={togglingSpace === space.id}
+                    onToggle={() => handleToggleLinkedSpace(space.id, !enabled)}
+                  />
+                );
+              })}
+            </div>
+          )}
+          <p className="text-[10px] text-muted-foreground">
+            启用后，AI 总结将包含关联空间的任务和进展数据
           </p>
         </section>
 
@@ -547,6 +610,40 @@ function DataSourceRow({ source }: { source: SummaryDataSource }) {
         {hasBody && <p className="truncate">Body: <span className="font-mono">{source.body_template}</span></p>}
         {hasExtract && <p>提取路径: <span className="font-mono">{source.response_extract}</span></p>}
         <p>注入变量: <span className="font-mono">{"{{ds." + source.inject_as + "}}"}</span></p>
+      </div>
+    </div>
+  );
+}
+
+function LinkedSpaceRow({
+  space,
+  enabled,
+  toggling,
+  onToggle,
+}: {
+  space: { id: string; title: string };
+  enabled: boolean;
+  toggling: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="py-2">
+      <div className="flex items-center gap-3">
+        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${enabled ? "bg-sage" : "bg-muted-foreground/30"}`} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm truncate">{space.title}</p>
+        </div>
+        <button
+          onClick={onToggle}
+          disabled={toggling}
+          className={`text-[10px] px-1.5 py-0.5 rounded transition-colors disabled:opacity-40 ${
+            enabled
+              ? "bg-sage-mist text-sage hover:bg-sage-mist/70"
+              : "bg-muted text-muted-foreground hover:bg-muted/70"
+          }`}
+        >
+          {toggling ? "..." : enabled ? "已启用" : "已禁用"}
+        </button>
       </div>
     </div>
   );

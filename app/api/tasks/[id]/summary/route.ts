@@ -5,7 +5,7 @@ import { getDisplayLabel } from "@/lib/display-utils";
 import { requireSpaceMember, getSpaceMember } from "@/lib/spaces";
 import { LLMClient } from "@/lib/llm-client";
 import { DEFAULT_SYSTEM_PROMPT, DEFAULT_DATA_TEMPLATE } from "@/app/api/spaces/[id]/summary-config/route";
-import type { Task, TaskLog, SummaryDataSource } from "@/lib/types";
+import type { Task, TaskLog, SummaryDataSource, LinkedSpace } from "@/lib/types";
 
 export const preferredRegion = "hkg1";
 export const maxDuration = 60;
@@ -61,7 +61,8 @@ function buildDefaultUserMessage(
   allLogs: TaskLog[],
   todayLogs: TaskLog[],
   date: string,
-  nameMap: Map<string, string>
+  nameMap: Map<string, string>,
+  linkedSpacesText?: string
 ): string {
   const allTasks = [parentTask, ...descendants];
   const taskIdToTitle = new Map(allTasks.map((t) => [t.id, t.title]));
@@ -83,7 +84,7 @@ function buildDefaultUserMessage(
   const completedCount = allTasks.filter((t) => t.status === 2).length;
   const pendingCount = totalCount - completedCount;
 
-  return `日期: ${date}
+  let msg = `日期: ${date}
 项目: ${parentTask.title}
 统计: 共 ${totalCount} 个任务，${completedCount} 已完成，${pendingCount} 待办
 
@@ -95,6 +96,12 @@ ${allLogsText}
 
 ## 今日进展日志
 ${todayLogsText}`;
+
+  if (linkedSpacesText) {
+    msg += `\n\n## 关联空间数据\n${linkedSpacesText}`;
+  }
+
+  return msg;
 }
 
 // ─── Template rendering ──────────────────────────────────────────────────────
@@ -106,7 +113,8 @@ function buildTemplateVariables(
   todayLogs: TaskLog[],
   date: string,
   nameMap: Map<string, string>,
-  dsResults: Record<string, string>
+  dsResults: Record<string, string>,
+  linkedSpacesText?: string
 ): Record<string, string> {
   const allTasks = [parentTask, ...descendants];
   const taskIdToTitle = new Map(allTasks.map((t) => [t.id, t.title]));
@@ -129,6 +137,7 @@ function buildTemplateVariables(
       ? formatLogs(todayLogs, taskIdToTitle, nameMap)
       : "今日暂无进展日志",
     stats: `共 ${totalCount} 个任务，${completedCount} 已完成，${pendingCount} 待办`,
+    linked_spaces: linkedSpacesText || "",
   };
 
   // Inject data source results as ds.xxx
@@ -368,16 +377,68 @@ export async function POST(
     ? await fetchDataSources(config.data_sources, basicVars)
     : {};
 
+  // Fetch linked spaces data
+  const linkedSpaces = (config?.linked_spaces?.filter((ls: LinkedSpace) => ls.enabled) ?? []) as LinkedSpace[];
+  let linkedSpacesText = "";
+
+  if (linkedSpaces.length > 0) {
+    const linkedResults = await Promise.all(
+      linkedSpaces.map(async (ls) => {
+        try {
+          // Permission check
+          const member = await getSpaceMember(ls.space_id, user!.id);
+          if (!member) return null;
+
+          // Get space root task
+          const spaceTask = await getTaskForUser(ls.space_id, user!.id);
+          if (!spaceTask) return null;
+
+          const [spaceDescendants, spaceMembers] = await Promise.all([
+            getDescendantTasks(ls.space_id),
+            getTaskMembers(ls.space_id),
+          ]);
+
+          // Truncate
+          const truncatedDescendants = spaceDescendants.slice(0, 200);
+          const spaceTaskIds = [ls.space_id, ...truncatedDescendants.map((t) => t.id)];
+          const spaceLogs = await getLogsForTasks(spaceTaskIds, 100);
+
+          const spaceNameMap = new Map(spaceMembers.map((m) => [m.email, getDisplayLabel(m.email, m)]));
+          const allSpaceTasks = [spaceTask, ...truncatedDescendants];
+          const taskIdToTitle = new Map(allSpaceTasks.map((t) => [t.id, t.title]));
+
+          const tree = buildTaskTreeText(allSpaceTasks, spaceTask.id, 1, spaceNameMap);
+          const logsText = spaceLogs.length > 0
+            ? formatLogs(spaceLogs, taskIdToTitle, spaceNameMap)
+            : "暂无进展日志";
+
+          const total = allSpaceTasks.length;
+          const completed = allSpaceTasks.filter((t) => t.status === 2).length;
+
+          return `### ${spaceTask.title}\n统计: 共 ${total} 个任务，${completed} 已完成，${total - completed} 待办\n\n${tree}\n\n进展日志:\n${logsText}`;
+        } catch {
+          console.warn(`[linked-space] Failed to fetch space ${ls.space_id}`);
+          return null;
+        }
+      })
+    );
+
+    const validResults = linkedResults.filter(Boolean);
+    if (validResults.length > 0) {
+      linkedSpacesText = validResults.join("\n\n");
+    }
+  }
+
   const llm = new LLMClient();
 
   // Build user message: custom template or default
   function buildMessage(logs: TaskLog[]): string {
     if (dataTemplate) {
-      const vars = buildTemplateVariables(task!, descendants, logs, todayLogs, date, nameMap, dsResults);
+      const vars = buildTemplateVariables(task!, descendants, logs, todayLogs, date, nameMap, dsResults, linkedSpacesText);
       return renderTemplate(dataTemplate, vars);
     }
     // Default path: use original buildDefaultUserMessage + append data source results
-    let msg = buildDefaultUserMessage(task!, descendants, logs, todayLogs, date, nameMap);
+    let msg = buildDefaultUserMessage(task!, descendants, logs, todayLogs, date, nameMap, linkedSpacesText);
     if (Object.keys(dsResults).length > 0) {
       msg += "\n\n## 外部数据源";
       for (const [key, value] of Object.entries(dsResults)) {
