@@ -3,62 +3,9 @@ export interface ChangelogEntry {
   date: string;
   title: string;
   items: string[];
-  notable?: boolean;
 }
 
 export const changelog: ChangelogEntry[] = [
-  {
-    version: "1.39.3",
-    date: "2026-03-19",
-    title: "侧边栏子任务点击自动聚焦",
-    items: [
-      "桌面端点击侧边栏子任务后，自动展开祖先节点、滚动到目标任务并高亮闪烁",
-    ],
-  },
-  {
-    version: "1.39.2",
-    date: "2026-03-19",
-    title: "修复空间归档无反应",
-    items: [
-      "修复点击「归档空间」后空间仍显示在列表中的问题",
-      "归档操作增加错误提示，失败时不再静默忽略",
-    ],
-  },
-  {
-    version: "1.39.1",
-    date: "2026-03-19",
-    title: "AI 识别「给我」自动分配经办人",
-    items: [
-      "在空间中说「给我创建任务」「我来负责」等表达时，AI 自动将任务分配给当前用户",
-    ],
-  },
-  {
-    version: "1.39.0",
-    date: "2026-03-19",
-    title: "桌面端子任务直接展开",
-    items: [
-      "空间页面桌面端子任务改为 in-place 展开，无需跳转页面",
-      "手机端保持原有 drill-down 跳转行为",
-    ],
-  },
-  {
-    version: "1.38.1",
-    date: "2026-03-19",
-    title: "侧边栏底部导航优化",
-    items: [
-      "通知、文档、更新日志入口从纯图标改为带文字标签，更易识别",
-    ],
-  },
-  {
-    version: "1.38.0",
-    date: "2026-03-19",
-    title: "AI 总结关联空间数据智能压缩",
-    items: [
-      "关联多个空间时自动压缩数据，只保留活跃任务和近期日志，避免超时",
-      "智能 Token 预算分配，确保每个关联空间获得合理的数据量",
-      "关联超过 5 个空间时显示优化建议提示",
-    ],
-  },
   {
     version: "1.37.0",
     date: "2026-03-19",
@@ -69,9 +16,7 @@ export const changelog: ChangelogEntry[] = [
       "邀请链接分享，新成员可快速加入组织",
       "侧边栏新增组织区块，快速访问所属组织",
       "空间设置支持关联到组织，组织内统一管理",
-      "CLI 新增 orgs:list/create/get/members/spaces/join/join-space 命令",
     ],
-    notable: true,
   },
   {
     version: "1.36.0",
@@ -84,63 +29,6 @@ export const changelog: ChangelogEntry[] = [
       "空间管理员可以指派经办人",
       "操作被拒绝时显示清晰的中文权限错误提示",
     ],
-    notable: true,
-  },
-  {
-    version: "1.35.2",
-    date: "2026-03-19",
-    title: "使用文档入口优化",
-    items: [
-      "桌面侧边栏底部新增使用文档快捷图标",
-      "移动端「我的」页面新增使用文档和更新日志入口",
-    ],
-  },
-  {
-    version: "1.35.1",
-    date: "2026-03-19",
-    title: "修复 AI 总结关联空间数据丢失",
-    items: [
-      "修复开启关联空间后 AI 总结不包含关联空间数据的问题",
-      "默认数据模板和 AI 配置助手现已支持 {{linked_spaces}} 变量",
-      "AI 总结会自动整合关联空间的任务和进展信息",
-    ],
-  },
-  {
-    version: "1.35.0",
-    date: "2026-03-19",
-    title: "空间成员可退出空间",
-    items: [
-      "非创建者成员可在空间设置中退出空间",
-      "退出前需二次确认，退出后自动跳转到空间列表",
-    ],
-  },
-  {
-    version: "1.34.0",
-    date: "2026-03-19",
-    title: "空间页面 Tab 支持 URL 定位",
-    items: [
-      "切换任务列表、甘特图、AI 总结、笔记 Tab 时自动更新 URL",
-      "通过 URL 访问可直接定位到对应 Tab，支持分享链接",
-    ],
-  },
-  {
-    version: "1.33.0",
-    date: "2026-03-19",
-    title: "笔记支持 Markdown 渲染",
-    items: [
-      "AI 总结转笔记、CLI 创建的笔记内容支持 Markdown 格式展示",
-      "支持标题、列表、表格、加粗等常用 Markdown 语法",
-    ],
-  },
-  {
-    version: "1.32.0",
-    date: "2026-03-19",
-    title: "AI 总结模版管理增强",
-    items: [
-      "模板列表新增「AI 优化」入口，一键预填指令优化已有模板",
-      "AI 修改模板时支持「更新原模板/另存为新模板」切换",
-      "总结预览区支持多模板 Tab 切换，按模板分别生成和预览",
-    ],
   },
   {
     version: "1.31.0",
@@ -152,16 +40,6 @@ export const changelog: ChangelogEntry[] = [
       "任务详情面板在已完成状态下显示「重新打开」替代「标记完成」",
       "支持自然语言操作：「重新打开/恢复/取消完成」触发 AI reopen 指令",
     ],
-    notable: true,
-  },
-  {
-    version: "1.30.1",
-    date: "2026-03-19",
-    title: "修复 AI 总结转笔记内容不显示",
-    items: [
-      "修复 AI 总结转为笔记后，笔记页面只显示标题不显示正文内容的问题",
-      "笔记卡片支持展示 description 内容，长内容可折叠/展开",
-    ],
   },
   {
     version: "1.30.0",
@@ -171,37 +49,6 @@ export const changelog: ChangelogEntry[] = [
       "AI 总结设置支持关联其他空间，生成总结时自动拉取关联空间的任务和进展数据",
       "AI 总结面板新增「转为笔记」按钮，一键将总结保存为当前空间的笔记",
       "关联空间数据含权限校验和截断保护，避免上下文过长",
-    ],
-    notable: true,
-  },
-  {
-    version: "1.29.0",
-    date: "2026-03-18",
-    title: "任务详情面板全功能编辑",
-    items: [
-      "甘特图/任务抽屉内支持编辑标题、优先级、日期、标签、进度、负责人",
-      "任务列表展开详情也可直接编辑元数据，无需回到列表行操作",
-      "TaskDetail 统一为基础编辑组件，支持 standalone/embedded 双模式",
-    ],
-  },
-  {
-    version: "1.28.0",
-    date: "2026-03-17",
-    title: "AI 总结设置优化",
-    items: [
-      "修复删除模板后模板仍然显示的 bug",
-      "以模板列表为核心重新组织设置页面结构",
-      "模板支持 inline 重命名（点击铅笔图标编辑）",
-      "AI 助手支持二次修改已有模板（如「修改风险分析模板，增加人力投入分析」）",
-    ],
-  },
-  {
-    version: "1.27.1",
-    date: "2026-03-17",
-    title: "CLI 登录态持久化",
-    items: [
-      "CLI 登录后使用 90 天长效 session token，不再频繁掉线",
-      "服务端 Bearer 认证支持 session token 回退，向后兼容旧版 CLI",
     ],
   },
   {
@@ -214,7 +61,6 @@ export const changelog: ChangelogEntry[] = [
       "支持编辑描述、添加进展日报、标记完成",
       "有子任务时可直接跳转到子任务视图",
     ],
-    notable: true,
   },
   {
     version: "1.26.0",
@@ -224,56 +70,6 @@ export const changelog: ChangelogEntry[] = [
       "跨多天的任务在甘特图中显示为连续横条，不再每天重复显示",
       "重叠任务自动错行排列，避免互相遮挡",
       "跨周任务自动裁剪到当前周范围",
-    ],
-    notable: true,
-  },
-  {
-    version: "1.25.0",
-    date: "2026-03-17",
-    title: "甘特图精简",
-    items: [
-      "移除任务视角甘特图，保留人员视角甘特图",
-      "甘特图 Tab 不再显示子标签切换",
-    ],
-    notable: false,
-  },
-  {
-    version: "1.24.2",
-    date: "2026-03-16",
-    title: "甘特图性能优化",
-    items: [
-      "复杂项目空间切换甘特图不再卡顿",
-      "任务树遍历算法从 O(n²) 优化至 O(n)，大量任务场景显著提速",
-      "甘特图组件懒加载，不影响任务列表加载速度",
-    ],
-  },
-  {
-    version: "1.24.1",
-    date: "2026-03-16",
-    title: "移动端任务详情",
-    items: [
-      "手机端点击任务可展开查看完整描述和进展记录",
-      "新增移动端展开指示器，操作更直观",
-    ],
-  },
-  {
-    version: "1.24.0",
-    date: "2026-03-16",
-    title: "PWA 安装引导",
-    items: [
-      "智能安装引导：活跃用户自动提示将 AI Todo 添加到主屏幕",
-      "Chrome/Edge 一键安装，iOS Safari 步骤图示引导",
-      "引导时机精心设计，不与推送提示同时出现",
-    ],
-  },
-  {
-    version: "1.23.0",
-    date: "2026-03-16",
-    title: "空间笔记",
-    items: [
-      "空间页面新增「笔记」Tab，支持在项目空间内记录笔记",
-      "空间笔记独立于全局笔记，按空间隔离",
-      "支持内联创建、标签筛选、日期分组",
     ],
   },
   {
@@ -285,9 +81,7 @@ export const changelog: ChangelogEntry[] = [
       "输入「记一下...」「想法：...」「笔记 #标签」即可创建笔记",
       "笔记视图按日期分组的卡片时间流，支持标签筛选",
       "笔记加截止日期或优先级时自动变为任务，无缝互转",
-      "CLI 新增 notes:list / notes:create 命令",
     ],
-    notable: true,
   },
   {
     version: "1.21.0",
@@ -298,7 +92,6 @@ export const changelog: ChangelogEntry[] = [
       "设置页新增模板管理，通过 AI 助手用自然语言描述即可生成新模板",
       "每个模板独立缓存，切换模板不影响已生成的内容",
     ],
-    notable: true,
   },
   {
     version: "1.20.1",
@@ -309,25 +102,14 @@ export const changelog: ChangelogEntry[] = [
       "支持上/下周切换，今日列高亮，周末淡色区分",
       "跨天任务在每个覆盖日都显示，同天多任务纵向堆叠",
     ],
-    notable: true,
   },
   {
     version: "1.20.0",
     date: "2026-03-12",
-    title: "甘特图人员维度优化",
+    title: "甘特图人员维度",
     items: [
       "甘特图新增「任务/人员」子 tab，人员视角每人一行、多任务平铺",
       "任务条上的负责人头像更醒目，左侧前置显示品牌色头像圆",
-    ],
-    notable: true,
-  },
-  {
-    version: "1.19.1",
-    date: "2026-03-12",
-    title: "AI 总结数据源代理简化",
-    items: [
-      "AI 总结数据源改为直接请求配置里的 URL，不再在服务端额外套一层代理",
-      "支持把内网接口先经由本地 frp 暴露后，直接作为数据源地址使用",
     ],
   },
   {
@@ -338,18 +120,15 @@ export const changelog: ChangelogEntry[] = [
       "支持添加到主屏幕，离线时显示友好提示页",
       "智能推送提醒横幅，使用几次后自动提示开启浏览器推送",
     ],
-    notable: true,
   },
   {
     version: "1.18.0",
     date: "2026-03-11",
-    title: "通知优化：链接修复 + 浏览器推送",
+    title: "浏览器推送通知",
     items: [
-      "修复通知点击无反应的问题，通知项改为可导航链接，个人任务通知支持跳转并高亮",
       "新增浏览器推送通知，支持 Safari/Chrome 原生通知弹窗",
       "通知偏好新增「推送」通道，可按类型独立开关",
     ],
-    notable: true,
   },
   {
     version: "1.17.0",
@@ -359,16 +138,6 @@ export const changelog: ChangelogEntry[] = [
       "支持自定义系统 Prompt 和数据模板，通过 AI 配置助手自然语言修改",
       "支持添加外部 HTTP 数据源（GET/POST），总结时自动拉取并注入上下文",
       "独立设置页面（空间设置 → AI 总结设置 / 总结 Tab 齿轮图标）",
-      "CLI 新增 summary:config 和 summary:update-config 命令",
-    ],
-    notable: true,
-  },
-  {
-    version: "1.16.1",
-    date: "2026-03-10",
-    title: "AI 总结进度修复",
-    items: [
-      "修复 AI 总结中有子任务的任务进度始终显示 0% 的问题，现在基于子任务完成状态实时计算（如 6/9 67%）",
     ],
   },
   {
@@ -380,31 +149,11 @@ export const changelog: ChangelogEntry[] = [
       "Apple 风格卡片分组布局，视觉层级更清晰",
       "通知设置改用 Toggle Switch 开关，操作更直观",
     ],
-    notable: true,
-  },
-  {
-    version: "1.15.1",
-    date: "2026-03-10",
-    title: "空间成员权限修复",
-    items: [
-      "修复空间成员无法访问空间根节点的问题（AI 总结、编辑、日报等返回 Not found）",
-    ],
-  },
-  {
-    version: "1.15.0",
-    date: "2026-03-10",
-    title: "侧边栏布局优化",
-    items: [
-      "通知和更新日志改为图标按钮，侧边栏底部更紧凑",
-      "通知改为独立页面，桌面端不再使用弹窗",
-      "更新日志红点仅在重要更新时显示",
-    ],
   },
   {
     version: "1.14.0",
     date: "2026-03-10",
     title: "通知系统",
-    notable: true,
     items: [
       "新增应用内通知中心：侧边栏铃铛图标 + 移动端通知 Tab",
       "任务指派、@提到、完成、删除、进展日报等操作自动触发通知",
@@ -416,7 +165,6 @@ export const changelog: ChangelogEntry[] = [
     version: "1.13.0",
     date: "2026-03-10",
     title: "日期时间选择器升级",
-    notable: true,
     items: [
       "全新日期时间选择器：日历面板 + 时间输入 + 快捷按钮（今天/明天/下周一）",
       "支持设置具体小时和分钟，不再只能选日期",
@@ -424,34 +172,9 @@ export const changelog: ChangelogEntry[] = [
     ],
   },
   {
-    version: "1.12.2",
-    date: "2026-03-10",
-    title: "修复空间内创建任务失败",
-    items: [
-      "修复在空间视图下创建任务时显示「父任务未匹配」导致无法创建的问题",
-    ],
-  },
-  {
-    version: "1.12.1",
-    date: "2026-03-10",
-    title: "修复手机端任务名截断",
-    items: [
-      "修复移动端任务名右侧明明有空间却被截断的问题",
-    ],
-  },
-  {
-    version: "1.12.0",
-    date: "2026-03-10",
-    title: "空间任务显示创建者",
-    items: [
-      "空间任务 hover 时显示创建者名称，方便了解任务来源",
-    ],
-  },
-  {
     version: "1.11.0",
     date: "2026-03-10",
     title: "AI 总结全员可用 + 服务端缓存",
-    notable: true,
     items: [
       "AI 总结改为服务端缓存，同一空间所有成员共享已生成的总结",
       "所有空间成员均可生成 AI 总结（普通成员每日 10 次，管理员/创建者每日 100 次）",
@@ -459,18 +182,9 @@ export const changelog: ChangelogEntry[] = [
     ],
   },
   {
-    version: "1.10.0",
-    date: "2026-03-10",
-    title: "空间设置抽屉化",
-    items: [
-      "空间设置改为右侧抽屉打开，无需跳转页面，操作更流畅",
-    ],
-  },
-  {
     version: "1.9.0",
     date: "2026-03-10",
     title: "空间管理员角色 + AI 总结权限",
-    notable: true,
     items: [
       "新增管理员角色，创建者可在设置中提升成员为管理员",
       "管理员可审批新成员、移除普通成员",
@@ -478,28 +192,9 @@ export const changelog: ChangelogEntry[] = [
     ],
   },
   {
-    version: "1.8.2",
-    date: "2026-03-09",
-    title: "已完成任务保持层级展示",
-    items: [
-      "已完成任务区域按父子层级缩进展示，不再扁平罗列",
-      "已完成任务详情正确显示成员信息",
-    ],
-  },
-  {
-    version: "1.8.1",
-    date: "2026-03-09",
-    title: "修复空间任务列表遗漏部分任务",
-    items: [
-      "修复通过 CLI 创建的空间任务在列表中不显示的问题",
-      "统一空间任务查询逻辑，确保所有层级的任务都能正确展示",
-    ],
-  },
-  {
     version: "1.8.0",
     date: "2026-03-09",
     title: "侧边栏宽度可拖拽调整",
-    notable: true,
     items: [
       "拖拽侧边栏右边缘可自由调整宽度（160px ~ 400px）",
       "宽度偏好自动保存，刷新后保持",
@@ -507,20 +202,9 @@ export const changelog: ChangelogEntry[] = [
     ],
   },
   {
-    version: "1.7.1",
-    date: "2026-03-09",
-    title: "空间聚焦体验优化",
-    items: [
-      "聚焦子任务时，子任务的下级任务也能正确显示",
-      "面包屑导航支持多层级路径，可逐级点击跳转",
-      "侧边栏点击空间名可回到空间根视图",
-    ],
-  },
-  {
     version: "1.7.0",
     date: "2026-03-08",
     title: "语音输入升级",
-    notable: true,
     items: [
       "语音识别改用服务端 Whisper 引擎，不再依赖浏览器内置 API",
       "全面兼容 Edge、微信浏览器等此前不支持的环境",
@@ -531,7 +215,6 @@ export const changelog: ChangelogEntry[] = [
     version: "1.6.0",
     date: "2026-03-08",
     title: "语音输入",
-    notable: true,
     items: [
       "新增语音输入，支持中文语音识别（zh-CN）",
       "录音状态实时反馈，识别结果自动填入输入框",
@@ -542,7 +225,6 @@ export const changelog: ChangelogEntry[] = [
     version: "1.5.0",
     date: "2026-03-08",
     title: "昵称与账号设置",
-    notable: true,
     items: [
       "支持设置全局昵称，所有面板优先展示昵称",
       "新增账号设置页，整合邀请码和切换账号功能",
@@ -553,7 +235,6 @@ export const changelog: ChangelogEntry[] = [
     version: "1.4.0",
     date: "2026-03-05",
     title: "项目空间协作",
-    notable: true,
     items: [
       "支持创建项目空间，邀请成员协作",
       "空间内 @mention 指派任务给成员",
@@ -564,7 +245,6 @@ export const changelog: ChangelogEntry[] = [
     version: "1.3.0",
     date: "2026-03-01",
     title: "AI 自然语言操作",
-    notable: true,
     items: [
       "AI 输入框支持更新、完成、删除等自然语言操作",
       "支持批量创建层级任务",
@@ -577,11 +257,7 @@ export function getLatestVersion(): string {
   return changelog[0]?.version ?? "0.0.0";
 }
 
-export function hasNotableUpdate(lastSeenVersion: string | null): boolean {
+export function hasNewUpdate(lastSeenVersion: string | null): boolean {
   if (!lastSeenVersion) return true;
-  for (const entry of changelog) {
-    if (entry.version === lastSeenVersion) break;
-    if (entry.notable) return true;
-  }
-  return false;
+  return changelog.length > 0 && changelog[0].version !== lastSeenVersion;
 }
