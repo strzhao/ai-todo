@@ -7,6 +7,20 @@ export default defineConfig({
     env: {
       AUTH_GATEWAY_SESSION_SECRET: "test-cli-session-secret",
     },
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov", "json-summary"],
+      reportsDirectory: "./coverage",
+      include: ["lib/**/*.ts"],
+      exclude: [
+        "lib/db.ts",
+        "lib/email.ts",
+        "lib/push.ts",
+        "lib/notifications.ts",
+        "lib/server-auth.ts",
+        "lib/llm-client.ts",
+      ],
+    },
   },
   resolve: {
     alias: {
