@@ -128,6 +128,12 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onName
         alert(data.error || "归档失败");
         return;
       }
+      // Unpin to remove from sidebar (pinned=false is the canonical "archived" signal)
+      await fetch(`/api/tasks/${spaceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "unpin" }),
+      });
       onArchived?.();
     } catch {
       alert("网络错误，请重试");

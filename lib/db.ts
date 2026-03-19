@@ -691,7 +691,7 @@ export async function getPinnedTasksForUser(userId: string): Promise<Task[]> {
       (SELECT COUNT(*) FROM ai_todo_tasks c WHERE c.space_id = t.id AND c.status != 2) AS task_count
     FROM ai_todo_tasks t
     JOIN ai_todo_task_members my ON my.task_id = t.id AND my.user_id = ${userId} AND my.status = 'active'
-    WHERE t.pinned = TRUE AND t.status != 2
+    WHERE t.pinned = TRUE
     ORDER BY t.created_at ASC
   `;
   return rows.map(rowToTask);
