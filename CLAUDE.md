@@ -29,6 +29,8 @@ npm run dev    # 启动开发服务器（Turbopack）
 npm run build  # 构建生产版本
 npm run start  # 启动生产服务器
 npm test       # 运行单元测试（Vitest，72 个用例）
+npm run lint   # ESLint 检查
+npm run lint:fix  # ESLint 自动修复
 ```
 
 ## 技术栈

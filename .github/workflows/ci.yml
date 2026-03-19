@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci --legacy-peer-deps
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+          AUTH_ISSUER: https://user.stringzhao.life
+          AUTH_AUDIENCE: base-account-client
+          AUTH_JWKS_URL: https://user.stringzhao.life/.well-known/jwks.json
+          AUTH_SERVICE_ID: base-account-client
+          APP_ORIGIN: https://ai-todo.stringzhao.life
+          NEXT_PUBLIC_AUTH_ISSUER: https://user.stringzhao.life
