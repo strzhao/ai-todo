@@ -277,7 +277,7 @@ export default function SpacePage({ params }: SpacePageProps) {
   return (
     <div className={tab === "gantt" ? "app-content-wide" : "app-content"}>
       <div className="flex items-center justify-between mb-4">
-        {focusedTask && !isDesktop ? (
+        {focusedTask ? (
           <h1 className="text-xl font-semibold flex items-center gap-1.5 min-w-0">
             <button
               onClick={() => router.push(`/spaces/${spaceId}`)}
@@ -413,8 +413,8 @@ export default function SpacePage({ params }: SpacePageProps) {
           )}
 
           <TaskList
-            tasks={isDesktop ? filteredTasks : displayTasks}
-            completedTasks={isDesktop ? completedTasks : focusedCompletedTasks}
+            tasks={focusedTaskId ? displayTasks : (isDesktop ? filteredTasks : displayTasks)}
+            completedTasks={focusedTaskId ? focusedCompletedTasks : (isDesktop ? completedTasks : focusedCompletedTasks)}
             loading={false}
             onComplete={handleComplete}
             onDelete={handleDelete}
@@ -423,10 +423,8 @@ export default function SpacePage({ params }: SpacePageProps) {
             emptyText={focusedTaskId ? "该任务暂无子任务" : "空间内暂无任务"}
             emptySubtext={focusedTaskId ? "通过 AI 输入框为该任务添加子任务" : "输入一句话创建空间任务，支持 @成员 指派"}
             members={members}
-            onDrillDown={isDesktop ? undefined : (taskId) => router.push(`/spaces/${spaceId}?focus=${taskId}`)}
-            childCountMap={isDesktop ? undefined : childCountMap}
-            focusedTaskId={isDesktop ? focusedTaskId : undefined}
-            focusAncestorIds={isDesktop ? focusAncestorIds : undefined}
+            onDrillDown={focusedTaskId || !isDesktop ? (taskId) => router.push(`/spaces/${spaceId}?focus=${taskId}`) : undefined}
+            childCountMap={focusedTaskId || !isDesktop ? childCountMap : undefined}
           />
         </>
       )}
