@@ -11,10 +11,11 @@ interface SpaceSettingsProps {
   spaceId: string;
   onArchived?: () => void;
   onDissolved?: () => void;
+  onLeft?: () => void;
   onNameChanged?: (name: string) => void;
 }
 
-export function SpaceSettings({ spaceId, onArchived, onDissolved, onNameChanged }: SpaceSettingsProps) {
+export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onNameChanged }: SpaceSettingsProps) {
   const [space, setSpace] = useState<Space | null>(null);
   const [members, setMembers] = useState<TaskMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,14 +25,18 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onNameChanged 
   const [archiving, setArchiving] = useState(false);
   const [dissolveConfirm, setDissolveConfirm] = useState("");
   const [dissolving, setDissolving] = useState(false);
+  const [leaveConfirm, setLeaveConfirm] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [myUserId, setMyUserId] = useState<string>("");
 
   useEffect(() => {
     fetch(`/api/spaces/${spaceId}`)
       .then((r) => r.json())
-      .then((data: { space: Space; members: SpaceMember[] }) => {
+      .then((data: { space: Space & { my_user_id?: string }; members: SpaceMember[] }) => {
         setSpace(data.space);
         setMembers(data.members);
         setName(data.space.title);
+        if (data.space.my_user_id) setMyUserId(data.space.my_user_id);
       })
       .finally(() => setLoading(false));
   }, [spaceId]);
@@ -113,6 +118,13 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onNameChanged 
     setDissolving(true);
     await fetch(`/api/spaces/${spaceId}`, { method: "DELETE" });
     onDissolved?.();
+  }
+
+  async function leaveSpace() {
+    if (!myUserId) return;
+    setLeaving(true);
+    await fetch(`/api/spaces/${spaceId}/members/${myUserId}`, { method: "DELETE" });
+    onLeft?.();
   }
 
   const isOwner = space.my_role === "owner";
@@ -222,6 +234,30 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onNameChanged 
             <span>自定义总结模版和数据源</span>
             <span className="text-muted-foreground/50">›</span>
           </Link>
+        </section>
+      )}
+
+      {/* Leave Space (non-owner only) */}
+      {!isOwner && (
+        <section className="space-y-3 border-t border-border/40 pt-6">
+          <h2 className="text-sm font-semibold">退出空间</h2>
+          <p className="text-xs text-muted-foreground">
+            退出后将无法查看空间任务，你创建的任务会保留在空间中。
+          </p>
+          {!leaveConfirm ? (
+            <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setLeaveConfirm(true)}>
+              退出空间
+            </Button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="destructive" onClick={leaveSpace} disabled={leaving}>
+                {leaving ? "退出中..." : "确认退出"}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setLeaveConfirm(false)} disabled={leaving}>
+                取消
+              </Button>
+            </div>
+          )}
         </section>
       )}
 

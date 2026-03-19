@@ -492,6 +492,11 @@ export default function SpacePage({ params }: SpacePageProps) {
               setSettingsOpen(false);
               router.push("/spaces");
             }}
+            onLeft={() => {
+              setSettingsOpen(false);
+              router.push("/spaces");
+              router.refresh();
+            }}
             onNameChanged={(newName) => {
               setSpace((prev) => prev ? { ...prev, title: newName } : prev);
               window.dispatchEvent(new Event("tasks-changed"));

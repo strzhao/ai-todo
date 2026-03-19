@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.35.0",
+    date: "2026-03-19",
+    title: "空间成员可退出空间",
+    items: [
+      "非创建者成员可在空间设置中退出空间",
+      "退出前需二次确认，退出后自动跳转到空间列表",
+    ],
+  },
+  {
     version: "1.34.0",
     date: "2026-03-19",
     title: "空间页面 Tab 支持 URL 定位",
