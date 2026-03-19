@@ -294,6 +294,9 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
                 <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-destructive" />
               )}
             </Link>
+            <Link href="/readme" className={iconLinkCls(pathname === "/readme")} title="使用文档">
+              <span className="text-base">📖</span>
+            </Link>
             <Link href="/changelog" className={iconLinkCls(pathname === "/changelog")} title="更新日志">
               <span className="text-base">✨</span>
               {hasUnreadChangelog && (

@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.35.2",
+    date: "2026-03-19",
+    title: "使用文档入口优化",
+    items: [
+      "桌面侧边栏底部新增使用文档快捷图标",
+      "移动端「我的」页面新增使用文档和更新日志入口",
+    ],
+  },
+  {
     version: "1.35.1",
     date: "2026-03-19",
     title: "修复 AI 总结关联空间数据丢失",

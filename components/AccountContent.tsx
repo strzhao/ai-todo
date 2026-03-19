@@ -216,6 +216,20 @@ export function AccountContent({ userEmail, userNickname, isDev }: Props) {
         </div>
       </div>
 
+      {/* ── 更多 ── */}
+      <SettingsCard title="更多">
+        <SettingsRow
+          icon={<span className="text-sm">📖</span>}
+          label="使用文档"
+          onClick={() => router.push("/readme")}
+        />
+        <SettingsRow
+          icon={<span className="text-sm">✨</span>}
+          label="更新日志"
+          onClick={() => router.push("/changelog")}
+        />
+      </SettingsCard>
+
       {/* ── 邀请好友 ── */}
       <SettingsCard title="邀请好友">
         {inviteLoading && (
