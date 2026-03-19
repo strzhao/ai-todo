@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.38.0",
+    date: "2026-03-19",
+    title: "AI 总结关联空间数据智能压缩",
+    items: [
+      "关联多个空间时自动压缩数据，只保留活跃任务和近期日志，避免超时",
+      "智能 Token 预算分配，确保每个关联空间获得合理的数据量",
+      "关联超过 5 个空间时显示优化建议提示",
+    ],
+  },
+  {
     version: "1.37.0",
     date: "2026-03-19",
     title: "团队组织",
