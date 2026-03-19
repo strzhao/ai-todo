@@ -221,20 +221,30 @@ export default function OrgDetailPage({ params }: Props) {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Link href={`/spaces/${space.id}`}>
-                    <Button size="sm" variant="ghost" className="text-xs">
-                      查看
-                    </Button>
-                  </Link>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-xs"
-                    onClick={() => joinSpace(space.id)}
-                    disabled={joiningSpaceId === space.id}
-                  >
-                    {joiningSpaceId === space.id ? "申请中..." : "申请加入"}
-                  </Button>
+                  {space.my_role ? (
+                    <Link href={`/spaces/${space.id}`}>
+                      <Button size="sm" variant="outline" className="text-xs">
+                        进入空间
+                      </Button>
+                    </Link>
+                  ) : (
+                    <>
+                      <Link href={`/spaces/${space.id}`}>
+                        <Button size="sm" variant="ghost" className="text-xs">
+                          查看
+                        </Button>
+                      </Link>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs"
+                        onClick={() => joinSpace(space.id)}
+                        disabled={joiningSpaceId === space.id}
+                      >
+                        {joiningSpaceId === space.id ? "申请中..." : "申请加入"}
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             ))

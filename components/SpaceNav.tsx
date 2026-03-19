@@ -206,35 +206,38 @@ export function SpaceNav({ spaces, orgs, userEmail, userNickname, isDev }: Props
           <Link href="/notes" className={navLinkCls(isActive("/notes"))}>笔记</Link>
 
           {/* Organizations */}
-          {orgs.length > 0 && (
-            <div className="pt-4">
-              <div className="flex items-center justify-between px-3 mb-1">
-                <button
-                  onClick={() => setOrgsCollapsed((v) => !v)}
-                  className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider hover:text-foreground transition-colors flex items-center gap-1"
-                >
-                  <span className={`text-[8px] transition-transform ${orgsCollapsed ? "-rotate-90" : ""}`}>▼</span>
-                  团队组织
-                </button>
-                <Link href="/orgs/new" className="text-xs text-muted-foreground hover:text-foreground">+</Link>
-              </div>
-              {!orgsCollapsed && orgs.map((org) => (
-                <Link
-                  key={org.id}
-                  href={`/orgs/${org.id}`}
-                  className={navLinkCls(isActive(`/orgs/${org.id}`))}
-                >
-                  <span className="w-5 h-5 rounded bg-sage-mist flex items-center justify-center text-[10px] font-bold text-sage flex-shrink-0">
-                    {org.name[0]?.toUpperCase()}
-                  </span>
-                  <span className="truncate">{org.name}</span>
-                  {(org.space_count ?? 0) > 0 && (
-                    <span className="ml-auto text-[10px] text-muted-foreground">{org.space_count}</span>
-                  )}
-                </Link>
-              ))}
+          <div className="pt-4">
+            <div className="flex items-center justify-between px-3 mb-1">
+              <button
+                onClick={() => setOrgsCollapsed((v) => !v)}
+                className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider hover:text-foreground transition-colors flex items-center gap-1"
+              >
+                <span className={`text-[8px] transition-transform ${orgsCollapsed ? "-rotate-90" : ""}`}>▼</span>
+                团队组织
+              </button>
+              <Link href="/orgs/new" className="text-xs text-muted-foreground hover:text-foreground">+</Link>
             </div>
-          )}
+            {!orgsCollapsed && orgs.map((org) => (
+              <Link
+                key={org.id}
+                href={`/orgs/${org.id}`}
+                className={navLinkCls(isActive(`/orgs/${org.id}`))}
+              >
+                <span className="w-5 h-5 rounded bg-sage-mist flex items-center justify-center text-[10px] font-bold text-sage flex-shrink-0">
+                  {org.name[0]?.toUpperCase()}
+                </span>
+                <span className="truncate">{org.name}</span>
+                {(org.space_count ?? 0) > 0 && (
+                  <span className="ml-auto text-[10px] text-muted-foreground">{org.space_count}</span>
+                )}
+              </Link>
+            ))}
+            {!orgsCollapsed && orgs.length === 0 && (
+              <Link href="/orgs/new" className={navLinkCls(false)}>
+                <span className="text-muted-foreground">+ 创建组织</span>
+              </Link>
+            )}
+          </div>
 
           <div className="pt-4">
             <div className="flex items-center justify-between px-3 mb-1">

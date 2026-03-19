@@ -20,6 +20,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return rt.json({ error: "Not an organization member" }, { status: 403 });
   }
 
-  const spaces = await rt.track("db_query", async () => getOrgSpaces(id));
+  const spaces = await rt.track("db_query", async () => getOrgSpaces(id, user.id));
   return rt.json(spaces.map((t) => ({ ...t, name: t.title })));
 }

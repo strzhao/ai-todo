@@ -1330,15 +1330,16 @@ export async function removeOrgMember(orgId: string, userId: string): Promise<vo
   await sql.query(`DELETE FROM ai_todo_org_members WHERE org_id = $1 AND user_id = $2`, [orgId, userId]);
 }
 
-export async function getOrgSpaces(orgId: string): Promise<Task[]> {
+export async function getOrgSpaces(orgId: string, userId?: string): Promise<Task[]> {
   const { rows } = await sql.query(
     `SELECT t.*,
+       ${userId ? `(SELECT my.role FROM ai_todo_task_members my WHERE my.task_id = t.id AND my.user_id = $2 AND my.status = 'active') AS my_role,` : ''}
        (SELECT COUNT(*) FROM ai_todo_task_members m WHERE m.task_id = t.id AND m.status = 'active') AS member_count,
        (SELECT COUNT(*) FROM ai_todo_tasks c WHERE c.space_id = t.id AND c.status != 2) AS task_count
      FROM ai_todo_tasks t
      WHERE t.org_id = $1 AND t.pinned = TRUE
      ORDER BY t.created_at ASC`,
-    [orgId]
+    userId ? [orgId, userId] : [orgId]
   );
   return rows.map(rowToTask);
 }
