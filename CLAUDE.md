@@ -304,11 +304,11 @@ CSS Token 已在 `app/globals.css` 中定义，Tailwind 可直接使用：
 | 错误/删除 | `text-destructive` / `bg-destructive` | `--home-danger` | 朱 #D94F3D |
 | 链接/信息 | `text-info` / `bg-info` | `--home-info` | 天 #3B87CC |
 
-## 更新日志（重要）
+## 更新日志
 
-**每次提交用户可感知的功能变更时，必须同步更新 `lib/changelog.ts`**，添加新的版本条目。这是强制要求，不可遗漏。
+仅在新增**大功能或重要特性**时才更新 `lib/changelog.ts`，小修复、UI 微调、性能优化等不记录。
 
 - 数据文件：`lib/changelog.ts`，硬编码 `ChangelogEntry[]` 数组
 - 新版本条目插入数组最前面（倒序排列）
-- 版本号递增规则：新功能 minor+1，修复 patch+1
+- 版本号递增规则：新功能 minor+1
 - 侧边栏红点依赖 `getLatestVersion()` 与 localStorage 对比，版本号变更即触发红点

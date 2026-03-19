@@ -6,7 +6,7 @@ import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import type { Task } from "@/lib/types";
 import type { Organization } from "@/lib/types";
 import { buildTree, type TaskNode } from "@/lib/task-utils";
-import { getLatestVersion, hasNotableUpdate } from "@/lib/changelog";
+import { hasNewUpdate } from "@/lib/changelog";
 import { useSidebarResize } from "@/lib/use-sidebar-resize";
 import { useUnreadCount } from "@/lib/use-notifications";
 
@@ -46,10 +46,10 @@ export function SpaceNav({ spaces, orgs, userEmail, userNickname, isDev }: Props
   const menuRef = useRef<HTMLDivElement>(null);
   const { handleRef } = useSidebarResize();
 
-  // Check for unread changelog (only notable updates trigger the red dot)
+  // Check for unread changelog
   useEffect(() => {
     const lastSeen = localStorage.getItem("changelog_last_seen");
-    setHasUnreadChangelog(lastSeen !== getLatestVersion() && hasNotableUpdate(lastSeen));
+    setHasUnreadChangelog(hasNewUpdate(lastSeen));
   }, [pathname]);
 
   // Extract current space ID from pathname (e.g. /spaces/abc123 or /spaces/abc123/settings)
