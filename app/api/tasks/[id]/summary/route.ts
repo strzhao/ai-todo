@@ -5,6 +5,7 @@ import { getDisplayLabel } from "@/lib/display-utils";
 import { requireSpaceMember, getSpaceMember } from "@/lib/spaces";
 import { LLMClient } from "@/lib/llm-client";
 import { DEFAULT_SYSTEM_PROMPT, DEFAULT_DATA_TEMPLATE } from "@/app/api/spaces/[id]/summary-config/route";
+import { allocateCharBudget, buildCompressedSpaceText, truncateText, LINKED_SPACES_TOTAL_CHAR_LIMIT, MAIN_SPACE_CHAR_LIMIT } from "@/lib/summary-utils";
 import type { Task, TaskLog, SummaryDataSource, LinkedSpace } from "@/lib/types";
 
 export const preferredRegion = "hkg1";
@@ -101,7 +102,7 @@ ${todayLogsText}`;
     msg += `\n\n## 关联空间数据\n${linkedSpacesText}`;
   }
 
-  return msg;
+  return truncateText(msg, MAIN_SPACE_CHAR_LIMIT);
 }
 
 // ─── Template rendering ──────────────────────────────────────────────────────
@@ -143,6 +144,16 @@ function buildTemplateVariables(
   // Inject data source results as ds.xxx
   for (const [key, value] of Object.entries(dsResults)) {
     vars[`ds.${key}`] = value;
+  }
+
+  // Apply char limit protection: truncate large individual fields
+  const totalChars = Object.values(vars).reduce((sum, v) => sum + v.length, 0);
+  if (totalChars > MAIN_SPACE_CHAR_LIMIT) {
+    // Truncate the biggest contributors first: task_tree, all_logs
+    const treeLimit = Math.floor(MAIN_SPACE_CHAR_LIMIT * 0.4);
+    const logsLimit = Math.floor(MAIN_SPACE_CHAR_LIMIT * 0.3);
+    vars.task_tree = truncateText(vars.task_tree, treeLimit);
+    vars.all_logs = truncateText(vars.all_logs, logsLimit);
   }
 
   return vars;
@@ -377,11 +388,13 @@ export async function POST(
     ? await fetchDataSources(config.data_sources, basicVars)
     : {};
 
-  // Fetch linked spaces data
+  // Fetch linked spaces data (with smart compression)
   const linkedSpaces = (config?.linked_spaces?.filter((ls: LinkedSpace) => ls.enabled) ?? []) as LinkedSpace[];
   let linkedSpacesText = "";
 
   if (linkedSpaces.length > 0) {
+    const charBudget = allocateCharBudget(LINKED_SPACES_TOTAL_CHAR_LIMIT, linkedSpaces.length);
+
     const linkedResults = await Promise.all(
       linkedSpaces.map(async (ls) => {
         try {
@@ -398,24 +411,21 @@ export async function POST(
             getTaskMembers(ls.space_id),
           ]);
 
-          // Truncate
           const truncatedDescendants = spaceDescendants.slice(0, 200);
           const spaceTaskIds = [ls.space_id, ...truncatedDescendants.map((t) => t.id)];
           const spaceLogs = await getLogsForTasks(spaceTaskIds, 100);
 
           const spaceNameMap = new Map(spaceMembers.map((m) => [m.email, getDisplayLabel(m.email, m)]));
           const allSpaceTasks = [spaceTask, ...truncatedDescendants];
-          const taskIdToTitle = new Map(allSpaceTasks.map((t) => [t.id, t.title]));
 
-          const tree = buildTaskTreeText(allSpaceTasks, spaceTask.id, 1, spaceNameMap);
-          const logsText = spaceLogs.length > 0
-            ? formatLogs(spaceLogs, taskIdToTitle, spaceNameMap)
-            : "暂无进展日志";
-
-          const total = allSpaceTasks.length;
-          const completed = allSpaceTasks.filter((t) => t.status === 2).length;
-
-          return `### ${spaceTask.title}\n统计: 共 ${total} 个任务，${completed} 已完成，${total - completed} 待办\n\n${tree}\n\n进展日志:\n${logsText}`;
+          return buildCompressedSpaceText(
+            spaceTask.title,
+            allSpaceTasks,
+            spaceLogs,
+            date,
+            spaceNameMap,
+            charBudget
+          );
         } catch {
           console.warn(`[linked-space] Failed to fetch space ${ls.space_id}`);
           return null;
@@ -425,7 +435,7 @@ export async function POST(
 
     const validResults = linkedResults.filter(Boolean);
     if (validResults.length > 0) {
-      linkedSpacesText = validResults.join("\n\n");
+      linkedSpacesText = truncateText(validResults.join("\n\n"), LINKED_SPACES_TOTAL_CHAR_LIMIT);
     }
   }
 

@@ -326,6 +326,11 @@ export function SummarySettings({ spaceId, spaceName }: Props) {
               })}
             </div>
           )}
+          {linkedSpaces.filter(ls => ls.enabled).length > 5 && (
+            <p className="text-xs text-warning bg-warning/10 rounded-md px-3 py-2">
+              关联空间较多（{linkedSpaces.filter(ls => ls.enabled).length} 个），总结可能聚焦度下降，建议保留最相关的 3-5 个
+            </p>
+          )}
           <p className="text-[10px] text-muted-foreground">
             启用后，AI 总结将包含关联空间的任务和进展数据
           </p>
