@@ -9,14 +9,15 @@ export class TaskValidationError extends Error {
   }
 }
 
-let _dbReady = false;
+const DB_SCHEMA_VERSION = 2; // bump when adding new tables/columns
+let _dbSchemaVersion = 0;
 let _dbInitPromise: Promise<void> | null = null;
 
 export async function initDb() {
-  if (_dbReady) return;
+  if (_dbSchemaVersion >= DB_SCHEMA_VERSION) return;
   if (_dbInitPromise) return _dbInitPromise;
   _dbInitPromise = _doInitDb()
-    .then(() => { _dbReady = true; })
+    .then(() => { _dbSchemaVersion = DB_SCHEMA_VERSION; })
     .finally(() => { _dbInitPromise = null; });
   return _dbInitPromise;
 }
