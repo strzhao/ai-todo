@@ -139,12 +139,6 @@ export function SpaceNav({ spaces, orgs, userEmail, userNickname, isDev }: Props
         : "text-muted-foreground hover:text-foreground hover:bg-muted"
     }`;
 
-  const iconLinkCls = (active: boolean) =>
-    `relative flex items-center justify-center w-8 h-8 rounded-md transition-colors ${
-      active
-        ? "bg-primary/10 text-primary"
-        : "text-muted-foreground hover:text-foreground hover:bg-muted"
-    }`;
 
   function toggleTaskCollapse(taskId: string) {
     setCollapsedTaskIds((prev) => ({ ...prev, [taskId]: !prev[taskId] }));
@@ -323,24 +317,21 @@ export function SpaceNav({ spaces, orgs, userEmail, userNickname, isDev }: Props
         </div>
 
         <div className="px-3 pt-4 border-t border-border/60 space-y-1">
-          {/* Icon toolbar */}
-          <div className="flex items-center gap-1 px-1">
-            <Link href="/notifications" className={iconLinkCls(pathname === "/notifications")} title="通知">
-              <span className="text-base">🔔</span>
-              {unreadNotifCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-destructive" />
-              )}
-            </Link>
-            <Link href="/readme" className={iconLinkCls(pathname === "/readme")} title="使用文档">
-              <span className="text-base">📖</span>
-            </Link>
-            <Link href="/changelog" className={iconLinkCls(pathname === "/changelog")} title="更新日志">
-              <span className="text-base">✨</span>
-              {hasUnreadChangelog && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-destructive" />
-              )}
-            </Link>
-          </div>
+          <Link href="/notifications" className={`${navLinkCls(pathname === "/notifications")} relative`}>
+            通知
+            {unreadNotifCount > 0 && (
+              <span className="ml-auto w-2 h-2 rounded-full bg-destructive shrink-0" />
+            )}
+          </Link>
+          <Link href="/readme" className={navLinkCls(pathname === "/readme")}>
+            文档
+          </Link>
+          <Link href="/changelog" className={`${navLinkCls(pathname === "/changelog")} relative`}>
+            更新日志
+            {hasUnreadChangelog && (
+              <span className="ml-auto w-2 h-2 rounded-full bg-destructive shrink-0" />
+            )}
+          </Link>
           {/* Account */}
           <Link
             href="/account"

@@ -8,6 +8,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.38.1",
+    date: "2026-03-19",
+    title: "侧边栏底部导航优化",
+    items: [
+      "通知、文档、更新日志入口从纯图标改为带文字标签，更易识别",
+    ],
+  },
+  {
     version: "1.38.0",
     date: "2026-03-19",
     title: "AI 总结关联空间数据智能压缩",
