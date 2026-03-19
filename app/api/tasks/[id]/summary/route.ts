@@ -137,7 +137,7 @@ function buildTemplateVariables(
       ? formatLogs(todayLogs, taskIdToTitle, nameMap)
       : "今日暂无进展日志",
     stats: `共 ${totalCount} 个任务，${completedCount} 已完成，${pendingCount} 待办`,
-    linked_spaces: linkedSpacesText || "",
+    linked_spaces: linkedSpacesText ? `## 关联空间数据\n${linkedSpacesText}` : "",
   };
 
   // Inject data source results as ds.xxx

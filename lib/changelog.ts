@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.35.1",
+    date: "2026-03-19",
+    title: "修复 AI 总结关联空间数据丢失",
+    items: [
+      "修复开启关联空间后 AI 总结不包含关联空间数据的问题",
+      "默认数据模板和 AI 配置助手现已支持 {{linked_spaces}} 变量",
+      "AI 总结会自动整合关联空间的任务和进展信息",
+    ],
+  },
+  {
     version: "1.35.0",
     date: "2026-03-19",
     title: "空间成员可退出空间",
