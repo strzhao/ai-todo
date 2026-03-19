@@ -114,6 +114,8 @@ interface Props {
   members?: TaskMember[];
   onDrillDown?: (taskId: string) => void;
   childCountMap?: Record<string, number>;
+  focusedTaskId?: string | null;
+  focusAncestorIds?: Set<string>;
 }
 
 export function TaskList({
@@ -134,6 +136,8 @@ export function TaskList({
   members,
   onDrillDown,
   childCountMap,
+  focusedTaskId,
+  focusAncestorIds,
 }: Props) {
   const [showCompleted, setShowCompleted] = useState(false);
   const [expandedCompletedId, setExpandedCompletedId] = useState<string | null>(null);
@@ -165,6 +169,8 @@ export function TaskList({
           members={members}
           onDrillDown={onDrillDown}
           childCountMap={childCountMap}
+          focusedTaskId={focusedTaskId}
+          focusAncestorIds={focusAncestorIds}
         />
       ))}
 
@@ -194,6 +200,8 @@ export function TaskList({
                   members={members}
                   onDrillDown={onDrillDown}
                   childCountMap={childCountMap}
+                  focusedTaskId={focusedTaskId}
+                  focusAncestorIds={focusAncestorIds}
                 />
               ))}
             </div>

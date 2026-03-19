@@ -178,6 +178,20 @@ export default function SpacePage({ params }: SpacePageProps) {
 
   const focusedTask = useMemo(() => focusedTaskId ? tasks.find((t) => t.id === focusedTaskId) ?? null : null, [tasks, focusedTaskId]);
 
+  // Ancestor IDs for auto-expanding tree path to focused task (desktop)
+  const focusAncestorIds = useMemo(() => {
+    if (!focusedTaskId) return undefined;
+    const ids = new Set<string>();
+    let currentId = focusedTaskId;
+    while (currentId) {
+      const t = tasks.find((t) => t.id === currentId);
+      if (!t?.parent_id) break;
+      ids.add(t.parent_id);
+      currentId = t.parent_id;
+    }
+    return ids.size > 0 ? ids : undefined;
+  }, [focusedTaskId, tasks]);
+
   // Current focus layer (for AI parse + action resolution): only direct children, unfinished
   const focusLayerTasks = useMemo(() =>
     focusedTaskId
@@ -411,6 +425,8 @@ export default function SpacePage({ params }: SpacePageProps) {
             members={members}
             onDrillDown={isDesktop ? undefined : (taskId) => router.push(`/spaces/${spaceId}?focus=${taskId}`)}
             childCountMap={isDesktop ? undefined : childCountMap}
+            focusedTaskId={isDesktop ? focusedTaskId : undefined}
+            focusAncestorIds={isDesktop ? focusAncestorIds : undefined}
           />
         </>
       )}

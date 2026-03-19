@@ -8,6 +8,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.39.3",
+    date: "2026-03-19",
+    title: "侧边栏子任务点击自动聚焦",
+    items: [
+      "桌面端点击侧边栏子任务后，自动展开祖先节点、滚动到目标任务并高亮闪烁",
+    ],
+  },
+  {
     version: "1.39.2",
     date: "2026-03-19",
     title: "修复空间归档无反应",

@@ -30,20 +30,25 @@ interface Props {
   members?: TaskMember[];
   onDrillDown?: (taskId: string) => void;
   childCountMap?: Record<string, number>;
+  focusedTaskId?: string | null;
+  focusAncestorIds?: Set<string>;
 }
 
-export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, currentUserEmail, highlightTodayDue = false, members: membersProp, onDrillDown, childCountMap }: Props) {
+export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onDelete, onUpdate, currentUserEmail, highlightTodayDue = false, members: membersProp, onDrillDown, childCountMap, focusedTaskId, focusAncestorIds }: Props) {
   const router = useRouter();
   const [completing, setCompleting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const [saving, setSaving] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(() => focusAncestorIds?.has(task.id) ?? false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const moreRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  const isFocused = focusedTaskId === task.id;
 
   // Inline editing state
   const [priorityOpen, setPriorityOpen] = useState(false);
@@ -95,6 +100,17 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
   useEffect(() => {
     if (tagAdding && tagInputRef.current) tagInputRef.current.focus();
   }, [tagAdding]);
+
+  // Scroll to focused task and auto-expand ancestors when focusedTaskId changes
+  useEffect(() => {
+    if (focusAncestorIds?.has(task.id)) setExpanded(true);
+  }, [focusAncestorIds, task.id]);
+
+  useEffect(() => {
+    if (isFocused && rowRef.current) {
+      rowRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [isFocused]);
 
   // ─── PATCH helper ──────────────────────────────────────────────────
   async function patchTask(updates: Record<string, unknown>) {
@@ -264,7 +280,7 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
   const showCreator = task.space_id && creatorLabel && creatorMember?.email !== currentUserEmail;
 
   return (
-    <div id={`task-${task.id}`} className={`border-b last:border-0 border-border/50 ${completing ? "opacity-40" : ""}`}>
+    <div id={`task-${task.id}`} ref={rowRef} className={`border-b last:border-0 border-border/50 ${completing ? "opacity-40" : ""} ${isFocused ? "animate-focus-flash" : ""}`}>
       {/* Main task row */}
       <div
         className={`flex items-start gap-3 py-3 px-1 group transition-opacity focus-visible:outline-none focus-visible:bg-muted/40 rounded-sm ${isDueToday ? "today-task-row" : ""}`}
@@ -627,6 +643,8 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
               onUpdate={onUpdate}
               currentUserEmail={currentUserEmail}
               highlightTodayDue={highlightTodayDue}
+              focusedTaskId={focusedTaskId}
+              focusAncestorIds={focusAncestorIds}
             />
           ))}
         </div>

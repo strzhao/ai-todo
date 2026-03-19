@@ -350,6 +350,14 @@
     animation: highlight-sage 1s ease-out;
   }
 
+  @keyframes focus-flash {
+    0%, 100% { background-color: transparent; }
+    20%, 60% { background-color: var(--home-accent-mist); }
+  }
+  .animate-focus-flash {
+    animation: focus-flash 1.5s ease-out;
+  }
+
   .today-count-chip {
     color: var(--today-accent-strong);
     background-color: var(--today-accent-soft);
