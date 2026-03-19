@@ -8,6 +8,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.39.1",
+    date: "2026-03-19",
+    title: "AI 识别「给我」自动分配经办人",
+    items: [
+      "在空间中说「给我创建任务」「我来负责」等表达时，AI 自动将任务分配给当前用户",
+    ],
+  },
+  {
     version: "1.39.0",
     date: "2026-03-19",
     title: "桌面端子任务直接展开",
