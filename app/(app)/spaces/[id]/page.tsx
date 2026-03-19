@@ -18,6 +18,7 @@ const PeopleGantt = dynamic(() => import("@/components/PeopleGantt").then(m => (
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { ParsedAction, Task, Space, SpaceMember, ActionResult } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
+import { useIsDesktop } from "@/lib/use-media-query";
 
 // Build parent→children map once, then traverse O(n) instead of O(n²)
 function buildChildMap(tasks: Task[]): Map<string, Task[]> {
@@ -64,6 +65,7 @@ export default function SpacePage({ params }: SpacePageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const focusedTaskId = searchParams.get("focus");
+  const isDesktop = useIsDesktop();
 
   const [tab, setTab] = useState<"list" | "gantt" | "summary" | "notes">(() => {
     const t = searchParams.get("tab");
@@ -261,7 +263,7 @@ export default function SpacePage({ params }: SpacePageProps) {
   return (
     <div className={tab === "gantt" ? "app-content-wide" : "app-content"}>
       <div className="flex items-center justify-between mb-4">
-        {focusedTask ? (
+        {focusedTask && !isDesktop ? (
           <h1 className="text-xl font-semibold flex items-center gap-1.5 min-w-0">
             <button
               onClick={() => router.push(`/spaces/${spaceId}`)}
@@ -397,8 +399,8 @@ export default function SpacePage({ params }: SpacePageProps) {
           )}
 
           <TaskList
-            tasks={displayTasks}
-            completedTasks={focusedCompletedTasks}
+            tasks={isDesktop ? filteredTasks : displayTasks}
+            completedTasks={isDesktop ? completedTasks : focusedCompletedTasks}
             loading={false}
             onComplete={handleComplete}
             onDelete={handleDelete}
@@ -407,8 +409,8 @@ export default function SpacePage({ params }: SpacePageProps) {
             emptyText={focusedTaskId ? "该任务暂无子任务" : "空间内暂无任务"}
             emptySubtext={focusedTaskId ? "通过 AI 输入框为该任务添加子任务" : "输入一句话创建空间任务，支持 @成员 指派"}
             members={members}
-            onDrillDown={(taskId) => router.push(`/spaces/${spaceId}?focus=${taskId}`)}
-            childCountMap={childCountMap}
+            onDrillDown={isDesktop ? undefined : (taskId) => router.push(`/spaces/${spaceId}?focus=${taskId}`)}
+            childCountMap={isDesktop ? undefined : childCountMap}
           />
         </>
       )}
