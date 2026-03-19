@@ -1,8 +1,9 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { getTaskById, getTaskMembers, updatePinnedTask, unpinTask, deleteTask } from "@/lib/db";
+import { getTaskById, getTaskMembers, updatePinnedTask, unpinTask, deleteTask, initDb } from "@/lib/db";
 import { requireSpaceMember, requireSpaceOwner } from "@/lib/spaces";
 import { createRouteTimer } from "@/lib/route-timing";
+import { sql } from "@vercel/postgres";
 
 export const preferredRegion = "hkg1";
 
@@ -39,11 +40,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return rt.json({ error: "Only owner can update space" }, { status: 403 });
   }
 
-  const body = await req.json() as { name?: string; description?: string; invite_mode?: string };
+  const body = await req.json() as { name?: string; description?: string; invite_mode?: string; org_id?: string | null };
   const task = await rt.track("db_query", async () =>
     updatePinnedTask(id, { title: body.name, description: body.description, invite_mode: body.invite_mode })
   );
   if (!task) return rt.json({ error: "Not found" }, { status: 404 });
+
+  // Update org_id if provided
+  if (body.org_id !== undefined) {
+    await rt.track("db_init", async () => initDb());
+    await rt.track("db_query", async () =>
+      sql.query(`UPDATE ai_todo_tasks SET org_id = $1 WHERE id = $2`, [body.org_id, id])
+    );
+  }
 
   return rt.json({ ...task, name: task.title });
 }

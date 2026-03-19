@@ -12,9 +12,14 @@ export const NOTIFICATION_TYPES = {
   space_member_approved: { label: "加入申请已通过",    category: "space" as const, defaultInapp: true,  defaultEmail: false, defaultPush: false },
   space_member_removed:  { label: "被移出空间",       category: "space" as const, defaultInapp: true,  defaultEmail: false, defaultPush: false },
 
+  // 组织通知
+  org_join_pending:      { label: "有人加入组织",      category: "org"   as const, defaultInapp: true,  defaultEmail: false, defaultPush: false },
+  org_member_approved:   { label: "组织加入已通过",    category: "org"   as const, defaultInapp: true,  defaultEmail: false, defaultPush: false },
+  org_member_removed:    { label: "被移出组织",       category: "org"   as const, defaultInapp: true,  defaultEmail: false, defaultPush: false },
+
   // 每日摘要（独立开关，默认关）
   daily_digest:          { label: "每日摘要邮件",     category: "digest" as const, defaultInapp: false, defaultEmail: false, defaultPush: false },
 } as const;
 
 export type NotificationType = keyof typeof NOTIFICATION_TYPES;
-export type NotificationCategory = "task" | "space" | "digest";
+export type NotificationCategory = "task" | "space" | "org" | "digest";

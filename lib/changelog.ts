@@ -8,6 +8,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.37.0",
+    date: "2026-03-19",
+    title: "团队组织",
+    items: [
+      "新增团队组织功能，支持创建组织统一管理多个项目空间和成员",
+      "组织成员可浏览组织下的所有空间，并申请加入",
+      "邀请链接分享，新成员可快速加入组织",
+      "侧边栏新增组织区块，快速访问所属组织",
+      "空间设置支持关联到组织，组织内统一管理",
+      "CLI 新增 orgs:list/create/get/members/spaces/join/join-space 命令",
+    ],
+    notable: true,
+  },
+  {
     version: "1.36.0",
     date: "2026-03-19",
     title: "任务粒度权限管理",

@@ -27,6 +27,7 @@ export interface Task {
   pinned?: boolean;
   invite_code?: string;
   invite_mode?: "open" | "approval";
+  org_id?: string;
   member_count?: number;
   task_count?: number;
   my_role?: "owner" | "admin" | "member";
@@ -178,6 +179,31 @@ export interface SummaryConfig {
   linked_spaces: LinkedSpace[];
   updated_at: string;
   updated_by: string | null;
+}
+
+// ─── Organizations ──────────────────────────────────────────────────────────────
+
+export interface Organization {
+  id: string;
+  name: string;
+  description?: string;
+  owner_id: string;
+  invite_code?: string;
+  created_at: string;
+  member_count?: number;
+  space_count?: number;
+  my_role?: "owner" | "admin" | "member";
+}
+
+export interface OrgMember {
+  id: string;
+  org_id: string;
+  user_id: string;
+  email: string;
+  nickname?: string;
+  role: "owner" | "admin" | "member";
+  status: "active" | "pending";
+  joined_at: string;
 }
 
 export type SummaryConfigActionType =

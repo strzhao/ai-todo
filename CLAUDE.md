@@ -119,7 +119,7 @@ API_PROXY_TOKEN=...                                # 代理认证 token
 ```
 app/
   (app)/                        # 路由组，共享 AppShell 布局
-    layout.tsx                  # Server Component，读取 user + spaces，渲染 SpaceNav
+    layout.tsx                  # Server Component，读取 user + spaces + orgs，渲染 SpaceNav
     page.tsx                    # 今日视图
     all/page.tsx                # 全部任务视图
     notes/page.tsx              # 笔记视图（卡片时间流 + 标签筛选）
@@ -128,8 +128,13 @@ app/
       page.tsx                  # 空间列表
       new/page.tsx              # 创建空间
       [id]/page.tsx             # 空间任务视图（进度条 + 成员筛选 + @mention + ?focus=taskId 聚焦态 + 笔记 Tab + 设置抽屉）
+    orgs/
+      page.tsx                  # 组织列表
+      new/page.tsx              # 创建组织
+      [id]/page.tsx             # 组织详情页（空间列表 + 成员管理 + 设置 Tab）
   auth/callback/page.tsx        # 统一授权回跳页（authorized/state 校验）
   join/[invite_code]/page.tsx   # 加入空间（独立布局，无 AppShell）
+  join/org/[code]/page.tsx      # 加入组织（独立布局，无 AppShell）
   api/
     auth/session/route.ts       # 写入本域 access_token/refresh_token
     auth/exchange/route.ts      # 服务端中转：转发 refresh 请求给认证服务器（避免 CORS）
@@ -143,6 +148,13 @@ app/
     spaces/[id]/members/route.ts          # GET 成员列表
     spaces/[id]/members/[uid]/route.ts    # PATCH（审批/更新）+ DELETE（移除/退出）
     spaces/join/[code]/route.ts           # GET 预览 + POST 加入
+    orgs/route.ts                        # GET（我的组织列表）+ POST（创建组织）
+    orgs/[id]/route.ts                   # GET + PATCH + DELETE
+    orgs/[id]/members/route.ts           # GET 成员列表
+    orgs/[id]/members/[uid]/route.ts     # PATCH（审批/改角色）+ DELETE（移除/退出）
+    orgs/[id]/spaces/route.ts            # GET 组织空间列表
+    orgs/[id]/spaces/[spaceId]/join/route.ts  # POST 组织成员申请加入空间
+    orgs/join/[code]/route.ts            # GET 预览 + POST 加入组织
     transcribe/route.ts         # POST 音频转文字（转发到 Whisper API）
     notifications/route.ts      # GET（分页查询）+ PATCH（批量标记已读）
     notifications/unread-count/route.ts  # GET 返回 { count }
@@ -151,7 +163,7 @@ app/
     push/subscribe/route.ts     # POST（订阅）+ DELETE（取消订阅）
     cron/daily-digest/route.ts  # Cron 每日摘要邮件（UTC 01:00 = 北京 09:00）
 components/
-  SpaceNav.tsx                  # 侧边栏导航（桌面）+ 底部 Tab（移动端）+ 当前空间一级任务目录 + 通知铃铛
+  SpaceNav.tsx                  # 侧边栏导航（桌面）+ 底部 Tab（移动端）+ 组织区块 + 当前空间一级任务目录 + 通知铃铛
   NLInput.tsx                   # 自然语言输入框，Cmd+K 聚焦，@ 触发成员菜单，传 tasks + parent_task 上下文给 AI；聚焦态下 placeholder 提示父任务名
   ActionPreview.tsx             # 统一操作预览 + 执行（create/update/complete/delete/add_log/move）
   PeopleGantt.tsx               # 甘特图（人员维度，Y轴=人，每人一行多任务平铺）
@@ -164,7 +176,7 @@ components/
   NoteCard.tsx                  # 笔记卡片（标题 + 标签 + 时间 + 内联编辑 + Markdown 渲染）
   AssigneeBadge.tsx             # 显示非自己的负责人徽章
   TaskSkeleton.tsx              # 加载骨架屏（3 行）
-  SpaceSettings.tsx             # 空间设置面板（Sheet 抽屉内容：邀请链接 + 成员管理 + 归档 + 解散）
+  SpaceSettings.tsx             # 空间设置面板（Sheet 抽屉内容：邀请链接 + 所属组织 + 成员管理 + 归档 + 解散）
   DailySummary.tsx              # AI 总结面板（流式生成 + 多模板 Tab + 缓存 + 配额 + 转为笔记）
   SummarySettings.tsx           # AI 总结设置（模板管理 + 关联空间 toggle + 外部数据源 + AI 配置助手 + 总结预览）
   ConfigActionPreview.tsx       # AI 配置操作预览（展示解析出的配置变更列表 + 确认执行）
@@ -178,7 +190,7 @@ components/
   PWAInstallBanner.tsx          # PWA 安装引导横幅（访问 5 次后提示添加到主屏幕，Chrome 一键安装 / iOS 步骤引导）
   ServiceWorkerRegistrar.tsx    # Service Worker 注册（app 加载时自动注册）
 lib/
-  types.ts                      # Task、ParsedTask、ParsedAction、ActionResult、TaskLog、AppNotification、SummaryConfig、LinkedSpace 等接口
+  types.ts                      # Task、ParsedTask、ParsedAction、ActionResult、TaskLog、AppNotification、SummaryConfig、LinkedSpace、Organization、OrgMember 等接口
   llm-client.ts                 # DeepSeek 客户端（55s 超时，AbortError 兜底）
   task-utils.ts                 # 纯函数：buildTree（flat Task[] → 树形 TaskNode[]）
   date-utils.ts                 # 纯函数：formatDateTime / toLocalISO / extractTime / extractDate / DateField 类型
@@ -190,6 +202,7 @@ lib/
   auth-config.ts                # 统一授权配置（authorize/callback）
   server-auth.ts                # Server Component 用 getServerUser()
   spaces.ts                     # 空间权限工具（requireSpaceMember/Owner）
+  orgs.ts                       # 组织权限工具（requireOrgMember/Owner/AdminOrOwner）
   notifications.ts              # 通知 CRUD + 偏好管理（createNotification/fireNotification 等）
   notification-types.ts         # 通知类型枚举 + 默认偏好配置
   use-notifications.ts          # 客户端轮询 hook（30s 拉 unread-count）

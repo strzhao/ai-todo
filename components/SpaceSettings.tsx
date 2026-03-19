@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { Space, TaskMember, SpaceMember } from "@/lib/types";
+import type { Space, TaskMember, SpaceMember, Organization } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
 
 interface SpaceSettingsProps {
@@ -28,6 +28,9 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onName
   const [leaveConfirm, setLeaveConfirm] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [myUserId, setMyUserId] = useState<string>("");
+  const [orgs, setOrgs] = useState<Organization[]>([]);
+  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
+  const [savingOrg, setSavingOrg] = useState(false);
 
   useEffect(() => {
     fetch(`/api/spaces/${spaceId}`)
@@ -37,8 +40,17 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onName
         setMembers(data.members);
         setName(data.space.title);
         if (data.space.my_user_id) setMyUserId(data.space.my_user_id);
+        if (data.space.org_id) setSelectedOrgId(data.space.org_id);
       })
       .finally(() => setLoading(false));
+
+    // Fetch orgs for org selector
+    fetch("/api/orgs")
+      .then((r) => r.json())
+      .then((data: Organization[]) => {
+        if (Array.isArray(data)) setOrgs(data);
+      })
+      .catch(() => {});
   }, [spaceId]);
 
   if (loading) {
@@ -167,6 +179,44 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onName
           {space.invite_mode === "open" ? "任何人通过链接可直接加入" : "通过链接加入需要管理员审批"}
         </p>
       </section>
+
+      {/* Organization */}
+      {isOwner && orgs.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold">所属组织</h2>
+          <div className="flex gap-2">
+            <select
+              value={selectedOrgId ?? ""}
+              onChange={(e) => setSelectedOrgId(e.target.value || null)}
+              className="flex-1 h-9 rounded-md border border-border/60 bg-background px-3 text-sm"
+            >
+              <option value="">不关联组织</option>
+              {orgs.map((org) => (
+                <option key={org.id} value={org.id}>{org.name}</option>
+              ))}
+            </select>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={async () => {
+                setSavingOrg(true);
+                await fetch(`/api/spaces/${spaceId}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ org_id: selectedOrgId }),
+                });
+                setSavingOrg(false);
+              }}
+              disabled={savingOrg}
+            >
+              {savingOrg ? "保存..." : "保存"}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            关联组织后，空间将出现在组织的空间列表中
+          </p>
+        </section>
+      )}
 
       {/* Pending Members */}
       {canManageMembers && pendingMembers.length > 0 && (

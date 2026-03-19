@@ -1,19 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { Space } from "@/lib/types";
+import type { Space, Organization } from "@/lib/types";
 
 export default function NewSpacePage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [inviteMode, setInviteMode] = useState<"open" | "approval">("open");
+  const [orgId, setOrgId] = useState<string>("");
+  const [orgs, setOrgs] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/orgs")
+      .then((r) => r.json())
+      .then((data: Organization[]) => {
+        if (Array.isArray(data)) setOrgs(data);
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,7 +36,12 @@ export default function NewSpacePage() {
       const res = await fetch("/api/spaces", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), description: description.trim() || undefined, invite_mode: inviteMode }),
+        body: JSON.stringify({
+          name: name.trim(),
+          description: description.trim() || undefined,
+          invite_mode: inviteMode,
+          org_id: orgId || undefined,
+        }),
       });
 
       if (!res.ok) {
@@ -74,6 +90,23 @@ export default function NewSpacePage() {
             rows={2}
           />
         </div>
+
+        {orgs.length > 0 && (
+          <div>
+            <label className="text-sm font-medium">所属组织（可选）</label>
+            <select
+              value={orgId}
+              onChange={(e) => setOrgId(e.target.value)}
+              className="mt-1 w-full h-9 rounded-md border border-border/60 bg-background px-3 text-sm"
+            >
+              <option value="">不关联组织</option>
+              {orgs.map((org) => (
+                <option key={org.id} value={org.id}>{org.name}</option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground mt-1">关联后空间将出现在组织的空间列表中</p>
+          </div>
+        )}
 
         <div>
           <label className="text-sm font-medium">加入方式</label>

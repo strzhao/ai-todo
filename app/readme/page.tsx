@@ -21,6 +21,11 @@ const cliExamples = [
   { cmd: "ai-todo notes:create --title 'WebSocket 替代轮询的想法' --tags '技术,优化'", desc: "创建笔记" },
   { cmd: "ai-todo spaces:list", desc: "列出所有空间" },
   { cmd: "ai-todo spaces:create --name '项目空间'", desc: "创建空间" },
+  { cmd: "ai-todo orgs:list", desc: "列出所有组织" },
+  { cmd: "ai-todo orgs:create --name '产品团队'", desc: "创建组织" },
+  { cmd: "ai-todo orgs:members --id <id>", desc: "列出组织成员" },
+  { cmd: "ai-todo orgs:spaces --id <id>", desc: "列出组织空间" },
+  { cmd: "ai-todo orgs:join --code <code>", desc: "通过邀请码加入组织" },
 ];
 
 function CLIContent() {

@@ -1,5 +1,5 @@
 import { sql } from "@vercel/postgres";
-import type { Task, ParsedTask, TaskMember, TaskLog } from "./types";
+import type { Task, ParsedTask, TaskMember, TaskLog, Organization, OrgMember } from "./types";
 import { getTaskRoles, getDisallowedFields, buildPermissionErrorMessage, checkTaskPermission, buildOperationErrorMessage, TaskPermissionError } from "./task-permissions";
 
 export class TaskValidationError extends Error {
@@ -206,6 +206,39 @@ async function _doInitDb() {
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_push_sub_user ON ai_todo_push_subscriptions(user_id)`;
 
+  // 14. Organizations table
+  await sql`
+    CREATE TABLE IF NOT EXISTS ai_todo_orgs (
+      id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name        TEXT NOT NULL,
+      description TEXT,
+      owner_id    TEXT NOT NULL,
+      invite_code TEXT,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_orgs_invite_code ON ai_todo_orgs(invite_code) WHERE invite_code IS NOT NULL`;
+
+  // 15. Organization members table
+  await sql`
+    CREATE TABLE IF NOT EXISTS ai_todo_org_members (
+      id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id    UUID NOT NULL REFERENCES ai_todo_orgs(id) ON DELETE CASCADE,
+      user_id   TEXT NOT NULL,
+      email     TEXT NOT NULL,
+      role      TEXT NOT NULL DEFAULT 'member',
+      status    TEXT NOT NULL DEFAULT 'active',
+      joined_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(org_id, user_id)
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_org_members_org ON ai_todo_org_members(org_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_org_members_user ON ai_todo_org_members(user_id)`;
+
+  // 16. Add org_id column to tasks
+  await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS org_id UUID REFERENCES ai_todo_orgs(id) ON DELETE SET NULL`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_tasks_org ON ai_todo_tasks(org_id) WHERE org_id IS NOT NULL`;
+
   // Seed already executed on 2026-03-07: all existing users auto-activated.
 }
 
@@ -286,6 +319,7 @@ function rowToTask(row: Record<string, unknown>): Task {
     pinned: (row.pinned as boolean) || undefined,
     invite_code: (row.invite_code as string) || undefined,
     invite_mode: (row.invite_mode as "open" | "approval") || undefined,
+    org_id: (row.org_id as string) || undefined,
     member_count: row.member_count != null ? Number(row.member_count) : undefined,
     task_count: row.task_count != null ? Number(row.task_count) : undefined,
     my_role: (row.my_role as "owner" | "member") || undefined,
@@ -1103,4 +1137,207 @@ export async function upsertSummaryConfig(
       ]
     );
   }
+}
+
+// ─── Organization CRUD ──────────────────────────────────────────────────────────
+
+function generateOrgInviteCode(): string {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => chars[b % chars.length]).join("");
+}
+
+function rowToOrg(row: Record<string, unknown>): Organization {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    description: (row.description as string) || undefined,
+    owner_id: row.owner_id as string,
+    invite_code: (row.invite_code as string) || undefined,
+    created_at: (row.created_at as Date).toISOString(),
+    member_count: row.member_count != null ? Number(row.member_count) : undefined,
+    space_count: row.space_count != null ? Number(row.space_count) : undefined,
+    my_role: (row.my_role as Organization["my_role"]) || undefined,
+  };
+}
+
+function rowToOrgMember(row: Record<string, unknown>): OrgMember {
+  return {
+    id: row.id as string,
+    org_id: row.org_id as string,
+    user_id: row.user_id as string,
+    email: row.email as string,
+    nickname: (row.nickname as string) || undefined,
+    role: row.role as OrgMember["role"],
+    status: row.status as OrgMember["status"],
+    joined_at: (row.joined_at as Date).toISOString(),
+  };
+}
+
+export async function getOrgsForUser(userId: string): Promise<Organization[]> {
+  const { rows } = await sql.query(
+    `SELECT o.*,
+       m.role AS my_role,
+       (SELECT COUNT(*) FROM ai_todo_org_members om WHERE om.org_id = o.id AND om.status = 'active') AS member_count,
+       (SELECT COUNT(*) FROM ai_todo_tasks t WHERE t.org_id = o.id AND t.pinned = TRUE) AS space_count
+     FROM ai_todo_orgs o
+     JOIN ai_todo_org_members m ON m.org_id = o.id AND m.user_id = $1 AND m.status = 'active'
+     ORDER BY o.created_at ASC`,
+    [userId]
+  );
+  return rows.map(rowToOrg);
+}
+
+export async function createOrg(
+  userId: string,
+  email: string,
+  data: { name: string; description?: string }
+): Promise<Organization> {
+  let inviteCode = generateOrgInviteCode();
+  const { rows: existing } = await sql`SELECT 1 FROM ai_todo_orgs WHERE invite_code = ${inviteCode}`;
+  if (existing.length > 0) inviteCode = generateOrgInviteCode();
+
+  const { rows } = await sql.query(
+    `INSERT INTO ai_todo_orgs (name, description, owner_id, invite_code)
+     VALUES ($1, $2, $3, $4)
+     RETURNING *`,
+    [data.name, data.description ?? null, userId, inviteCode]
+  );
+  const org = rowToOrg(rows[0]);
+
+  await sql.query(
+    `INSERT INTO ai_todo_org_members (org_id, user_id, email, role, status)
+     VALUES ($1, $2, $3, 'owner', 'active')`,
+    [org.id, userId, email]
+  );
+
+  return { ...org, member_count: 1, space_count: 0, my_role: "owner" };
+}
+
+export async function getOrgById(id: string): Promise<Organization | null> {
+  const { rows } = await sql.query(
+    `SELECT o.*,
+       (SELECT COUNT(*) FROM ai_todo_org_members om WHERE om.org_id = o.id AND om.status = 'active') AS member_count,
+       (SELECT COUNT(*) FROM ai_todo_tasks t WHERE t.org_id = o.id AND t.pinned = TRUE) AS space_count
+     FROM ai_todo_orgs o WHERE o.id = $1`,
+    [id]
+  );
+  return rows[0] ? rowToOrg(rows[0]) : null;
+}
+
+export async function getOrgByInviteCode(code: string): Promise<Organization | null> {
+  const { rows } = await sql.query(
+    `SELECT o.*,
+       (SELECT COUNT(*) FROM ai_todo_org_members om WHERE om.org_id = o.id AND om.status = 'active') AS member_count
+     FROM ai_todo_orgs o WHERE o.invite_code = $1`,
+    [code]
+  );
+  return rows[0] ? rowToOrg(rows[0]) : null;
+}
+
+export async function updateOrg(
+  id: string,
+  patch: { name?: string; description?: string }
+): Promise<Organization | null> {
+  const fields: string[] = [];
+  const values: unknown[] = [];
+  let idx = 1;
+
+  if (patch.name !== undefined) { fields.push(`name = $${idx++}`); values.push(patch.name); }
+  if (patch.description !== undefined) { fields.push(`description = $${idx++}`); values.push(patch.description); }
+
+  if (fields.length === 0) {
+    return getOrgById(id);
+  }
+
+  const { rows } = await sql.query(
+    `UPDATE ai_todo_orgs SET ${fields.join(", ")} WHERE id = $${idx} RETURNING *`,
+    [...values, id]
+  );
+  return rows[0] ? rowToOrg(rows[0]) : null;
+}
+
+export async function deleteOrg(id: string): Promise<void> {
+  // Clear org_id on tasks before deleting (FK ON DELETE SET NULL handles this, but be explicit)
+  await sql.query(`DELETE FROM ai_todo_orgs WHERE id = $1`, [id]);
+}
+
+export async function getOrgMembers(orgId: string): Promise<OrgMember[]> {
+  const { rows } = await sql.query(
+    `SELECT m.*, u.nickname
+     FROM ai_todo_org_members m
+     LEFT JOIN ai_todo_activated_users u ON m.user_id = u.user_id
+     WHERE m.org_id = $1
+     ORDER BY m.role ASC, m.joined_at ASC`,
+    [orgId]
+  );
+  return rows.map(rowToOrgMember);
+}
+
+export async function getOrgMemberRecord(orgId: string, userId: string): Promise<OrgMember | null> {
+  const { rows } = await sql.query(
+    `SELECT m.*, u.nickname
+     FROM ai_todo_org_members m
+     LEFT JOIN ai_todo_activated_users u ON m.user_id = u.user_id
+     WHERE m.org_id = $1 AND m.user_id = $2`,
+    [orgId, userId]
+  );
+  return rows[0] ? rowToOrgMember(rows[0]) : null;
+}
+
+export async function addOrgMember(
+  orgId: string,
+  userId: string,
+  email: string,
+  role: "owner" | "admin" | "member" = "member",
+  status: "active" | "pending" = "active"
+): Promise<OrgMember> {
+  const { rows } = await sql.query(
+    `INSERT INTO ai_todo_org_members (org_id, user_id, email, role, status)
+     VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (org_id, user_id) DO UPDATE SET status = EXCLUDED.status
+     RETURNING *`,
+    [orgId, userId, email, role, status]
+  );
+  return rowToOrgMember(rows[0]);
+}
+
+export async function updateOrgMember(
+  orgId: string,
+  userId: string,
+  patch: { role?: string; status?: string }
+): Promise<OrgMember | null> {
+  const fields: string[] = [];
+  const values: unknown[] = [];
+  let idx = 1;
+
+  if (patch.role !== undefined) { fields.push(`role = $${idx++}`); values.push(patch.role); }
+  if (patch.status !== undefined) { fields.push(`status = $${idx++}`); values.push(patch.status); }
+
+  if (fields.length === 0) return null;
+
+  const { rows } = await sql.query(
+    `UPDATE ai_todo_org_members SET ${fields.join(", ")}
+     WHERE org_id = $${idx} AND user_id = $${idx + 1} RETURNING *`,
+    [...values, orgId, userId]
+  );
+  return rows[0] ? rowToOrgMember(rows[0]) : null;
+}
+
+export async function removeOrgMember(orgId: string, userId: string): Promise<void> {
+  await sql.query(`DELETE FROM ai_todo_org_members WHERE org_id = $1 AND user_id = $2`, [orgId, userId]);
+}
+
+export async function getOrgSpaces(orgId: string): Promise<Task[]> {
+  const { rows } = await sql.query(
+    `SELECT t.*,
+       (SELECT COUNT(*) FROM ai_todo_task_members m WHERE m.task_id = t.id AND m.status = 'active') AS member_count,
+       (SELECT COUNT(*) FROM ai_todo_tasks c WHERE c.space_id = t.id AND c.status != 2) AS task_count
+     FROM ai_todo_tasks t
+     WHERE t.org_id = $1 AND t.pinned = TRUE
+     ORDER BY t.created_at ASC`,
+    [orgId]
+  );
+  return rows.map(rowToTask);
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import type { Task } from "@/lib/types";
+import type { Organization } from "@/lib/types";
 import { buildTree, type TaskNode } from "@/lib/task-utils";
 import { getLatestVersion, hasNotableUpdate } from "@/lib/changelog";
 import { useSidebarResize } from "@/lib/use-sidebar-resize";
@@ -25,12 +26,13 @@ function toSpaceTaskNode(node: TaskNode): SpaceTaskNode {
 
 interface Props {
   spaces: (Task & { name?: string })[];
+  orgs: Organization[];
   userEmail: string;
   userNickname?: string;
   isDev?: boolean;
 }
 
-export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
+export function SpaceNav({ spaces, orgs, userEmail, userNickname, isDev }: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -39,6 +41,7 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
   const [expandedSpaceIds, setExpandedSpaceIds] = useState<Set<string>>(new Set());
   const [openMenuSpaceId, setOpenMenuSpaceId] = useState<string | null>(null);
   const [hasUnreadChangelog, setHasUnreadChangelog] = useState(false);
+  const [orgsCollapsed, setOrgsCollapsed] = useState(false);
   const { count: unreadNotifCount } = useUnreadCount();
   const menuRef = useRef<HTMLDivElement>(null);
   const { handleRef } = useSidebarResize();
@@ -202,6 +205,37 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
           <Link href="/" className={navLinkCls(isTasksHome)}>任务</Link>
           <Link href="/notes" className={navLinkCls(isActive("/notes"))}>笔记</Link>
 
+          {/* Organizations */}
+          {orgs.length > 0 && (
+            <div className="pt-4">
+              <div className="flex items-center justify-between px-3 mb-1">
+                <button
+                  onClick={() => setOrgsCollapsed((v) => !v)}
+                  className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider hover:text-foreground transition-colors flex items-center gap-1"
+                >
+                  <span className={`text-[8px] transition-transform ${orgsCollapsed ? "-rotate-90" : ""}`}>▼</span>
+                  团队组织
+                </button>
+                <Link href="/orgs/new" className="text-xs text-muted-foreground hover:text-foreground">+</Link>
+              </div>
+              {!orgsCollapsed && orgs.map((org) => (
+                <Link
+                  key={org.id}
+                  href={`/orgs/${org.id}`}
+                  className={navLinkCls(isActive(`/orgs/${org.id}`))}
+                >
+                  <span className="w-5 h-5 rounded bg-sage-mist flex items-center justify-center text-[10px] font-bold text-sage flex-shrink-0">
+                    {org.name[0]?.toUpperCase()}
+                  </span>
+                  <span className="truncate">{org.name}</span>
+                  {(org.space_count ?? 0) > 0 && (
+                    <span className="ml-auto text-[10px] text-muted-foreground">{org.space_count}</span>
+                  )}
+                </Link>
+              ))}
+            </div>
+          )}
+
           <div className="pt-4">
             <div className="flex items-center justify-between px-3 mb-1">
               <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">项目空间</p>
@@ -331,6 +365,9 @@ export function SpaceNav({ spaces, userEmail, userNickname, isDev }: Props) {
         </Link>
         <Link href="/spaces" className={`flex-1 flex flex-col items-center py-3 text-xs gap-1 ${pathname.startsWith("/spaces") ? "text-primary" : "text-muted-foreground"}`}>
           <span className="text-base">👥</span>空间
+        </Link>
+        <Link href="/orgs" className={`flex-1 flex flex-col items-center py-3 text-xs gap-1 ${pathname.startsWith("/orgs") ? "text-primary" : "text-muted-foreground"}`}>
+          <span className="text-base">🏢</span>组织
         </Link>
         <Link href="/notifications" className={`flex-1 flex flex-col items-center py-3 text-xs gap-1 relative ${pathname === "/notifications" ? "text-primary" : "text-muted-foreground"}`}>
           <span className="text-base">🔔</span>通知

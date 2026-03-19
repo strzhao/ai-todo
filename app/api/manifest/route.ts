@@ -241,6 +241,76 @@ const manifest = {
         { name: "text", in: "body", type: "string", required: true, description: "Natural language config change description" },
       ],
     },
+    {
+      id: "list_orgs",
+      name: "orgs:list",
+      description: "List all organizations the user belongs to",
+      method: "GET",
+      path: "/api/orgs",
+      params: [],
+    },
+    {
+      id: "create_org",
+      name: "orgs:create",
+      description: "Create a new organization",
+      method: "POST",
+      path: "/api/orgs",
+      params: [
+        { name: "name", in: "body", type: "string", required: true, description: "Organization name" },
+        { name: "description", in: "body", type: "string", required: false, description: "Organization description" },
+      ],
+    },
+    {
+      id: "get_org",
+      name: "orgs:get",
+      description: "Get organization details with members",
+      method: "GET",
+      path: "/api/orgs/:id",
+      params: [
+        { name: "id", in: "path", type: "string", required: true, description: "Organization ID" },
+      ],
+    },
+    {
+      id: "list_org_members",
+      name: "orgs:members",
+      description: "List members of an organization",
+      method: "GET",
+      path: "/api/orgs/:id/members",
+      params: [
+        { name: "id", in: "path", type: "string", required: true, description: "Organization ID" },
+      ],
+    },
+    {
+      id: "list_org_spaces",
+      name: "orgs:spaces",
+      description: "List spaces belonging to an organization",
+      method: "GET",
+      path: "/api/orgs/:id/spaces",
+      params: [
+        { name: "id", in: "path", type: "string", required: true, description: "Organization ID" },
+      ],
+    },
+    {
+      id: "join_org",
+      name: "orgs:join",
+      description: "Join an organization via invite code",
+      method: "POST",
+      path: "/api/orgs/join/:code",
+      params: [
+        { name: "code", in: "path", type: "string", required: true, description: "Invite code" },
+      ],
+    },
+    {
+      id: "join_org_space",
+      name: "orgs:join-space",
+      description: "Apply to join a space within an organization",
+      method: "POST",
+      path: "/api/orgs/:id/spaces/:spaceId/join",
+      params: [
+        { name: "id", in: "path", type: "string", required: true, description: "Organization ID" },
+        { name: "spaceId", in: "path", type: "string", required: true, description: "Space ID" },
+      ],
+    },
   ],
 };
 

@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { getPinnedTasksForUser, createPinnedTask } from "@/lib/db";
+import { getPinnedTasksForUser, createPinnedTask, initDb } from "@/lib/db";
 import { createRouteTimer } from "@/lib/route-timing";
+import { sql } from "@vercel/postgres";
 
 export const preferredRegion = "hkg1";
 
@@ -20,7 +21,9 @@ export async function POST(req: NextRequest) {
   const user = await rt.track("auth", async () => getUserFromRequest(req));
   if (!user) return rt.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json() as { name?: string; description?: string; invite_mode?: string };
+  await rt.track("db_init", async () => initDb());
+
+  const body = await req.json() as { name?: string; description?: string; invite_mode?: string; org_id?: string };
   if (!body.name?.trim()) {
     return rt.json({ error: "name is required" }, { status: 400 });
   }
@@ -30,6 +33,13 @@ export async function POST(req: NextRequest) {
     description: body.description?.trim() || undefined,
     invite_mode: body.invite_mode === "approval" ? "approval" : "open",
   }));
+
+  // Set org_id if provided
+  if (body.org_id) {
+    await rt.track("db_query", async () =>
+      sql.query(`UPDATE ai_todo_tasks SET org_id = $1 WHERE id = $2`, [body.org_id, task.id])
+    );
+  }
 
   return rt.json({ ...task, name: task.title }, { status: 201 });
 }

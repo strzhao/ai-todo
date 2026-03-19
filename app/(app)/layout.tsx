@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getServerUser } from "@/lib/server-auth";
-import { getSpacesByUser, initDb, getUserActivation } from "@/lib/db";
+import { getSpacesByUser, getOrgsForUser, initDb, getUserActivation } from "@/lib/db";
 import { SpaceNav } from "@/components/SpaceNav";
 import { PushPromptBanner } from "@/components/PushPromptBanner";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
@@ -17,12 +17,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const spaces = await getSpacesByUser(user.id);
+  const orgs = await getOrgsForUser(user.id);
   // Task objects have `title`; SpaceNav expects `name` (legacy Space shape)
   const spacesForNav = spaces.map((s) => ({ ...s, name: s.title }));
 
   return (
     <div className="min-h-screen bg-background">
-      <SpaceNav spaces={spacesForNav} userEmail={user.email} userNickname={user.nickname} isDev={process.env.AUTH_DEV_BYPASS === "true"} />
+      <SpaceNav spaces={spacesForNav} orgs={orgs} userEmail={user.email} userNickname={user.nickname} isDev={process.env.AUTH_DEV_BYPASS === "true"} />
       {/* Desktop: offset for sidebar; mobile: offset for bottom tab */}
       <main className="main-content pb-16 md:pb-0">
         <PushPromptBanner />
