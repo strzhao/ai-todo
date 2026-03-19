@@ -117,12 +117,23 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onName
 
   async function archiveSpace() {
     setArchiving(true);
-    await fetch(`/api/tasks/${spaceId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ complete: true }),
-    });
-    onArchived?.();
+    try {
+      const res = await fetch(`/api/tasks/${spaceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ complete: true }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "归档失败" }));
+        alert(data.error || "归档失败");
+        return;
+      }
+      onArchived?.();
+    } catch {
+      alert("网络错误，请重试");
+    } finally {
+      setArchiving(false);
+    }
   }
 
   async function dissolveSpace() {

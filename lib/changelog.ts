@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.39.2",
+    date: "2026-03-19",
+    title: "修复空间归档无反应",
+    items: [
+      "修复点击「归档空间」后空间仍显示在列表中的问题",
+      "归档操作增加错误提示，失败时不再静默忽略",
+    ],
+  },
+  {
     version: "1.39.1",
     date: "2026-03-19",
     title: "AI 识别「给我」自动分配经办人",
