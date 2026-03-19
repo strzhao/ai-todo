@@ -211,6 +211,7 @@ function ActionRow({ action, allTasks, parentTaskId, spaceId, members }: { actio
 
 export function ActionPreview({ actions, raw, allTasks, spaceId, members, parentTaskId, traceId, onDone, onCancel }: Props) {
   const [executing, setExecuting] = useState(false);
+  const [permissionErrors, setPermissionErrors] = useState<Array<{ action: string; taskTitle: string; error: string }>>([]);
 
   // 如果全是 create actions，委托给 MultiTaskPreview
   const createActions = actions.filter((a) => a.type === "create");
@@ -352,7 +353,12 @@ export function ActionPreview({ actions, raw, allTasks, spaceId, members, parent
             headers: jsonHeaders,
             body: JSON.stringify(action.changes),
           });
-          if (res.ok) result.updated = [...(result.updated ?? []), await res.json() as Task];
+          if (res.ok) {
+            result.updated = [...(result.updated ?? []), await res.json() as Task];
+          } else if (res.status === 403) {
+            const err = await res.json();
+            result.errors = [...(result.errors ?? []), { action: "update", taskTitle: task.title, error: err.error }];
+          }
         }
 
         if (action.type === "move") {
@@ -372,7 +378,12 @@ export function ActionPreview({ actions, raw, allTasks, spaceId, members, parent
             headers: jsonHeaders,
             body: JSON.stringify({ parent_id: parentTask.id }),
           });
-          if (res.ok) result.updated = [...(result.updated ?? []), await res.json() as Task];
+          if (res.ok) {
+            result.updated = [...(result.updated ?? []), await res.json() as Task];
+          } else if (res.status === 403) {
+            const err = await res.json();
+            result.errors = [...(result.errors ?? []), { action: "move", taskTitle: task.title, error: err.error }];
+          }
         }
 
         if (action.type === "complete") {
@@ -381,12 +392,22 @@ export function ActionPreview({ actions, raw, allTasks, spaceId, members, parent
             headers: jsonHeaders,
             body: JSON.stringify({ complete: true }),
           });
-          if (res.ok) result.completed = [...(result.completed ?? []), task.id];
+          if (res.ok) {
+            result.completed = [...(result.completed ?? []), task.id];
+          } else if (res.status === 403) {
+            const err = await res.json();
+            result.errors = [...(result.errors ?? []), { action: "complete", taskTitle: task.title, error: err.error }];
+          }
         }
 
         if (action.type === "delete") {
           const res = await fetch(`/api/tasks/${task.id}`, { method: "DELETE", headers: traceHeaders });
-          if (res.ok) result.deleted = [...(result.deleted ?? []), task.id];
+          if (res.ok || res.status === 204) {
+            result.deleted = [...(result.deleted ?? []), task.id];
+          } else if (res.status === 403) {
+            const err = await res.json();
+            result.errors = [...(result.errors ?? []), { action: "delete", taskTitle: task.title, error: err.error }];
+          }
         }
 
         if (action.type === "add_log" && action.log_content) {
@@ -409,7 +430,12 @@ export function ActionPreview({ actions, raw, allTasks, spaceId, members, parent
             headers: jsonHeaders,
             body: JSON.stringify({ reopen: true }),
           });
-          if (res.ok) result.reopened = [...(result.reopened ?? []), task.id];
+          if (res.ok) {
+            result.reopened = [...(result.reopened ?? []), task.id];
+          } else if (res.status === 403) {
+            const err = await res.json();
+            result.errors = [...(result.errors ?? []), { action: "reopen", taskTitle: task.title, error: err.error }];
+          }
         }
       } catch (err) {
         aiFlowLog("ActionPreview.action.error", {
@@ -429,7 +455,18 @@ export function ActionPreview({ actions, raw, allTasks, spaceId, members, parent
       completed_count: result.completed?.length ?? 0,
       deleted_count: result.deleted?.length ?? 0,
       logged_count: result.logged?.length ?? 0,
+      errors_count: result.errors?.length ?? 0,
     });
+    // 显示权限错误提示
+    if (result.errors && result.errors.length > 0) {
+      setPermissionErrors(result.errors);
+      setExecuting(false);
+      // 如果还有成功的操作，延迟回调让用户看到错误
+      if ((result.created?.length ?? 0) + (result.updated?.length ?? 0) + (result.completed?.length ?? 0) + (result.deleted?.length ?? 0) + (result.logged?.length ?? 0) + (result.reopened?.length ?? 0) > 0) {
+        setTimeout(() => onDone(result), 2000);
+      }
+      return;
+    }
     onDone(result);
   }
 
@@ -473,6 +510,16 @@ export function ActionPreview({ actions, raw, allTasks, spaceId, members, parent
           <ActionRow key={i} action={action} allTasks={allTasks} parentTaskId={parentTaskId} spaceId={spaceId} members={members} />
         ))}
       </div>
+
+      {permissionErrors.length > 0 && (
+        <div className="rounded-md bg-destructive/10 p-3 space-y-1">
+          {permissionErrors.map((err, i) => (
+            <p key={i} className="text-sm text-destructive">
+              「{err.taskTitle}」{err.error}
+            </p>
+          ))}
+        </div>
+      )}
 
       <div className="flex gap-2 justify-end pt-1">
         <Button variant="ghost" size="sm" onClick={onCancel} disabled={executing}>

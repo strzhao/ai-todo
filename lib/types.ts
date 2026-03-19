@@ -30,6 +30,7 @@ export interface Task {
   member_count?: number;
   task_count?: number;
   my_role?: "owner" | "admin" | "member";
+  _memberRole?: string; // 运行时权限检查用（getTaskForUser JOIN 结果）
 }
 
 export interface ParsedTask {
@@ -117,6 +118,7 @@ export interface ActionResult {
   deleted?: string[];    // task IDs
   logged?: Array<{ taskId: string }>;
   reopened?: string[];   // task IDs
+  errors?: Array<{ action: string; taskTitle: string; error: string }>;
 }
 
 // ─── Notifications ──────────────────────────────────────────────────────────────

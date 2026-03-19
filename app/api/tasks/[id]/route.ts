@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { initDb, completeTask, reopenTask, deleteTask, updateTask, pinTask, unpinTask, getTaskForUser, TaskValidationError } from "@/lib/db";
+import { TaskPermissionError } from "@/lib/task-permissions";
 import { aiFlowLog, getAiTraceIdFromHeaders } from "@/lib/ai-flow-log";
 import { createRouteTimer } from "@/lib/route-timing";
 import { fireNotification, fireNotifications } from "@/lib/notifications";
@@ -129,6 +130,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
     return rt.json(task);
   } catch (e) {
+    if (e instanceof TaskPermissionError) {
+      return rt.json({ error: e.message }, { status: 403 });
+    }
     if (e instanceof Error && e.message === "Task not found") {
       return rt.json({ error: "Not found" }, { status: 404 });
     }
@@ -148,23 +152,30 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { id } = await params;
   // Read task before deleting to get assignee info
   await initDb();
-  const taskBefore = await rt.track("db_query", async () => getTaskForUser(id, user.id));
-  await rt.track("db_query", async () => deleteTask(id, user.id));
-  aiFlowLog("tasks.delete", {
-    trace_id: traceId ?? null,
-    task_id: id,
-  });
-  // Notify assignee (if not self)
-  if (taskBefore?.assignee_id && taskBefore.assignee_id !== user.id) {
-    fireNotification({
-      userId: taskBefore.assignee_id,
-      type: "task_deleted",
-      title: `${user.email.split("@")[0]} 删除了你负责的任务`,
-      body: taskBefore.title,
-      spaceId: taskBefore.space_id,
-      actorId: user.id,
-      actorEmail: user.email,
+  try {
+    const taskBefore = await rt.track("db_query", async () => getTaskForUser(id, user.id));
+    await rt.track("db_query", async () => deleteTask(id, user.id));
+    aiFlowLog("tasks.delete", {
+      trace_id: traceId ?? null,
+      task_id: id,
     });
+    // Notify assignee (if not self)
+    if (taskBefore?.assignee_id && taskBefore.assignee_id !== user.id) {
+      fireNotification({
+        userId: taskBefore.assignee_id,
+        type: "task_deleted",
+        title: `${user.email.split("@")[0]} 删除了你负责的任务`,
+        body: taskBefore.title,
+        spaceId: taskBefore.space_id,
+        actorId: user.id,
+        actorEmail: user.email,
+      });
+    }
+    return rt.empty(204);
+  } catch (e) {
+    if (e instanceof TaskPermissionError) {
+      return rt.json({ error: e.message }, { status: 403 });
+    }
+    throw e;
   }
-  return rt.empty(204);
 }

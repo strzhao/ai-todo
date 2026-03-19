@@ -201,6 +201,7 @@ lib/
   use-push.ts                   # 客户端推送订阅 hook（subscribeToPush、unsubscribeFromPush）
   use-pwa-install.ts            # PWA 安装能力 hook（平台检测 + beforeinstallprompt 管理）
   db.ts                         # Vercel Postgres CRUD（tasks + task_members + task_logs + push_subscriptions）；空间 = pinned 任务
+  task-permissions.ts            # 任务粒度权限矩阵（纯函数：getTaskRoles / checkTaskPermission / getDisallowedFields / TaskPermissionError）
 __tests__/
   task-utils.test.ts            # buildTree 单元测试
   gantt-utils.test.ts           # 日期函数单元测试
@@ -253,6 +254,21 @@ public/
 - `invite_mode`：`open`（直接加入）或 `approval`（需审批）
 - `ai_todo_task_members`：成员表，`task_id` 关联置顶任务
 - `space_id`：子任务指向所属空间任务 ID（denormalized 访问键）
+
+## 任务权限模型
+
+空间任务基于角色的操作权限（`lib/task-permissions.ts`），个人任务仅 creator 可操作：
+
+| 操作 | 创建者 | 经办人 | Owner | Admin | Member |
+|------|--------|--------|-------|-------|--------|
+| 改标题/优先级/类型 | ✅ | - | ✅ | - | - |
+| 改描述/日期/标签/进度 | ✅ | ✅ | ✅ | - | - |
+| 改经办人 | ✅ | - | ✅ | ✅ | - |
+| 完成/重开 | ✅ | ✅ | ✅ | - | - |
+| 移动/删除 | ✅ | - | ✅ | - | - |
+| 添加日志 | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+权限校验发生在 `db.ts` 的 `updateTask/deleteTask/completeTask/reopenTask` 中，违规抛 `TaskPermissionError`，API route 返回 403。
 
 ## 色彩体系
 

@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.36.0",
+    date: "2026-03-19",
+    title: "任务粒度权限管理",
+    items: [
+      "空间内任务操作现已按角色精细化控制（创建者/经办人/空间所有者/管理员/成员）",
+      "普通成员无法修改或删除他人创建的任务",
+      "经办人可以更新描述、日期、标签、进度，以及完成任务",
+      "空间管理员可以指派经办人",
+      "操作被拒绝时显示清晰的中文权限错误提示",
+    ],
+    notable: true,
+  },
+  {
     version: "1.35.1",
     date: "2026-03-19",
     title: "修复 AI 总结关联空间数据丢失",

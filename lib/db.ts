@@ -1,5 +1,6 @@
 import { sql } from "@vercel/postgres";
 import type { Task, ParsedTask, TaskMember, TaskLog } from "./types";
+import { getTaskRoles, getDisallowedFields, buildPermissionErrorMessage, checkTaskPermission, buildOperationErrorMessage, TaskPermissionError } from "./task-permissions";
 
 export class TaskValidationError extends Error {
   constructor(message: string) {
@@ -400,20 +401,22 @@ export async function getCompletedTasks(userId: string, spaceId?: string): Promi
 
 export async function getTaskForUser(taskId: string, userId: string): Promise<Task | null> {
   const { rows } = await sql`
-    SELECT t.* FROM ai_todo_tasks t
+    SELECT t.*, m.role AS _member_role FROM ai_todo_tasks t
+    LEFT JOIN ai_todo_task_members m
+      ON m.task_id = COALESCE(t.space_id, t.id)
+      AND m.user_id = ${userId}
+      AND m.status = 'active'
     WHERE t.id = ${taskId}
       AND (
         (t.space_id IS NULL AND t.pinned = false AND t.user_id = ${userId})
         OR
-        EXISTS (
-          SELECT 1 FROM ai_todo_task_members m
-          WHERE m.task_id = COALESCE(t.space_id, t.id)
-            AND m.user_id = ${userId}
-            AND m.status = 'active'
-        )
+        m.user_id IS NOT NULL
       )
   `;
-  return rows[0] ? rowToTask(rows[0]) : null;
+  if (!rows[0]) return null;
+  const task = rowToTask(rows[0]);
+  task._memberRole = (rows[0]._member_role as string) || undefined;
+  return task;
 }
 
 export interface CreateTaskData extends ParsedTask {
@@ -458,6 +461,13 @@ export async function completeTask(taskId: string, userId: string): Promise<Task
   const task = await getTaskForUser(taskId, userId);
   if (!task) throw new Error("Task not found");
 
+  if (task.space_id) {
+    const roles = getTaskRoles(task, userId, task._memberRole);
+    if (!checkTaskPermission(roles, "complete")) {
+      throw new TaskPermissionError(buildOperationErrorMessage("complete"));
+    }
+  }
+
   const { rows } = await sql`
     UPDATE ai_todo_tasks SET status = 2, completed_at = NOW()
     WHERE id = ${taskId}
@@ -482,6 +492,13 @@ export async function reopenTask(taskId: string, userId: string): Promise<Task> 
   const task = await getTaskForUser(taskId, userId);
   if (!task) throw new Error("Task not found");
 
+  if (task.space_id) {
+    const roles = getTaskRoles(task, userId, task._memberRole);
+    if (!checkTaskPermission(roles, "reopen")) {
+      throw new TaskPermissionError(buildOperationErrorMessage("reopen"));
+    }
+  }
+
   const { rows } = await sql`
     UPDATE ai_todo_tasks SET status = 0, completed_at = NULL
     WHERE id = ${taskId}
@@ -491,21 +508,16 @@ export async function reopenTask(taskId: string, userId: string): Promise<Task> 
 }
 
 export async function deleteTask(taskId: string, userId: string): Promise<void> {
-  const { rows: raw } = await sql`SELECT * FROM ai_todo_tasks WHERE id = ${taskId}`;
-  if (!raw[0]) return;
-  const task = rowToTask(raw[0]);
+  const task = await getTaskForUser(taskId, userId);
+  if (!task) throw new TaskPermissionError("任务不存在或无权访问");
 
   if (task.space_id) {
-    if (task.user_id !== userId) {
-      const { rows: ownerRows } = await sql`
-        SELECT 1 FROM ai_todo_task_members
-        WHERE task_id = ${task.space_id} AND user_id = ${userId} AND role = 'owner'
-      `;
-      if (!ownerRows[0]) return;
+    const roles = getTaskRoles(task, userId, task._memberRole);
+    if (!checkTaskPermission(roles, "delete")) {
+      throw new TaskPermissionError(buildOperationErrorMessage("delete"));
     }
-  } else {
-    if (task.user_id !== userId) return;
   }
+  // 个人任务已通过 getTaskForUser 的 user_id 检查
 
   await sql`DELETE FROM ai_todo_tasks WHERE id = ${taskId}`;
 }
@@ -517,6 +529,16 @@ export async function updateTask(
 ): Promise<Task | null> {
   const task = await getTaskForUser(taskId, userId);
   if (!task) return null;
+
+  // 空间任务：基于角色的权限检查
+  if (task.space_id) {
+    const roles = getTaskRoles(task, userId, task._memberRole);
+    const patchKeys = Object.keys(patch).filter((k) => (patch as Record<string, unknown>)[k] !== undefined);
+    const disallowed = getDisallowedFields(roles, patchKeys);
+    if (disallowed.length > 0) {
+      throw new TaskPermissionError(buildPermissionErrorMessage(disallowed));
+    }
+  }
 
   const fields: string[] = [];
   const values: unknown[] = [];
