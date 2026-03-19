@@ -100,6 +100,7 @@ function makeConfig(overrides: Partial<SummaryConfig> = {}): SummaryConfig {
     data_template: null,
     prompt_templates: [],
     data_sources: [],
+    linked_spaces: [],
     updated_at: "2026-03-19T00:00:00Z",
     updated_by: "user-1",
     ...overrides,

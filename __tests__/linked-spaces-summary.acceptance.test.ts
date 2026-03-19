@@ -101,7 +101,7 @@ describe("DailySummary: 模块导出", () => {
     const mod = await import("@/components/DailySummary");
     expect(mod).toBeDefined();
     const DailySummary =
-      mod.default ?? (mod as Record<string, unknown>).DailySummary;
+      (mod as Record<string, unknown>).default ?? (mod as Record<string, unknown>).DailySummary;
     expect(DailySummary).toBeDefined();
     expect(typeof DailySummary).toBe("function");
   });
@@ -114,7 +114,7 @@ describe("SummarySettings: 模块导出", () => {
     const mod = await import("@/components/SummarySettings");
     expect(mod).toBeDefined();
     const SummarySettings =
-      mod.default ?? (mod as Record<string, unknown>).SummarySettings;
+      (mod as Record<string, unknown>).default ?? (mod as Record<string, unknown>).SummarySettings;
     expect(SummarySettings).toBeDefined();
     expect(typeof SummarySettings).toBe("function");
   });

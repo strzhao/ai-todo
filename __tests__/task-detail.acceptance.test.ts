@@ -51,7 +51,7 @@ describe("TaskDetail: 模块导出", () => {
     const mod = await import("@/components/TaskDetail");
     expect(mod).toBeDefined();
     // 应作为 default export 或命名 export 存在
-    const TaskDetail = mod.default ?? (mod as Record<string, unknown>).TaskDetail;
+    const TaskDetail = (mod as Record<string, unknown>).default ?? (mod as Record<string, unknown>).TaskDetail;
     expect(TaskDetail).toBeDefined();
     expect(typeof TaskDetail).toBe("function");
   });
@@ -62,9 +62,9 @@ describe("TaskDetail: 模块导出", () => {
 describe("TaskDetail: Props 接口契约", () => {
   it("组件函数接受 task 作为必选参数（至少 1 个参数）", async () => {
     const mod = await import("@/components/TaskDetail");
-    const TaskDetail = mod.default ?? (mod as Record<string, unknown>).TaskDetail;
+    const TaskDetail = (mod as Record<string, unknown>).default ?? (mod as Record<string, unknown>).TaskDetail;
     // React 函数组件至少接受 1 个参数 (props)
-    expect((TaskDetail as Function).length).toBeGreaterThanOrEqual(0);
+    expect((TaskDetail as (...args: unknown[]) => unknown).length).toBeGreaterThanOrEqual(0);
   });
 
   it("Task 类型包含编辑面板需要的所有字段", () => {

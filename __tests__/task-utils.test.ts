@@ -11,7 +11,7 @@ function makeTask(id: string, overrides: Partial<Task> = {}): Task {
     priority: 2,
     tags: [],
     created_at: "2026-01-01T00:00:00Z",
-    parent_id: null,
+    parent_id: undefined,
     ...overrides,
   } as Task;
 }
@@ -83,13 +83,13 @@ describe("buildTree", () => {
   });
 
   it("parent_id 为 null 的任务作为 root", () => {
-    const tasks = [makeTask("1", { parent_id: null })];
+    const tasks = [makeTask("1", { parent_id: undefined })];
     const tree = buildTree(tasks);
     expect(tree).toHaveLength(1);
   });
 
   it("空字符串 parent_id 视为无父（作为 root）", () => {
-    const tasks = [makeTask("1", { parent_id: "" as unknown as null })];
+    const tasks = [makeTask("1", { parent_id: "" as unknown as undefined })];
     const tree = buildTree(tasks);
     expect(tree).toHaveLength(1);
   });

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { NextRequest } from "next/server";
 import crypto from "node:crypto";
 
 /**
@@ -48,7 +49,7 @@ describe("cli-token 端点响应格式", () => {
     // 动态导入，让 vi.mock 生效
     const { POST } = await import("@/app/api/auth/cli-token/route");
 
-    const req = new Request("https://ai-todo.stringzhao.life/api/auth/cli-token", {
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/auth/cli-token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code: "test-auth-code" }),
@@ -66,7 +67,7 @@ describe("cli-token 端点响应格式", () => {
   it("session_token 同时返回传统的 access_token（向后兼容）", async () => {
     const { POST } = await import("@/app/api/auth/cli-token/route");
 
-    const req = new Request("https://ai-todo.stringzhao.life/api/auth/cli-token", {
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/auth/cli-token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code: "test-auth-code" }),
@@ -161,7 +162,7 @@ describe("getUserFromRequest 支持 session token", () => {
       expiresAt: now + 90 * 24 * 3600 * 1000,
     });
 
-    const req = new Request("https://ai-todo.stringzhao.life/api/tasks", {
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/tasks", {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -183,7 +184,7 @@ describe("getUserFromRequest 支持 session token", () => {
       expiresAt: now - 10 * 24 * 3600 * 1000,  // 10 天前过期
     });
 
-    const req = new Request("https://ai-todo.stringzhao.life/api/tasks", {
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/tasks", {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -216,7 +217,7 @@ describe("getUserFromRequest 支持 session token", () => {
     const originalSig = validToken.split(".")[1];
     const tamperedToken = `${tamperedPayload}.${originalSig}`;
 
-    const req = new Request("https://ai-todo.stringzhao.life/api/tasks", {
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/tasks", {
       headers: { Authorization: `Bearer ${tamperedToken}` },
     });
 
@@ -240,7 +241,7 @@ describe("getUserFromRequest 支持 session token", () => {
     const fakeSig = crypto.randomBytes(32).toString("base64url");
     const tamperedToken = `${payload}.${fakeSig}`;
 
-    const req = new Request("https://ai-todo.stringzhao.life/api/tasks", {
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/tasks", {
       headers: { Authorization: `Bearer ${tamperedToken}` },
     });
 
@@ -251,7 +252,7 @@ describe("getUserFromRequest 支持 session token", () => {
   it("完全随机的字符串作为 Bearer token 被拒绝", async () => {
     const { getUserFromRequest } = await import("@/lib/auth");
 
-    const req = new Request("https://ai-todo.stringzhao.life/api/tasks", {
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/tasks", {
       headers: { Authorization: "Bearer totally-random-garbage-string" },
     });
 
@@ -279,7 +280,7 @@ describe("向后兼容 JWT access_token", () => {
       "fake-signature",
     ].join(".");
 
-    const req = new Request("https://ai-todo.stringzhao.life/api/tasks", {
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/tasks", {
       headers: { Authorization: `Bearer ${fakeJwt}` },
     });
 
@@ -303,7 +304,7 @@ describe("session token 内容完整性", () => {
       // 故意缺少 userId
     });
 
-    const req = new Request("https://ai-todo.stringzhao.life/api/tasks", {
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/tasks", {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -322,7 +323,7 @@ describe("session token 内容完整性", () => {
       // 故意缺少 email
     });
 
-    const req = new Request("https://ai-todo.stringzhao.life/api/tasks", {
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/tasks", {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -341,7 +342,7 @@ describe("session token 内容完整性", () => {
       // 故意缺少 expiresAt
     });
 
-    const req = new Request("https://ai-todo.stringzhao.life/api/tasks", {
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/tasks", {
       headers: { Authorization: `Bearer ${token}` },
     });
 
