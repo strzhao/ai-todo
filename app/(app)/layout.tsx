@@ -9,8 +9,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = await getServerUser();
   if (!user) redirect("/auth/callback?error=unauthorized");
 
+  await initDb();
+
   if (process.env.AUTH_DEV_BYPASS !== "true") {
-    await initDb();
     const { activated, nickname } = await getUserActivation(user.id);
     if (!activated) redirect("/activate");
     user.nickname = nickname ?? undefined;
