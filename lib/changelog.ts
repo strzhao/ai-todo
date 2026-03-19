@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.39.0",
+    date: "2026-03-19",
+    title: "桌面端子任务直接展开",
+    items: [
+      "空间页面桌面端子任务改为 in-place 展开，无需跳转页面",
+      "手机端保持原有 drill-down 跳转行为",
+    ],
+  },
+  {
     version: "1.38.0",
     date: "2026-03-19",
     title: "AI 总结关联空间数据智能压缩",

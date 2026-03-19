@@ -213,6 +213,7 @@ lib/
   push.ts                       # Web Push 服务端推送（sendPushToUser、VAPID 配置）
   use-push.ts                   # 客户端推送订阅 hook（subscribeToPush、unsubscribeFromPush）
   use-pwa-install.ts            # PWA 安装能力 hook（平台检测 + beforeinstallprompt 管理）
+  use-media-query.ts            # 响应式 hook（useIsDesktop，768px 断点，SSR-safe）
   db.ts                         # Vercel Postgres CRUD（tasks + task_members + task_logs + push_subscriptions）；空间 = pinned 任务
   task-permissions.ts            # 任务粒度权限矩阵（纯函数：getTaskRoles / checkTaskPermission / getDisallowedFields / TaskPermissionError）
 __tests__/
