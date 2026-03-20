@@ -7,6 +7,7 @@ export default defineConfig({
     env: {
       AUTH_GATEWAY_SESSION_SECRET: "test-cli-session-secret",
     },
+    setupFiles: ["__tests__/setup-dom.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov", "json-summary"],
