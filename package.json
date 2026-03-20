@@ -1,6 +1,6 @@
 {
   "name": "ai-todo-cli",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "CLI tool for AI agents to interact with ai-todo",
   "type": "module",
   "repository": {
