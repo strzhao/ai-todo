@@ -347,12 +347,11 @@ export function SpaceNav({ spaces, orgs, userEmail, userNickname, isDev }: Props
               <span className="ml-auto w-2 h-2 rounded-full bg-destructive shrink-0" />
             )}
           </Link>
-          {/* Account */}
-          <Link
-            href="/account"
-            className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          >
-            <span className="truncate flex-1">{userNickname || userEmail.split("@")[0]}</span>
+          {/* Account / Settings */}
+          <Link href="/account" className={`${navLinkCls(pathname.startsWith("/account"))} relative`}>
+            <span className="text-base leading-none">⚙️</span>
+            <span className="truncate">设置</span>
+            <span className="ml-auto text-xs text-muted-foreground truncate max-w-[80px]">{userNickname || userEmail.split("@")[0]}</span>
             {isDev && (
               <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200 shrink-0">
                 DEV
