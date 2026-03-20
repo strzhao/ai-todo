@@ -10,6 +10,7 @@ import { TaskDetail } from "@/components/TaskDetail";
 import { DailySummary } from "@/components/DailySummary";
 import { SpaceSettings } from "@/components/SpaceSettings";
 import { SpaceNotes } from "@/components/SpaceNotes";
+import { useTasks, useCompletedTasks, mutateTasks } from "@/lib/use-tasks";
 
 const GanttLoading = () => (
   <div className="py-12 text-center text-sm text-muted-foreground animate-pulse">加载甘特图...</div>
@@ -50,14 +51,15 @@ interface SpacePageProps {
 }
 
 export default function SpacePage({ params }: SpacePageProps) {
+  // --- All hooks at the top, before any conditional returns ---
   const [spaceId, setSpaceId] = useState<string>("");
   const [space, setSpace] = useState<Space | null>(null);
   const [members, setMembers] = useState<SpaceMember[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
+  const { data: rawTasks, isLoading: tasksLoading, mutate: mutateCurrent } = useTasks(spaceId || undefined);
+  const { data: rawCompleted, isLoading: completedLoading, mutate: mutateSpaceCompleted } = useCompletedTasks(spaceId || undefined);
   const [inputText, setInputText] = useState("");
   const [preview, setPreview] = useState<{ actions: ParsedAction[]; raw: string; traceId?: string } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [spaceLoading, setSpaceLoading] = useState(true);
   const [filterMember, setFilterMember] = useState<string>("all");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [ganttSelectedTask, setGanttSelectedTask] = useState<Task | null>(null);
@@ -66,6 +68,10 @@ export default function SpacePage({ params }: SpacePageProps) {
   const searchParams = useSearchParams();
   const focusedTaskId = searchParams.get("focus");
   const isDesktop = useIsDesktop();
+
+  const tasks = useMemo(() => rawTasks ?? [], [rawTasks]);
+  const completedTasks = useMemo(() => (rawCompleted && Array.isArray(rawCompleted)) ? rawCompleted : [], [rawCompleted]);
+  const loading = spaceLoading || (tasksLoading && tasks.length === 0);
 
   const [tab, setTab] = useState<"list" | "gantt" | "summary" | "notes">(() => {
     const t = searchParams.get("tab");
@@ -84,44 +90,28 @@ export default function SpacePage({ params }: SpacePageProps) {
     router.replace(`/spaces/${spaceId}${qs ? `?${qs}` : ""}`, { scroll: false });
   }, [searchParams, spaceId, router]);
 
+  // Resolve params and fetch space info (not tasks — those come from SWR)
   useEffect(() => {
     params.then(({ id }) => {
       setSpaceId(id);
-      Promise.all([
-        fetch(`/api/spaces/${id}`).then((r) => r.json()),
-        fetch(`/api/tasks?space_id=${id}`).then((r) => r.json()),
-        fetch(`/api/tasks?space_id=${id}&filter=completed`).then((r) => r.json()).catch(() => []),
-      ]).then(([spaceData, tasksData, completedData]: [{ space: Space; members: SpaceMember[] }, Task[], Task[]]) => {
-        setSpace(spaceData.space);
-        setMembers(spaceData.members);
-        setTasks(tasksData);
-        setCompletedTasks(Array.isArray(completedData) ? completedData : []);
-      }).finally(() => setLoading(false));
+      fetch(`/api/spaces/${id}`)
+        .then((r) => r.json())
+        .then((spaceData: { space: Space; members: SpaceMember[] }) => {
+          setSpace(spaceData.space);
+          setMembers(spaceData.members);
+        })
+        .finally(() => setSpaceLoading(false));
     });
   }, [params]);
 
+  // Listen for tasks-changed events to trigger SWR revalidation
+  useEffect(() => {
+    const handler = () => mutateTasks();
+    window.addEventListener("tasks-changed", handler);
+    return () => window.removeEventListener("tasks-changed", handler);
+  }, []);
+
   function handleActionDone(result: ActionResult) {
-    if (result.created?.length) setTasks((prev) => [...result.created!, ...prev]);
-    if (result.updated?.length) setTasks((prev) => prev.map((t) => result.updated!.find((u) => u.id === t.id) ?? t));
-    if (result.completed?.length) {
-      for (const id of result.completed) {
-        const done = tasks.find((t) => t.id === id);
-        const childMap = buildChildMap(tasks);
-        const descendantIds = new Set(getDescendantsFromMap(childMap, id).map(t => t.id));
-        setTasks((prev) => prev.filter((t) => t.id !== id && !descendantIds.has(t.id)));
-        if (done) setCompletedTasks((prev) => [{ ...done, status: 2 as const }, ...prev].slice(0, 20));
-      }
-    }
-    if (result.deleted?.length) {
-      setTasks((prev) => {
-        const childMap = buildChildMap(prev);
-        const allDeletedIds = new Set(result.deleted!);
-        for (const id of result.deleted!) {
-          for (const t of getDescendantsFromMap(childMap, id)) allDeletedIds.add(t.id);
-        }
-        return prev.filter((t) => !allDeletedIds.has(t.id));
-      });
-    }
     const hasSuccess = Boolean(
       result.created?.length ||
       result.updated?.length ||
@@ -131,36 +121,55 @@ export default function SpacePage({ params }: SpacePageProps) {
     );
     if (hasSuccess) {
       setInputText("");
+      mutateTasks();
       window.dispatchEvent(new Event("tasks-changed"));
     }
     setPreview(null);
   }
 
   function handleComplete(id: string) {
-    const done = tasks.find((t) => t.id === id);
-    const childMap = buildChildMap(tasks);
-    const descendantIds = new Set(getDescendantsFromMap(childMap, id).map(t => t.id));
-    setTasks((prev) => prev.filter((t) => t.id !== id && !descendantIds.has(t.id)));
-    if (done) setCompletedTasks((prev) => [{ ...done, status: 2 as const }, ...prev].slice(0, 20));
+    mutateCurrent(
+      (prev) => prev?.filter((t) => t.id !== id),
+      { revalidate: true }
+    );
+    const done = rawTasks?.find((t) => t.id === id);
+    if (done) {
+      mutateSpaceCompleted(
+        (prev) => [{ ...done, status: 2 as const }, ...(prev ?? [])].slice(0, 20),
+        { revalidate: true }
+      );
+    }
     window.dispatchEvent(new Event("tasks-changed"));
   }
 
   function handleDelete(id: string) {
-    const childMap = buildChildMap(tasks);
-    const descendantIds = new Set(getDescendantsFromMap(childMap, id).map(t => t.id));
-    setTasks((prev) => prev.filter((t) => t.id !== id && !descendantIds.has(t.id)));
+    mutateCurrent(
+      (prev) => prev?.filter((t) => t.id !== id),
+      { revalidate: true }
+    );
     window.dispatchEvent(new Event("tasks-changed"));
   }
 
   function handleReopen(id: string) {
-    const reopened = completedTasks.find((t) => t.id === id);
-    setCompletedTasks((prev) => prev.filter((t) => t.id !== id));
-    if (reopened) setTasks((prev) => [...prev, { ...reopened, status: 0 as const, completed_at: undefined }]);
+    const reopened = rawCompleted?.find((t) => t.id === id);
+    mutateSpaceCompleted(
+      (prev) => prev?.filter((t) => t.id !== id),
+      { revalidate: true }
+    );
+    if (reopened) {
+      mutateCurrent(
+        (prev) => [...(prev ?? []), { ...reopened, status: 0 as const, completed_at: undefined }],
+        { revalidate: true }
+      );
+    }
     window.dispatchEvent(new Event("tasks-changed"));
   }
 
   function handleUpdate(id: string, updates: Partial<Task>) {
-    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, ...updates } : t));
+    mutateCurrent(
+      (prev) => prev?.map((t) => t.id === id ? { ...t, ...updates } : t),
+      { revalidate: true }
+    );
   }
 
   const handleGanttTaskClick = useCallback((id: string) => {

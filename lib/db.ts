@@ -364,17 +364,21 @@ function rowToMember(row: Record<string, unknown>): TaskMember {
 export interface GetTasksOptions {
   spaceId?: string;
   filter?: "assigned";
+  type?: number;
 }
 
 export async function getTasks(userId: string, options: GetTasksOptions = {}): Promise<Task[]> {
-  const { spaceId, filter } = options;
+  const { spaceId, filter, type } = options;
+  const hasType = type !== undefined;
+  const typeClause = hasType ? ` AND (COALESCE(type, 0) = ${Number(type)})` : "";
 
   if (filter === "assigned") {
-    const { rows } = await sql`
-      SELECT * FROM ai_todo_tasks
-      WHERE assignee_id = ${userId} AND status != 2
-      ORDER BY priority ASC, created_at DESC
-    `;
+    const { rows } = await sql.query(
+      `SELECT * FROM ai_todo_tasks
+       WHERE assignee_id = $1 AND status != 2${typeClause}
+       ORDER BY priority ASC, created_at DESC`,
+      [userId]
+    );
     return rows.map(rowToTask);
   }
 
@@ -382,9 +386,21 @@ export async function getTasks(userId: string, options: GetTasksOptions = {}): P
     // space_id is denormalized on all tasks within a space — no recursive CTE needed
     const { rows } = await sql.query(
       `SELECT * FROM ai_todo_tasks
-       WHERE space_id = $1 AND status != 2
+       WHERE space_id = $1 AND status != 2${typeClause}
        ORDER BY priority ASC, created_at DESC`,
       [spaceId]
+    );
+    return rows.map(rowToTask);
+  }
+
+  // No spaceId: use sql template tag when no type filter (preserves original behavior),
+  // use sql.query when type filter is needed for string concatenation
+  if (hasType) {
+    const { rows } = await sql.query(
+      `SELECT * FROM ai_todo_tasks
+       WHERE user_id = $1 AND space_id IS NULL AND status != 2${typeClause}
+       ORDER BY priority ASC, created_at DESC`,
+      [userId]
     );
     return rows.map(rowToTask);
   }
@@ -431,14 +447,28 @@ export async function getTodayTasks(userId: string, spaceId?: string): Promise<T
   return rows.map(rowToTask);
 }
 
-export async function getCompletedTasks(userId: string, spaceId?: string): Promise<Task[]> {
+export async function getCompletedTasks(userId: string, spaceId?: string, type?: number): Promise<Task[]> {
+  const hasType = type !== undefined;
+  const typeClause = hasType ? ` AND (COALESCE(type, 0) = ${Number(type)})` : "";
   if (spaceId) {
     const { rows } = await sql.query(
       `SELECT * FROM ai_todo_tasks
-       WHERE space_id = $1 AND status = 2
+       WHERE space_id = $1 AND status = 2${typeClause}
        ORDER BY completed_at DESC
        LIMIT 20`,
       [spaceId]
+    );
+    return rows.map(rowToTask);
+  }
+
+  // No spaceId: use sql template tag when no type filter, sql.query when type is specified
+  if (hasType) {
+    const { rows } = await sql.query(
+      `SELECT * FROM ai_todo_tasks
+       WHERE user_id = $1 AND space_id IS NULL AND status = 2${typeClause}
+       ORDER BY completed_at DESC
+       LIMIT 20`,
+      [userId]
     );
     return rows.map(rowToTask);
   }

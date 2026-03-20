@@ -38,6 +38,7 @@ npm run lint:fix  # ESLint 自动修复
 
 - **框架**: Next.js 16 (App Router, Turbopack)
 - **样式**: Tailwind CSS v4 + shadcn/ui (slate base)
+- **数据缓存**: SWR（客户端 stale-while-revalidate 缓存）
 - **认证**: user.stringzhao.life JWT 系统（`jose` + JWKS 验证）
 - **AI**: DeepSeek API（自定义 fetch 客户端）
 - **数据库**: Vercel Postgres（`@vercel/postgres`，表名 `ai_todo_tasks`）
@@ -210,6 +211,7 @@ lib/
   types.ts                      # Task、ParsedTask、ParsedAction、ActionResult、TaskLog、AppNotification、SummaryConfig、LinkedSpace、Organization、OrgMember 等接口
   llm-client.ts                 # DeepSeek 客户端（55s 超时，AbortError 兜底）
   task-utils.ts                 # 纯函数：buildTree（flat Task[] → 树形 TaskNode[]）
+  use-tasks.ts                  # SWR 数据缓存 hooks（useTasks/useCompletedTasks/useNotes/mutateTasks）
   date-utils.ts                 # 纯函数：formatDateTime / toLocalISO / extractTime / extractDate / DateField 类型
   gantt-utils.ts                # 纯函数：daysBetween / addDays / formatAxisDate / getMemberName
   parse-utils.ts                # 纯函数：parseItem / parseActions / cleanupCache（可测试）

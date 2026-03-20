@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import type { Task } from "@/lib/types";
@@ -9,6 +9,7 @@ import { buildTree, type TaskNode } from "@/lib/task-utils";
 import { hasNewUpdate } from "@/lib/changelog";
 import { useSidebarResize } from "@/lib/use-sidebar-resize";
 import { useUnreadCount } from "@/lib/use-notifications";
+import { mutateTasks } from "@/lib/use-tasks";
 
 interface SpaceTaskNode {
   id: string;
@@ -45,6 +46,8 @@ export function SpaceNav({ spaces, orgs, userEmail, userNickname, isDev }: Props
   const { count: unreadNotifCount } = useUnreadCount();
   const menuRef = useRef<HTMLDivElement>(null);
   const { handleRef } = useSidebarResize();
+  const inflightRef = useRef<Set<string>>(new Set());
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Check for unread changelog
   useEffect(() => {
@@ -70,7 +73,10 @@ export function SpaceNav({ spaces, orgs, userEmail, userNickname, isDev }: Props
     }
   }, [currentSpaceId, isValidSpaceId]);
 
-  function fetchSpaceTasks(spaceId: string) {
+  const fetchSpaceTasks = useCallback((spaceId: string) => {
+    // De-duplicate inflight requests
+    if (inflightRef.current.has(spaceId)) return;
+    inflightRef.current.add(spaceId);
     fetch(`/api/tasks?space_id=${spaceId}`)
       .then((r) => r.json())
       .then((data: Task[]) => {
@@ -81,8 +87,9 @@ export function SpaceNav({ spaces, orgs, userEmail, userNickname, isDev }: Props
           }));
         }
       })
-      .catch(() => {});
-  }
+      .catch(() => {})
+      .finally(() => { inflightRef.current.delete(spaceId); });
+  }, []);
 
   // Fetch tasks for all expanded spaces
   useEffect(() => {
@@ -91,18 +98,26 @@ export function SpaceNav({ spaces, orgs, userEmail, userNickname, isDev }: Props
         fetchSpaceTasks(spaceId);
       }
     });
-  }, [expandedSpaceIds]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [expandedSpaceIds, fetchSpaceTasks]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Re-fetch space task tree when tasks are mutated elsewhere
+  // Re-fetch space task tree when tasks are mutated elsewhere (debounced 300ms)
   useEffect(() => {
     function onTasksChanged() {
-      expandedSpaceIds.forEach((spaceId) => {
-        fetchSpaceTasks(spaceId);
-      });
+      // Also trigger SWR revalidation so page-level SWR caches are up-to-date
+      mutateTasks();
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
+        expandedSpaceIds.forEach((spaceId) => {
+          fetchSpaceTasks(spaceId);
+        });
+      }, 300);
     }
     window.addEventListener("tasks-changed", onTasksChanged);
-    return () => window.removeEventListener("tasks-changed", onTasksChanged);
-  }, [expandedSpaceIds]);
+    return () => {
+      window.removeEventListener("tasks-changed", onTasksChanged);
+      clearTimeout(debounceTimerRef.current);
+    };
+  }, [expandedSpaceIds, fetchSpaceTasks]);
 
   async function handleUnpin(spaceId: string) {
     await fetch(`/api/tasks/${spaceId}`, {

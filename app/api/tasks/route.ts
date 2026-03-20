@@ -32,28 +32,27 @@ export async function GET(req: NextRequest) {
 
   let tasks;
   if (wantType === 1) {
-    // Notes: optionally scoped to a space
-    tasks = await rt.track("db_query", async () => getTasks(user.id, spaceId ? { spaceId } : {}));
-    tasks = tasks
-      .filter((t: Task) => (t.type ?? 0) === 1)
-      .sort(
-        (a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+    // Notes: optionally scoped to a space, type filter pushed to DB
+    tasks = await rt.track("db_query", async () => getTasks(user.id, spaceId ? { spaceId, type: 1 } : { type: 1 }));
+    tasks = tasks.sort(
+      (a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
   } else if (filter === "today") {
     tasks = await rt.track("db_query", async () => getTodayTasks(user.id, spaceId));
     tasks = tasks.filter((t: Task) => (t.type ?? 0) === 0);
   } else if (filter === "assigned") {
-    tasks = await rt.track("db_query", async () => getTasks(user.id, { filter: "assigned" }));
-    tasks = tasks.filter((t: Task) => (t.type ?? 0) === 0);
+    tasks = await rt.track("db_query", async () => getTasks(user.id, { filter: "assigned", type: 0 }));
   } else if (filter === "completed") {
-    tasks = await rt.track("db_query", async () => getCompletedTasks(user.id, spaceId));
-    tasks = tasks.filter((t: Task) => (t.type ?? 0) === 0);
+    tasks = await rt.track("db_query", async () => getCompletedTasks(user.id, spaceId, 0));
   } else {
-    tasks = await rt.track("db_query", async () => getTasks(user.id, { spaceId }));
-    tasks = tasks.filter((t: Task) => (t.type ?? 0) === 0);
+    tasks = await rt.track("db_query", async () => getTasks(user.id, { spaceId, type: 0 }));
   }
 
-  return rt.json(tasks);
+  return rt.json(tasks, {
+    headers: {
+      "Cache-Control": "private, max-age=0, stale-while-revalidate=10",
+    },
+  });
 }
 
 export async function POST(req: NextRequest) {

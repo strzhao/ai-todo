@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { FileText } from "lucide-react";
 import { NoteCard } from "@/components/NoteCard";
 import { TaskSkeleton } from "@/components/TaskSkeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { useNotes, mutateTasks } from "@/lib/use-tasks";
 import type { Task } from "@/lib/types";
 
 function extractTags(text: string): string[] {
@@ -41,42 +42,16 @@ function groupByDate(notes: Task[]): { label: string; notes: Task[] }[] {
 }
 
 export default function NotesPage() {
-  const [notes, setNotes] = useState<Task[]>([]);
+  // --- All hooks at the top ---
+  const { data: rawNotes, isLoading, error: fetchError, mutate: mutateNotes } = useNotes();
   const [inputText, setInputText] = useState("");
   const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState(false);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  // Auto-resize textarea to fit content
-  useEffect(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [inputText]);
-
-  const fetchNotes = useCallback(() => {
-    setFetchError(false);
-    setLoading(true);
-    fetch("/api/tasks?type=1")
-      .then((r) => r.json())
-      .then((data: Task[]) => {
-        setNotes(Array.isArray(data) ? data : []);
-      })
-      .catch(() => {
-        setNotes([]);
-        setFetchError(true);
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => { fetchNotes(); }, [fetchNotes]);
-
-  useEffect(() => () => clearTimeout(highlightTimerRef.current), []);
+  const notes = useMemo(() => (rawNotes && Array.isArray(rawNotes)) ? rawNotes : [], [rawNotes]);
 
   const allTags = useMemo(() => {
     const tagSet = new Set<string>();
@@ -90,6 +65,23 @@ export default function NotesPage() {
   }, [notes, selectedTag]);
 
   const groups = useMemo(() => groupByDate(filteredNotes), [filteredNotes]);
+
+  // Auto-resize textarea to fit content
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [inputText]);
+
+  // Listen for tasks-changed to trigger SWR revalidation
+  useEffect(() => {
+    const handler = () => mutateTasks();
+    window.addEventListener("tasks-changed", handler);
+    return () => window.removeEventListener("tasks-changed", handler);
+  }, []);
+
+  useEffect(() => () => clearTimeout(highlightTimerRef.current), []);
 
   async function handleSubmit() {
     const title = inputText.trim();
@@ -105,11 +97,11 @@ export default function NotesPage() {
       });
       if (res.ok) {
         const note = await res.json() as Task;
-        setNotes((prev) => [note, ...prev]);
         setInputText("");
         setHighlightId(note.id);
         clearTimeout(highlightTimerRef.current);
         highlightTimerRef.current = setTimeout(() => setHighlightId(null), 1000);
+        mutateTasks();
         window.dispatchEvent(new Event("tasks-changed"));
       }
     } finally {
@@ -126,11 +118,17 @@ export default function NotesPage() {
   }
 
   function handleUpdate(id: string, updates: Partial<Task>) {
-    setNotes((prev) => prev.map((n) => n.id === id ? { ...n, ...updates } : n));
+    mutateNotes(
+      (prev) => prev?.map((n) => n.id === id ? { ...n, ...updates } : n),
+      { revalidate: true }
+    );
   }
 
   function handleDelete(id: string) {
-    setNotes((prev) => prev.filter((n) => n.id !== id));
+    mutateNotes(
+      (prev) => prev?.filter((n) => n.id !== id),
+      { revalidate: true }
+    );
     window.dispatchEvent(new Event("tasks-changed"));
   }
 
@@ -189,10 +187,10 @@ export default function NotesPage() {
         </div>
       )}
 
-      {loading ? (
+      {isLoading ? (
         <TaskSkeleton />
       ) : fetchError ? (
-        <EmptyState text="加载失败" subtext="请检查网络后重试" action={{ label: "重试", onClick: fetchNotes }} />
+        <EmptyState text="加载失败" subtext="请检查网络后重试" action={{ label: "重试", onClick: () => mutateTasks() }} />
       ) : groups.length === 0 ? (
         <EmptyState
           icon={<FileText className="w-10 h-10 text-muted-foreground" />}

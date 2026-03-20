@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MultiTaskPreview } from "@/components/MultiTaskPreview";
 import { aiFlowLog, summarizeParsedActions } from "@/lib/ai-flow-log";
+import { mutateTasks } from "@/lib/use-tasks";
 import type { ParsedAction, ParsedTask, Task, ActionResult, SpaceMember } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
 import { formatDateTime } from "@/lib/date-utils";
@@ -463,10 +464,12 @@ export function ActionPreview({ actions, raw, allTasks, spaceId, members, parent
       setExecuting(false);
       // 如果还有成功的操作，延迟回调让用户看到错误
       if ((result.created?.length ?? 0) + (result.updated?.length ?? 0) + (result.completed?.length ?? 0) + (result.deleted?.length ?? 0) + (result.logged?.length ?? 0) + (result.reopened?.length ?? 0) > 0) {
+        mutateTasks();
         setTimeout(() => onDone(result), 2000);
       }
       return;
     }
+    mutateTasks();
     onDone(result);
   }
 

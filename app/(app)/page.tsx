@@ -7,6 +7,7 @@ import { NLInput } from "@/components/NLInput";
 import { ActionPreview } from "@/components/ActionPreview";
 import { TaskList } from "@/components/TaskList";
 import { Button } from "@/components/ui/button";
+import { useTasks, useCompletedTasks, mutateTasks } from "@/lib/use-tasks";
 import type { ParsedAction, Task, ActionResult } from "@/lib/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -57,22 +58,31 @@ function sortTasksWithTodayFirst(items: Task[]) {
 }
 
 export default function TaskHomePage() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
+  // --- All hooks at the top, before any conditional returns ---
+  const { data: rawTasks, isLoading: tasksLoading, mutate: mutateCurrent } = useTasks();
+  const { data: rawCompleted, isLoading: completedLoading, mutate: mutateCompleted } = useCompletedTasks();
   const [inputText, setInputText] = useState("");
   const [preview, setPreview] = useState<{ actions: ParsedAction[]; raw: string; traceId?: string } | null>(null);
-  const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
   const focusedTaskId = searchParams.get("focus");
 
+  const tasks = useMemo(() => rawTasks ? sortTasksWithTodayFirst(rawTasks) : [], [rawTasks]);
+  const completedTasks = useMemo(
+    () => rawCompleted ? rawCompleted.filter((t) => t.status === 2) : [],
+    [rawCompleted]
+  );
+  const loading = tasksLoading || completedLoading;
+
+  const todayCount = useMemo(
+    () => tasks.filter((t) => isDueToday(t.due_date)).length,
+    [tasks]
+  );
+
+  // Listen for tasks-changed events from non-SWR components to trigger revalidation
   useEffect(() => {
-    Promise.all([
-      fetch("/api/tasks").then((r) => r.json()).catch(() => []),
-      fetch("/api/tasks?filter=completed").then((r) => r.json()).catch(() => []),
-    ]).then(([active, completed]: [Task[], Task[]]) => {
-      setTasks(Array.isArray(active) ? sortTasksWithTodayFirst(active) : []);
-      setCompletedTasks(Array.isArray(completed) ? completed.filter((t) => t.status === 2) : []);
-    }).finally(() => setLoading(false));
+    const handler = () => mutateTasks();
+    window.addEventListener("tasks-changed", handler);
+    return () => window.removeEventListener("tasks-changed", handler);
   }, []);
 
   // Scroll to and highlight focused task from ?focus=taskId
@@ -89,31 +99,7 @@ export default function TaskHomePage() {
     }
   }, [focusedTaskId, loading]);
 
-  const todayCount = useMemo(
-    () => tasks.filter((t) => isDueToday(t.due_date)).length,
-    [tasks]
-  );
-
   function handleActionDone(result: ActionResult) {
-    if (result.created?.length) setTasks((prev) => sortTasksWithTodayFirst([...result.created!, ...prev]));
-    if (result.updated?.length) setTasks((prev) => sortTasksWithTodayFirst(prev.map((t) => result.updated!.find((u) => u.id === t.id) ?? t)));
-    if (result.completed?.length) {
-      for (const id of result.completed) {
-        const done = tasks.find((t) => t.id === id);
-        const descendantIds = collectDescendantIds(tasks, id);
-        setTasks((prev) => sortTasksWithTodayFirst(prev.filter((t) => t.id !== id && !descendantIds.has(t.id))));
-        if (done) setCompletedTasks((prev) => [{ ...done, status: 2 as const }, ...prev].slice(0, 20));
-      }
-    }
-    if (result.deleted?.length) {
-      setTasks((prev) => {
-        const allDeletedIds = new Set(result.deleted!);
-        for (const id of result.deleted!) {
-          for (const did of collectDescendantIds(prev, id)) allDeletedIds.add(did);
-        }
-        return sortTasksWithTodayFirst(prev.filter((t) => !allDeletedIds.has(t.id)));
-      });
-    }
     const hasSuccess = Boolean(
       result.created?.length ||
       result.updated?.length ||
@@ -123,34 +109,58 @@ export default function TaskHomePage() {
     );
     if (hasSuccess) {
       setInputText("");
+      mutateTasks();
       window.dispatchEvent(new Event("tasks-changed"));
     }
     setPreview(null);
   }
 
   function handleComplete(id: string) {
-    const completed = tasks.find((t) => t.id === id);
-    const descendantIds = collectDescendantIds(tasks, id);
-    setTasks((prev) => sortTasksWithTodayFirst(prev.filter((t) => t.id !== id && !descendantIds.has(t.id))));
-    if (completed) setCompletedTasks((prev) => [{ ...completed, status: 2 as const }, ...prev].slice(0, 20));
+    // Optimistic update: remove from active, add to completed
+    const done = rawTasks?.find((t) => t.id === id);
+    const descendantIds = collectDescendantIds(rawTasks ?? [], id);
+    mutateCurrent(
+      (prev) => prev?.filter((t) => t.id !== id && !descendantIds.has(t.id)),
+      { revalidate: true }
+    );
+    if (done) {
+      mutateCompleted(
+        (prev) => [{ ...done, status: 2 as const }, ...(prev ?? [])].slice(0, 20),
+        { revalidate: true }
+      );
+    }
     window.dispatchEvent(new Event("tasks-changed"));
   }
 
   function handleDelete(id: string) {
-    const descendantIds = collectDescendantIds(tasks, id);
-    setTasks((prev) => sortTasksWithTodayFirst(prev.filter((t) => t.id !== id && !descendantIds.has(t.id))));
+    const descendantIds = collectDescendantIds(rawTasks ?? [], id);
+    mutateCurrent(
+      (prev) => prev?.filter((t) => t.id !== id && !descendantIds.has(t.id)),
+      { revalidate: true }
+    );
     window.dispatchEvent(new Event("tasks-changed"));
   }
 
   function handleReopen(id: string) {
-    const reopened = completedTasks.find((t) => t.id === id);
-    setCompletedTasks((prev) => prev.filter((t) => t.id !== id));
-    if (reopened) setTasks((prev) => sortTasksWithTodayFirst([...prev, { ...reopened, status: 0 as const, completed_at: undefined }]));
+    const reopened = rawCompleted?.find((t) => t.id === id);
+    mutateCompleted(
+      (prev) => prev?.filter((t) => t.id !== id),
+      { revalidate: true }
+    );
+    if (reopened) {
+      mutateCurrent(
+        (prev) => [...(prev ?? []), { ...reopened, status: 0 as const, completed_at: undefined }],
+        { revalidate: true }
+      );
+    }
     window.dispatchEvent(new Event("tasks-changed"));
   }
 
   function handleUpdate(id: string, updates: Partial<Task>) {
-    setTasks((prev) => sortTasksWithTodayFirst(prev.map((t) => t.id === id ? { ...t, ...updates } : t)));
+    mutateCurrent(
+      (prev) => prev?.map((t) => t.id === id ? { ...t, ...updates } : t),
+      { revalidate: true }
+    );
   }
 
   return (

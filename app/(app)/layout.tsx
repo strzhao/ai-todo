@@ -17,8 +17,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     user.nickname = nickname ?? undefined;
   }
 
-  const spaces = await getSpacesByUser(user.id);
-  const orgs = await getOrgsForUser(user.id);
+  // spaces 和 orgs 可以并行查询
+  const [spaces, orgs] = await Promise.all([
+    getSpacesByUser(user.id),
+    getOrgsForUser(user.id),
+  ]);
   // Task objects have `title`; SpaceNav expects `name` (legacy Space shape)
   const spacesForNav = spaces.map((s) => ({ ...s, name: s.title }));
 
