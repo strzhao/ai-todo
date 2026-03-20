@@ -160,11 +160,11 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           {/* Share button */}
           <button
             onClick={handleShare}
-            className={`transition-opacity text-xs shrink-0 mt-0.5 ${
+            className={`transition-opacity text-xs shrink-0 mt-0.5 px-1 ${
               note.share_code || shareUrl
                 ? "opacity-100 text-sage"
                 : "opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-sage"
@@ -177,7 +177,7 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
           {(note.share_code || shareUrl) && (
             <button
               onClick={handleUnshare}
-              className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-muted-foreground hover:text-destructive shrink-0 mt-0.5"
+              className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-muted-foreground hover:text-destructive shrink-0 mt-0.5 px-1"
               title="取消分享"
             >
               {"\u2298"}
@@ -186,7 +186,7 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
           {/* Delete button */}
           <button
             onClick={handleDeleteClick}
-            className={`transition-opacity text-xs shrink-0 mt-0.5 ${
+            className={`transition-opacity text-xs shrink-0 mt-0.5 px-1 ${
               confirmingDelete
                 ? "opacity-100 text-destructive font-medium"
                 : "opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
