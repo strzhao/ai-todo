@@ -7,6 +7,7 @@ export interface ManifestParam {
   required: boolean;
   enum?: (string | number)[];
   description?: string;
+  aliases?: string[];
 }
 
 export interface ManifestOperation {
@@ -18,6 +19,7 @@ export interface ManifestOperation {
   params: ManifestParam[];
   fixed_body?: Record<string, unknown>;
   format?: "text" | "json";
+  aliases?: string[];
 }
 
 export interface Manifest {

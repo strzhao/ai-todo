@@ -19,7 +19,9 @@
   ],
   "scripts": {
     "build": "tsup",
-    "dev": "tsup --watch"
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "commander": "^13.0.0",
@@ -28,7 +30,8 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "vitest": "^4.1.0"
   },
   "engines": {
     "node": ">=18"
