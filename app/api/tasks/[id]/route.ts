@@ -58,10 +58,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const existing = await rt.track("db_query", async () => getTaskForUser(id, user.id));
       if (!existing) return rt.json({ error: "Not found" }, { status: 404 });
       if ((existing.type ?? 0) !== 1) return rt.json({ error: "Only notes can be shared" }, { status: 400 });
-      // 允许笔记创建者或空间 owner 分享
-      const isCreator = existing.user_id === user.id;
-      const isSpaceOwner = existing._memberRole === "owner";
-      if (!isCreator && !isSpaceOwner) return rt.json({ error: "Only creator or space owner can share" }, { status: 403 });
+      // 空间笔记：任何能看到的成员可分享；个人笔记：仅创建者
+      if (!existing.space_id && existing.user_id !== user.id) {
+        return rt.json({ error: "Only creator can share" }, { status: 403 });
+      }
       if (existing.share_code) {
         return rt.json({ share_code: existing.share_code, share_url: `${process.env.APP_ORIGIN || ""}/shared/${existing.share_code}` });
       }
@@ -75,9 +75,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.action === "unshare") {
       const existing = await rt.track("db_query", async () => getTaskForUser(id, user.id));
       if (!existing) return rt.json({ error: "Not found" }, { status: 404 });
-      const isCreator = existing.user_id === user.id;
-      const isSpaceOwner = existing._memberRole === "owner";
-      if (!isCreator && !isSpaceOwner) return rt.json({ error: "Only creator or space owner can unshare" }, { status: 403 });
+      // 空间笔记：任何能看到的成员可取消分享；个人笔记：仅创建者
+      if (!existing.space_id && existing.user_id !== user.id) {
+        return rt.json({ error: "Only creator can unshare" }, { status: 403 });
+      }
       await rt.track("db_query", async () => setShareCode(id, null));
       return rt.json({ ok: true });
     }
