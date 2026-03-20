@@ -102,6 +102,7 @@ export function AccountContent({ userEmail, userNickname, isDev }: Props) {
   const [inviteLoading, setInviteLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editingNickname, setEditingNickname] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [nickname, setNickname] = useState(userNickname ?? "");
   const [saving, setSaving] = useState(false);
   const nicknameInputRef = useRef<HTMLInputElement>(null);
@@ -276,7 +277,12 @@ export function AccountContent({ userEmail, userNickname, isDev }: Props) {
 
       {/* ── 通知设置 ── */}
       <SettingsCard title="通知设置">
-        <NotificationSettings />
+        <SettingsRow
+          icon={<span className="text-sm">🔔</span>}
+          label="通知偏好"
+          onClick={() => setNotifOpen(!notifOpen)}
+        />
+        {notifOpen && <NotificationSettings />}
       </SettingsCard>
 
       {/* ── 账号操作 ── */}
