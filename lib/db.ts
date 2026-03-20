@@ -16,7 +16,7 @@ export class TaskValidationError extends Error {
   }
 }
 
-const DB_SCHEMA_VERSION = 2; // bump when adding new tables/columns
+const DB_SCHEMA_VERSION = 3; // bump when adding new tables/columns
 let _dbSchemaVersion = 0;
 let _dbInitPromise: Promise<void> | null = null;
 
@@ -251,6 +251,10 @@ async function _doInitDb() {
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS org_id UUID REFERENCES ai_todo_orgs(id) ON DELETE SET NULL`;
   await sql`CREATE INDEX IF NOT EXISTS idx_tasks_org ON ai_todo_tasks(org_id) WHERE org_id IS NOT NULL`;
 
+  // 17. Add share_code column to tasks (note sharing)
+  await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS share_code TEXT`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_share_code ON ai_todo_tasks(share_code) WHERE share_code IS NOT NULL`;
+
   // Seed already executed on 2026-03-07: all existing users auto-activated.
 }
 
@@ -333,6 +337,7 @@ function rowToTask(row: Record<string, unknown>): Task {
     pinned: (row.pinned as boolean) || undefined,
     invite_code: (row.invite_code as string) || undefined,
     invite_mode: (row.invite_mode as "open" | "approval") || undefined,
+    share_code: (row.share_code as string) || undefined,
     org_id: (row.org_id as string) || undefined,
     member_count: row.member_count != null ? Number(row.member_count) : undefined,
     task_count: row.task_count != null ? Number(row.task_count) : undefined,
@@ -744,6 +749,24 @@ function generateInviteCode(): string {
   const bytes = new Uint8Array(8);
   crypto.getRandomValues(bytes);
   return Array.from(bytes, (b) => chars[b % chars.length]).join("");
+}
+
+export function generateShareCode(): string {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => chars[b % chars.length]).join("");
+}
+
+export async function getTaskByShareCode(code: string): Promise<Task | null> {
+  const { rows } = await sql`
+    SELECT * FROM ai_todo_tasks WHERE share_code = ${code} AND type = 1
+  `;
+  return rows.length ? rowToTask(rows[0]) : null;
+}
+
+export async function setShareCode(taskId: string, code: string | null): Promise<void> {
+  await sql`UPDATE ai_todo_tasks SET share_code = ${code} WHERE id = ${taskId}::uuid`;
 }
 
 // Returns all pinned tasks the user is an active member of (sidebar data)

@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { initDb, completeTask, reopenTask, deleteTask, updateTask, pinTask, unpinTask, getTaskForUser, TaskValidationError } from "@/lib/db";
+import { initDb, completeTask, reopenTask, deleteTask, updateTask, pinTask, unpinTask, getTaskForUser, setShareCode, generateShareCode, TaskValidationError } from "@/lib/db";
 import { TaskPermissionError } from "@/lib/task-permissions";
+import { sql } from "@vercel/postgres";
 import { aiFlowLog, getAiTraceIdFromHeaders } from "@/lib/ai-flow-log";
 import { createRouteTimer } from "@/lib/route-timing";
 import { fireNotification, fireNotifications } from "@/lib/notifications";
@@ -17,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   await initDb();
   const { id } = await params;
-  const body = await req.json() as { complete?: boolean; reopen?: boolean; action?: "pin" | "unpin"; invite_mode?: string } & Partial<ParsedTask> & { assignee_email?: string | null; assigneeEmail?: string | null; start_date?: string | null; end_date?: string | null; parent_id?: string | null; progress?: number; type?: 0 | 1 };
+  const body = await req.json() as { complete?: boolean; reopen?: boolean; action?: "pin" | "unpin" | "share" | "unshare"; invite_mode?: string } & Partial<ParsedTask> & { assignee_email?: string | null; assigneeEmail?: string | null; start_date?: string | null; end_date?: string | null; parent_id?: string | null; progress?: number; type?: 0 | 1 };
   aiFlowLog("tasks.patch.request", {
     trace_id: traceId ?? null,
     task_id: id,
@@ -50,6 +51,29 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         trace_id: traceId ?? null,
         task_id: id,
       });
+      return rt.json({ ok: true });
+    }
+
+    if (body.action === "share") {
+      const existing = await rt.track("db_query", async () => getTaskForUser(id, user.id));
+      if (!existing) return rt.json({ error: "Not found" }, { status: 404 });
+      if ((existing.type ?? 0) !== 1) return rt.json({ error: "Only notes can be shared" }, { status: 400 });
+      if (existing.user_id !== user.id) return rt.json({ error: "Only creator can share" }, { status: 403 });
+      if (existing.share_code) {
+        return rt.json({ share_code: existing.share_code, share_url: `${process.env.APP_ORIGIN || ""}/shared/${existing.share_code}` });
+      }
+      let code = generateShareCode();
+      const { rows: dup } = await sql`SELECT 1 FROM ai_todo_tasks WHERE share_code = ${code}`;
+      if (dup.length > 0) code = generateShareCode();
+      await rt.track("db_query", async () => setShareCode(id, code));
+      return rt.json({ share_code: code, share_url: `${process.env.APP_ORIGIN || ""}/shared/${code}` });
+    }
+
+    if (body.action === "unshare") {
+      const existing = await rt.track("db_query", async () => getTaskForUser(id, user.id));
+      if (!existing) return rt.json({ error: "Not found" }, { status: 404 });
+      if (existing.user_id !== user.id) return rt.json({ error: "Only creator can unshare" }, { status: 403 });
+      await rt.track("db_query", async () => setShareCode(id, null));
       return rt.json({ ok: true });
     }
 

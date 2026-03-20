@@ -148,6 +148,7 @@ app/
       new/page.tsx              # 创建组织
       [id]/page.tsx             # 组织详情页（空间列表 + 成员管理 + 设置 Tab）
   auth/callback/page.tsx        # 统一授权回跳页（authorized/state 校验）
+  shared/[code]/page.tsx        # 笔记分享公开页（独立布局，无需登录，Markdown 渲染）
   join/[invite_code]/page.tsx   # 加入空间（独立布局，无 AppShell）
   join/org/[code]/page.tsx      # 加入组织（独立布局，无 AppShell）
   api/
@@ -156,7 +157,8 @@ app/
     parse-task/route.ts         # AI 解析自然语言 → { actions: ParsedAction[] }（支持创建/更新/完成/删除/日报/移动，附带 tasks + parent_task 上下文）
     tasks/route.ts              # GET（列表/今日/已完成/空间/指派）+ POST（创建）
     tasks/tree/route.ts         # GET 树形文本（CLI tasks:tree，format:text → { output }）
-    tasks/[id]/route.ts         # PATCH（完成/更新）+ DELETE
+    tasks/[id]/route.ts         # PATCH（完成/更新/分享/取消分享）+ DELETE
+    notes/shared/[code]/route.ts  # GET 公开笔记（无需认证，按 share_code 查询）
     tasks/[id]/logs/route.ts    # GET + POST 任务进展日报
     spaces/route.ts             # GET（我的空间列表）+ POST（创建空间）
     spaces/[id]/route.ts        # GET + PATCH + DELETE
@@ -188,7 +190,7 @@ components/
   DateTimePicker.tsx             # 日期时间选择器（Popover 日历 + 时间输入 + 快捷按钮）
   TaskItem.tsx                  # 单条任务行（内联编辑 + 键盘导航 + 子任务折叠展开）
   TaskList.tsx                  # 任务列表（buildTree 组装父子关系 + 骨架屏 + 已完成折叠）
-  NoteCard.tsx                  # 笔记卡片（标题 + 标签 + 时间 + 内联编辑 + Markdown 渲染）
+  NoteCard.tsx                  # 笔记卡片（标题 + 标签 + 时间 + 内联编辑 + Markdown 渲染 + 分享/取消分享）
   AssigneeBadge.tsx             # 显示非自己的负责人徽章
   TaskSkeleton.tsx              # 加载骨架屏（3 行）
   SpaceSettings.tsx             # 空间设置面板（Sheet 抽屉内容：邀请链接 + 所属组织 + 成员管理 + 归档 + 解散）

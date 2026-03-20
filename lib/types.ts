@@ -27,6 +27,7 @@ export interface Task {
   pinned?: boolean;
   invite_code?: string;
   invite_mode?: "open" | "approval";
+  share_code?: string;
   org_id?: string;
   member_count?: number;
   task_count?: number;

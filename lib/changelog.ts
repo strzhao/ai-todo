@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.38.0",
+    date: "2026-03-20",
+    title: "笔记分享",
+    items: [
+      "笔记支持一键分享，生成公开链接发给任何人",
+      "分享链接无需登录即可查看笔记内容（Markdown 渲染）",
+      "可随时取消分享，链接立即失效",
+    ],
+  },
+  {
     version: "1.37.0",
     date: "2026-03-19",
     title: "团队组织",

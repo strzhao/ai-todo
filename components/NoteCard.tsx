@@ -30,6 +30,8 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
   const [editValue, setEditValue] = useState(note.title);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
+  const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const deleteTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -66,6 +68,42 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
     } else {
       setConfirmingDelete(true);
       deleteTimerRef.current = setTimeout(() => setConfirmingDelete(false), 3000);
+    }
+  }
+
+  async function handleShare() {
+    if (note.share_code || shareUrl) {
+      // Already shared, copy link
+      const url = shareUrl || `${window.location.origin}/shared/${note.share_code}`;
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      return;
+    }
+    const res = await fetch(`/api/tasks/${note.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "share" }),
+    });
+    if (res.ok) {
+      const data = await res.json() as { share_code: string; share_url: string };
+      setShareUrl(data.share_url);
+      onUpdate(note.id, { share_code: data.share_code });
+      await navigator.clipboard.writeText(data.share_url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  async function handleUnshare() {
+    const res = await fetch(`/api/tasks/${note.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "unshare" }),
+    });
+    if (res.ok) {
+      setShareUrl("");
+      onUpdate(note.id, { share_code: undefined });
     }
   }
 
@@ -122,17 +160,42 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
             </div>
           )}
         </div>
-        <button
-          onClick={handleDeleteClick}
-          className={`transition-opacity text-xs shrink-0 mt-0.5 ${
-            confirmingDelete
-              ? "opacity-100 text-destructive font-medium"
-              : "opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
-          }`}
-          title="删除"
-        >
-          {confirmingDelete ? "确认?" : "✕"}
-        </button>
+        <div className="flex items-center gap-1">
+          {/* Share button */}
+          <button
+            onClick={handleShare}
+            className={`transition-opacity text-xs shrink-0 mt-0.5 ${
+              note.share_code || shareUrl
+                ? "opacity-100 text-sage"
+                : "opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-sage"
+            }`}
+            title={note.share_code || shareUrl ? "已分享（点击复制链接）" : "分享"}
+          >
+            {copied ? "已复制" : "\u2934"}
+          </button>
+          {/* Unshare button - only when shared */}
+          {(note.share_code || shareUrl) && (
+            <button
+              onClick={handleUnshare}
+              className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-muted-foreground hover:text-destructive shrink-0 mt-0.5"
+              title="取消分享"
+            >
+              {"\u2298"}
+            </button>
+          )}
+          {/* Delete button */}
+          <button
+            onClick={handleDeleteClick}
+            className={`transition-opacity text-xs shrink-0 mt-0.5 ${
+              confirmingDelete
+                ? "opacity-100 text-destructive font-medium"
+                : "opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+            }`}
+            title="删除"
+          >
+            {confirmingDelete ? "确认?" : "\u2715"}
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center justify-between mt-2 gap-2">
