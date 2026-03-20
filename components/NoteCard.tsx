@@ -32,6 +32,7 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const deleteTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -73,25 +74,32 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
 
   async function handleShare() {
     if (note.share_code || shareUrl) {
-      // Already shared, copy link
-      const url = shareUrl || `${window.location.origin}/shared/${note.share_code}`;
+      // Already shared, copy full link
+      const code = shareUrl ? new URL(shareUrl, window.location.origin).pathname.split("/").pop() : note.share_code;
+      const url = `${window.location.origin}/shared/${code}`;
       await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       return;
     }
-    const res = await fetch(`/api/tasks/${note.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "share" }),
-    });
-    if (res.ok) {
-      const data = await res.json() as { share_code: string; share_url: string };
-      setShareUrl(data.share_url);
-      onUpdate(note.id, { share_code: data.share_code });
-      await navigator.clipboard.writeText(data.share_url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+    setSharing(true);
+    try {
+      const res = await fetch(`/api/tasks/${note.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "share" }),
+      });
+      if (res.ok) {
+        const data = await res.json() as { share_code: string; share_url: string };
+        const fullUrl = `${window.location.origin}/shared/${data.share_code}`;
+        setShareUrl(fullUrl);
+        onUpdate(note.id, { share_code: data.share_code });
+        await navigator.clipboard.writeText(fullUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } finally {
+      setSharing(false);
     }
   }
 
@@ -164,14 +172,17 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
           {/* Share button */}
           <button
             onClick={handleShare}
+            disabled={sharing}
             className={`transition-opacity text-xs shrink-0 mt-0.5 px-1 ${
-              note.share_code || shareUrl
-                ? "opacity-100 text-sage"
-                : "opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-sage"
+              sharing
+                ? "opacity-100 text-muted-foreground animate-pulse"
+                : note.share_code || shareUrl
+                  ? "opacity-100 text-sage"
+                  : "opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-sage"
             }`}
-            title={note.share_code || shareUrl ? "已分享（点击复制链接）" : "分享"}
+            title={sharing ? "生成中..." : note.share_code || shareUrl ? "已分享（点击复制链接）" : "分享"}
           >
-            {copied ? "已复制" : "\u2934"}
+            {sharing ? "..." : copied ? "已复制" : "\u2934"}
           </button>
           {/* Unshare button - only when shared */}
           {(note.share_code || shareUrl) && (
