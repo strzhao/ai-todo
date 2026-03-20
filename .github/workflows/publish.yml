@@ -17,6 +17,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+          registry-url: "https://registry.npmjs.org"
       - name: Verify tag matches package.json version
         run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
