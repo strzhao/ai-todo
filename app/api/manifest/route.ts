@@ -13,6 +13,7 @@ const manifest = {
     {
       id: "list_tasks",
       name: "tasks:list",
+      aliases: ["list", "ls"],
       description: "List tasks with optional filters",
       method: "GET",
       path: "/api/tasks",
@@ -24,6 +25,7 @@ const manifest = {
     {
       id: "create_task",
       name: "tasks:create",
+      aliases: ["create", "add"],
       description: "Create a new task",
       method: "POST",
       path: "/api/tasks",
@@ -43,11 +45,12 @@ const manifest = {
     {
       id: "update_task",
       name: "tasks:update",
+      aliases: ["update"],
       description: "Update task fields",
       method: "PATCH",
       path: "/api/tasks/:id",
       params: [
-        { name: "id", in: "path", type: "string", required: true, description: "Task ID" },
+        { name: "id", in: "path", type: "string", required: true, description: "Task ID", aliases: ["task", "task_id", "task-id"] },
         { name: "title", in: "body", type: "string", required: false, description: "New title" },
         { name: "description", in: "body", type: "string", required: false, description: "New description" },
         { name: "priority", in: "body", type: "number", enum: [0, 1, 2, 3], required: false, description: "New priority" },
@@ -63,22 +66,24 @@ const manifest = {
     {
       id: "complete_task",
       name: "tasks:complete",
+      aliases: ["complete", "done"],
       description: "Mark a task as completed (also completes subtasks)",
       method: "PATCH",
       path: "/api/tasks/:id",
       params: [
-        { name: "id", in: "path", type: "string", required: true, description: "Task ID" },
+        { name: "id", in: "path", type: "string", required: true, description: "Task ID", aliases: ["task", "task_id", "task-id"] },
       ],
       fixed_body: { complete: true },
     },
     {
       id: "delete_task",
       name: "tasks:delete",
+      aliases: ["delete", "rm"],
       description: "Delete a task (cascades to subtasks)",
       method: "DELETE",
       path: "/api/tasks/:id",
       params: [
-        { name: "id", in: "path", type: "string", required: true, description: "Task ID" },
+        { name: "id", in: "path", type: "string", required: true, description: "Task ID", aliases: ["task", "task_id", "task-id"] },
       ],
     },
     {
@@ -88,7 +93,7 @@ const manifest = {
       method: "PATCH",
       path: "/api/tasks/:id",
       params: [
-        { name: "id", in: "path", type: "string", required: true, description: "Task ID" },
+        { name: "id", in: "path", type: "string", required: true, description: "Task ID", aliases: ["task", "task_id", "task-id"] },
       ],
       fixed_body: { action: "pin" },
     },
@@ -99,7 +104,7 @@ const manifest = {
       method: "PATCH",
       path: "/api/tasks/:id",
       params: [
-        { name: "id", in: "path", type: "string", required: true, description: "Task ID" },
+        { name: "id", in: "path", type: "string", required: true, description: "Task ID", aliases: ["task", "task_id", "task-id"] },
       ],
       fixed_body: { action: "unpin" },
     },
@@ -110,17 +115,18 @@ const manifest = {
       method: "GET",
       path: "/api/tasks/:id/logs",
       params: [
-        { name: "id", in: "path", type: "string", required: true, description: "Task ID" },
+        { name: "id", in: "path", type: "string", required: true, description: "Task ID", aliases: ["task", "task_id", "task-id"] },
       ],
     },
     {
       id: "add_task_log",
       name: "tasks:add-log",
+      aliases: ["log"],
       description: "Add a progress log entry to a task",
       method: "POST",
       path: "/api/tasks/:id/logs",
       params: [
-        { name: "id", in: "path", type: "string", required: true, description: "Task ID" },
+        { name: "id", in: "path", type: "string", required: true, description: "Task ID", aliases: ["task", "task_id", "task-id"] },
         { name: "content", in: "body", type: "string", required: true, description: "Log content" },
       ],
     },
@@ -213,6 +219,7 @@ const manifest = {
     {
       id: "task_tree",
       name: "tasks:tree",
+      aliases: ["tree"],
       description: "Display all active tasks as a JSON tree with nested children",
       method: "GET",
       path: "/api/tasks/tree",
