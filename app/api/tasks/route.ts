@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { getTasks, getTodayTasks, getCompletedTasks, createTask, getTaskMemberRecord, getTaskById } from "@/lib/db";
+import { getTasks, getTodayTasks, getCompletedTasks, createTask, getTaskById } from "@/lib/db";
+import { requireSpaceMember } from "@/lib/spaces";
 import { aiFlowLog, getAiTraceIdFromHeaders } from "@/lib/ai-flow-log";
 import { createRouteTimer } from "@/lib/route-timing";
 import { fireNotifications } from "@/lib/notifications";
@@ -19,8 +20,9 @@ export async function GET(req: NextRequest) {
   const typeParam = req.nextUrl.searchParams.get("type");
 
   if (spaceId) {
-    const member = await rt.track("db_query", async () => getTaskMemberRecord(spaceId, user.id));
-    if (!member || member.status !== "active") {
+    try {
+      await rt.track("db_query", async () => requireSpaceMember(spaceId, user.id));
+    } catch {
       return rt.json({ error: "Not a space member" }, { status: 403 });
     }
   }
@@ -32,8 +34,11 @@ export async function GET(req: NextRequest) {
   if (wantType === 1) {
     // Notes: optionally scoped to a space
     tasks = await rt.track("db_query", async () => getTasks(user.id, spaceId ? { spaceId } : {}));
-    tasks = tasks.filter((t: Task) => (t.type ?? 0) === 1)
-      .sort((a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    tasks = tasks
+      .filter((t: Task) => (t.type ?? 0) === 1)
+      .sort(
+        (a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
   } else if (filter === "today") {
     tasks = await rt.track("db_query", async () => getTodayTasks(user.id, spaceId));
     tasks = tasks.filter((t: Task) => (t.type ?? 0) === 0);
@@ -57,7 +62,12 @@ export async function POST(req: NextRequest) {
   const user = await rt.track("auth", async () => getUserFromRequest(req));
   if (!user) return rt.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json() as ParsedTask & { space_id?: string; assignee_email?: string; parent_id?: string; type?: 0 | 1 };
+  const body = (await req.json()) as ParsedTask & {
+    space_id?: string;
+    assignee_email?: string;
+    parent_id?: string;
+    type?: 0 | 1;
+  };
   aiFlowLog("tasks.post.request", {
     trace_id: traceId ?? null,
     title: body.title,
@@ -83,14 +93,18 @@ export async function POST(req: NextRequest) {
     if (body.space_id) {
       const parentSpace = parent.pinned ? parent.id : parent.space_id;
       if (parentSpace !== body.space_id) {
-        return rt.json({ error: "Parent task does not belong to the specified space" }, { status: 400 });
+        return rt.json(
+          { error: "Parent task does not belong to the specified space" },
+          { status: 400 }
+        );
       }
     }
   }
 
   if (body.space_id) {
-    const member = await rt.track("db_query", async () => getTaskMemberRecord(body.space_id!, user.id));
-    if (!member || member.status !== "active") {
+    try {
+      await rt.track("db_query", async () => requireSpaceMember(body.space_id!, user.id));
+    } catch {
       return rt.json({ error: "Not a space member" }, { status: 403 });
     }
   }
@@ -101,10 +115,13 @@ export async function POST(req: NextRequest) {
 
   if (assigneeEmail && body.space_id) {
     const { sql } = await import("@vercel/postgres");
-    const { rows } = await rt.track("db_query", async () => sql`
+    const { rows } = await rt.track(
+      "db_query",
+      async () => sql`
       SELECT user_id FROM ai_todo_task_members
       WHERE task_id = ${body.space_id} AND email = ${assigneeEmail} AND status = 'active'
-    `);
+    `
+    );
     if (rows[0]) assigneeId = rows[0].user_id as string;
   }
 
@@ -117,14 +134,16 @@ export async function POST(req: NextRequest) {
     assignee_id: assigneeId ?? null,
   });
 
-  const task = await rt.track("db_query", async () => createTask(user.id, {
-    ...body,
-    spaceId: body.space_id,
-    assigneeId,
-    assigneeEmail,
-    mentionedEmails: body.mentions ?? [],
-    parentId: body.parent_id,
-  }));
+  const task = await rt.track("db_query", async () =>
+    createTask(user.id, {
+      ...body,
+      spaceId: body.space_id,
+      assigneeId,
+      assigneeEmail,
+      mentionedEmails: body.mentions ?? [],
+      parentId: body.parent_id,
+    })
+  );
 
   aiFlowLog("tasks.post.created", {
     trace_id: traceId ?? null,
@@ -161,7 +180,11 @@ export async function POST(req: NextRequest) {
             WHERE task_id = ${task.space_id} AND email = ${email} AND status = 'active'
           `;
           const mentionedUserId = rows[0]?.user_id as string | undefined;
-          if (mentionedUserId && mentionedUserId !== user.id && mentionedUserId !== task.assignee_id) {
+          if (
+            mentionedUserId &&
+            mentionedUserId !== user.id &&
+            mentionedUserId !== task.assignee_id
+          ) {
             notifs.push({
               userId: mentionedUserId,
               type: "task_mentioned",

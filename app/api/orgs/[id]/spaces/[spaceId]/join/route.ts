@@ -1,13 +1,12 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { initDb, getTaskById, addTaskMember, getTaskMemberRecord, getTaskMembers } from "@/lib/db";
+import { initDb, getTaskById, addTaskMember, getTaskMemberRecord } from "@/lib/db";
 import { requireOrgMember } from "@/lib/orgs";
 import { createRouteTimer } from "@/lib/route-timing";
-import { fireNotification } from "@/lib/notifications";
 
 export const preferredRegion = "hkg1";
 
-// Organization member requests to join a space within the org
+// Organization member joins a space within the org (auto-active)
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; spaceId: string }> }
@@ -35,7 +34,7 @@ export async function POST(
     return rt.json({ error: "Space does not belong to this organization" }, { status: 400 });
   }
 
-  // Already a member?
+  // Already a direct member?
   const existing = await rt.track("db_query", async () => getTaskMemberRecord(spaceId, user.id));
   if (existing) {
     return rt.json(
@@ -44,25 +43,11 @@ export async function POST(
     );
   }
 
-  // Org members join space as pending (space owner still approves)
-  const status = "pending";
-  await rt.track("db_query", async () => addTaskMember(spaceId, user.id, user.email, "member", status));
-
-  // Notify space owner
-  const members = await rt.track("db_query", async () => getTaskMembers(spaceId));
-  const owner = members.find(m => m.role === "owner");
-  if (owner && owner.user_id !== user.id) {
-    fireNotification({
-      userId: owner.user_id,
-      type: "space_join_pending",
-      title: `${user.email.split("@")[0]} 申请加入空间`,
-      body: space.title,
-      taskId: spaceId,
-      spaceId: spaceId,
-      actorId: user.id,
-      actorEmail: user.email,
-    });
-  }
+  // Org 成员直接以 active 状态加入空间
+  const status = "active";
+  await rt.track("db_query", async () =>
+    addTaskMember(spaceId, user.id, user.email, "member", status)
+  );
 
   return rt.json({ space_id: spaceId, status }, { status: 201 });
 }

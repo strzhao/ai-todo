@@ -1,6 +1,13 @@
 import { sql } from "@vercel/postgres";
 import type { Task, ParsedTask, TaskMember, TaskLog, Organization, OrgMember } from "./types";
-import { getTaskRoles, getDisallowedFields, buildPermissionErrorMessage, checkTaskPermission, buildOperationErrorMessage, TaskPermissionError } from "./task-permissions";
+import {
+  getTaskRoles,
+  getDisallowedFields,
+  buildPermissionErrorMessage,
+  checkTaskPermission,
+  buildOperationErrorMessage,
+  TaskPermissionError,
+} from "./task-permissions";
 
 export class TaskValidationError extends Error {
   constructor(message: string) {
@@ -17,8 +24,12 @@ export async function initDb() {
   if (_dbSchemaVersion >= DB_SCHEMA_VERSION) return;
   if (_dbInitPromise) return _dbInitPromise;
   _dbInitPromise = _doInitDb()
-    .then(() => { _dbSchemaVersion = DB_SCHEMA_VERSION; })
-    .finally(() => { _dbInitPromise = null; });
+    .then(() => {
+      _dbSchemaVersion = DB_SCHEMA_VERSION;
+    })
+    .finally(() => {
+      _dbInitPromise = null;
+    });
   return _dbInitPromise;
 }
 
@@ -272,7 +283,9 @@ export async function activateUser(
 
 // ─── User nickname ───────────────────────────────────────────────────────────
 
-export async function getUserActivation(userId: string): Promise<{ activated: boolean; nickname: string | null }> {
+export async function getUserActivation(
+  userId: string
+): Promise<{ activated: boolean; nickname: string | null }> {
   const { rows } = await sql`
     SELECT nickname FROM ai_todo_activated_users WHERE user_id = ${userId} LIMIT 1
   `;
@@ -436,16 +449,28 @@ export async function getCompletedTasks(userId: string, spaceId?: string): Promi
 
 export async function getTaskForUser(taskId: string, userId: string): Promise<Task | null> {
   const { rows } = await sql`
-    SELECT t.*, m.role AS _member_role FROM ai_todo_tasks t
+    SELECT t.*,
+      COALESCE(m.role, CASE WHEN om.user_id IS NOT NULL THEN 'member' END) AS _member_role
+    FROM ai_todo_tasks t
     LEFT JOIN ai_todo_task_members m
       ON m.task_id = COALESCE(t.space_id, t.id)
       AND m.user_id = ${userId}
       AND m.status = 'active'
+    LEFT JOIN ai_todo_tasks space_task
+      ON space_task.id = COALESCE(t.space_id, t.id)
+      AND space_task.pinned = true
+    LEFT JOIN ai_todo_org_members om
+      ON om.org_id = space_task.org_id
+      AND om.user_id = ${userId}
+      AND om.status = 'active'
+      AND space_task.org_id IS NOT NULL
     WHERE t.id = ${taskId}
       AND (
         (t.space_id IS NULL AND t.pinned = false AND t.user_id = ${userId})
         OR
         m.user_id IS NOT NULL
+        OR
+        om.user_id IS NOT NULL
       )
   `;
   if (!rows[0]) return null;
@@ -560,7 +585,15 @@ export async function deleteTask(taskId: string, userId: string): Promise<void> 
 export async function updateTask(
   taskId: string,
   userId: string,
-  patch: Partial<ParsedTask> & { assignee_email?: string | null; assigneeEmail?: string | null; start_date?: string | null; end_date?: string | null; parent_id?: string | null; progress?: number; type?: 0 | 1 }
+  patch: Partial<ParsedTask> & {
+    assignee_email?: string | null;
+    assigneeEmail?: string | null;
+    start_date?: string | null;
+    end_date?: string | null;
+    parent_id?: string | null;
+    progress?: number;
+    type?: 0 | 1;
+  }
 ): Promise<Task | null> {
   const task = await getTaskForUser(taskId, userId);
   if (!task) return null;
@@ -568,7 +601,9 @@ export async function updateTask(
   // 空间任务：基于角色的权限检查
   if (task.space_id) {
     const roles = getTaskRoles(task, userId, task._memberRole);
-    const patchKeys = Object.keys(patch).filter((k) => (patch as Record<string, unknown>)[k] !== undefined);
+    const patchKeys = Object.keys(patch).filter(
+      (k) => (patch as Record<string, unknown>)[k] !== undefined
+    );
     const disallowed = getDisallowedFields(roles, patchKeys);
     if (disallowed.length > 0) {
       throw new TaskPermissionError(buildPermissionErrorMessage(disallowed));
@@ -579,14 +614,32 @@ export async function updateTask(
   const values: unknown[] = [];
   let idx = 1;
 
-  if (patch.title !== undefined) { fields.push(`title = $${idx++}`); values.push(patch.title); }
-  if (patch.description !== undefined) { fields.push(`description = $${idx++}`); values.push(patch.description); }
-  if (patch.due_date !== undefined) { fields.push(`due_date = $${idx++}`); values.push(patch.due_date); }
-  if (patch.priority !== undefined) { fields.push(`priority = $${idx++}`); values.push(patch.priority); }
-  if (patch.tags !== undefined) { fields.push(`tags = $${idx++}`); values.push(patch.tags); }
-  const nextAssigneeEmail = ("assignee_email" in patch)
-    ? patch.assignee_email
-    : ("assigneeEmail" in patch ? patch.assigneeEmail : undefined);
+  if (patch.title !== undefined) {
+    fields.push(`title = $${idx++}`);
+    values.push(patch.title);
+  }
+  if (patch.description !== undefined) {
+    fields.push(`description = $${idx++}`);
+    values.push(patch.description);
+  }
+  if (patch.due_date !== undefined) {
+    fields.push(`due_date = $${idx++}`);
+    values.push(patch.due_date);
+  }
+  if (patch.priority !== undefined) {
+    fields.push(`priority = $${idx++}`);
+    values.push(patch.priority);
+  }
+  if (patch.tags !== undefined) {
+    fields.push(`tags = $${idx++}`);
+    values.push(patch.tags);
+  }
+  const nextAssigneeEmail =
+    "assignee_email" in patch
+      ? patch.assignee_email
+      : "assigneeEmail" in patch
+        ? patch.assigneeEmail
+        : undefined;
   if (nextAssigneeEmail !== undefined) {
     if (nextAssigneeEmail === null || String(nextAssigneeEmail).trim() === "") {
       fields.push(`assignee_email = $${idx++}`);
@@ -615,10 +668,22 @@ export async function updateTask(
       values.push(assigneeId);
     }
   }
-  if (patch.start_date !== undefined) { fields.push(`start_date = $${idx++}`); values.push(patch.start_date); }
-  if (patch.end_date !== undefined) { fields.push(`end_date = $${idx++}`); values.push(patch.end_date); }
-  if (patch.progress !== undefined) { fields.push(`progress = $${idx++}`); values.push(patch.progress); }
-  if (patch.type !== undefined) { fields.push(`type = $${idx++}`); values.push(patch.type); }
+  if (patch.start_date !== undefined) {
+    fields.push(`start_date = $${idx++}`);
+    values.push(patch.start_date);
+  }
+  if (patch.end_date !== undefined) {
+    fields.push(`end_date = $${idx++}`);
+    values.push(patch.end_date);
+  }
+  if (patch.progress !== undefined) {
+    fields.push(`progress = $${idx++}`);
+    values.push(patch.progress);
+  }
+  if (patch.type !== undefined) {
+    fields.push(`type = $${idx++}`);
+    values.push(patch.type);
+  }
   if (patch.parent_id !== undefined) {
     const nextParentId = patch.parent_id || null;
 
@@ -727,7 +792,8 @@ export async function pinTask(
 
   let inviteCode = generateInviteCode();
   // Ensure uniqueness
-  const { rows: existing } = await sql`SELECT 1 FROM ai_todo_tasks WHERE invite_code = ${inviteCode}`;
+  const { rows: existing } =
+    await sql`SELECT 1 FROM ai_todo_tasks WHERE invite_code = ${inviteCode}`;
   if (existing.length > 0) inviteCode = generateInviteCode();
 
   const { rows } = await sql.query(
@@ -766,7 +832,8 @@ export async function createPinnedTask(
   data: { title: string; description?: string; invite_mode?: "open" | "approval" }
 ): Promise<Task> {
   let inviteCode = generateInviteCode();
-  const { rows: existing } = await sql`SELECT 1 FROM ai_todo_tasks WHERE invite_code = ${inviteCode}`;
+  const { rows: existing } =
+    await sql`SELECT 1 FROM ai_todo_tasks WHERE invite_code = ${inviteCode}`;
   if (existing.length > 0) inviteCode = generateInviteCode();
 
   const { rows } = await sql.query(
@@ -809,9 +876,18 @@ export async function updatePinnedTask(
   const values: unknown[] = [];
   let idx = 1;
 
-  if (patch.title !== undefined) { fields.push(`title = $${idx++}`); values.push(patch.title); }
-  if (patch.description !== undefined) { fields.push(`description = $${idx++}`); values.push(patch.description); }
-  if (patch.invite_mode !== undefined) { fields.push(`invite_mode = $${idx++}`); values.push(patch.invite_mode); }
+  if (patch.title !== undefined) {
+    fields.push(`title = $${idx++}`);
+    values.push(patch.title);
+  }
+  if (patch.description !== undefined) {
+    fields.push(`description = $${idx++}`);
+    values.push(patch.description);
+  }
+  if (patch.invite_mode !== undefined) {
+    fields.push(`invite_mode = $${idx++}`);
+    values.push(patch.invite_mode);
+  }
 
   if (fields.length === 0) {
     const { rows } = await sql`SELECT * FROM ai_todo_tasks WHERE id = ${id}`;
@@ -838,7 +914,10 @@ export async function getTaskMembers(taskId: string): Promise<TaskMember[]> {
   return rows.map(rowToMember);
 }
 
-export async function getTaskMemberRecord(taskId: string, userId: string): Promise<TaskMember | null> {
+export async function getTaskMemberRecord(
+  taskId: string,
+  userId: string
+): Promise<TaskMember | null> {
   const { rows } = await sql`
     SELECT * FROM ai_todo_task_members WHERE task_id = ${taskId} AND user_id = ${userId}
   `;
@@ -871,9 +950,18 @@ export async function updateTaskMember(
   const values: unknown[] = [];
   let idx = 1;
 
-  if (patch.status !== undefined) { fields.push(`status = $${idx++}`); values.push(patch.status); }
-  if (patch.display_name !== undefined) { fields.push(`display_name = $${idx++}`); values.push(patch.display_name); }
-  if (patch.role !== undefined) { fields.push(`role = $${idx++}`); values.push(patch.role); }
+  if (patch.status !== undefined) {
+    fields.push(`status = $${idx++}`);
+    values.push(patch.status);
+  }
+  if (patch.display_name !== undefined) {
+    fields.push(`display_name = $${idx++}`);
+    values.push(patch.display_name);
+  }
+  if (patch.role !== undefined) {
+    fields.push(`role = $${idx++}`);
+    values.push(patch.role);
+  }
 
   if (fields.length === 0) return null;
 
@@ -948,10 +1036,7 @@ export async function getDescendantTasks(parentId: string): Promise<Task[]> {
   return rows.map(rowToTask);
 }
 
-export async function getLogsForTasksByDate(
-  taskIds: string[],
-  date: string
-): Promise<TaskLog[]> {
+export async function getLogsForTasksByDate(taskIds: string[], date: string): Promise<TaskLog[]> {
   if (taskIds.length === 0) return [];
   const placeholders = taskIds.map((_, i) => `$${i + 1}`).join(",");
   const dateIdx = taskIds.length + 1;
@@ -967,10 +1052,7 @@ export async function getLogsForTasksByDate(
   return rows.map(rowToTaskLog);
 }
 
-export async function getLogsForTasks(
-  taskIds: string[],
-  limit = 500
-): Promise<TaskLog[]> {
+export async function getLogsForTasks(taskIds: string[], limit = 500): Promise<TaskLog[]> {
   if (taskIds.length === 0) return [];
   const placeholders = taskIds.map((_, i) => `$${i + 1}`).join(",");
   const limitIdx = taskIds.length + 1;
@@ -1010,7 +1092,11 @@ export interface SummaryCache {
   generated_at: string;
 }
 
-export async function getSummaryCache(taskId: string, date: string, templateId: string = "default"): Promise<SummaryCache | null> {
+export async function getSummaryCache(
+  taskId: string,
+  date: string,
+  templateId: string = "default"
+): Promise<SummaryCache | null> {
   const { rows } = await sql.query(
     `SELECT * FROM ai_todo_summary_cache WHERE task_id = $1 AND summary_date = $2 AND template_id = $3 LIMIT 1`,
     [taskId, date, templateId]
@@ -1027,7 +1113,13 @@ export async function getSummaryCache(taskId: string, date: string, templateId: 
   };
 }
 
-export async function upsertSummaryCache(taskId: string, date: string, content: string, userId: string, templateId: string = "default"): Promise<void> {
+export async function upsertSummaryCache(
+  taskId: string,
+  date: string,
+  content: string,
+  userId: string,
+  templateId: string = "default"
+): Promise<void> {
   await sql.query(
     `INSERT INTO ai_todo_summary_cache (task_id, summary_date, content, generated_by, generated_at, template_id)
      VALUES ($1, $2, $3, $4, NOW(), $5)
@@ -1085,7 +1177,13 @@ export async function getSummaryConfig(spaceId: string): Promise<SummaryConfig |
 
 export async function upsertSummaryConfig(
   spaceId: string,
-  config: { system_prompt?: string | null; data_template?: string | null; data_sources?: SummaryDataSource[]; prompt_templates?: PromptTemplate[]; linked_spaces?: LinkedSpace[] },
+  config: {
+    system_prompt?: string | null;
+    data_template?: string | null;
+    data_sources?: SummaryDataSource[];
+    prompt_templates?: PromptTemplate[];
+    linked_spaces?: LinkedSpace[];
+  },
   userId: string
 ): Promise<void> {
   const existing = await getSummaryConfig(spaceId);
@@ -1196,7 +1294,8 @@ export async function createOrg(
   data: { name: string; description?: string }
 ): Promise<Organization> {
   let inviteCode = generateOrgInviteCode();
-  const { rows: existing } = await sql`SELECT 1 FROM ai_todo_orgs WHERE invite_code = ${inviteCode}`;
+  const { rows: existing } =
+    await sql`SELECT 1 FROM ai_todo_orgs WHERE invite_code = ${inviteCode}`;
   if (existing.length > 0) inviteCode = generateOrgInviteCode();
 
   const { rows } = await sql.query(
@@ -1245,8 +1344,14 @@ export async function updateOrg(
   const values: unknown[] = [];
   let idx = 1;
 
-  if (patch.name !== undefined) { fields.push(`name = $${idx++}`); values.push(patch.name); }
-  if (patch.description !== undefined) { fields.push(`description = $${idx++}`); values.push(patch.description); }
+  if (patch.name !== undefined) {
+    fields.push(`name = $${idx++}`);
+    values.push(patch.name);
+  }
+  if (patch.description !== undefined) {
+    fields.push(`description = $${idx++}`);
+    values.push(patch.description);
+  }
 
   if (fields.length === 0) {
     return getOrgById(id);
@@ -1313,8 +1418,14 @@ export async function updateOrgMember(
   const values: unknown[] = [];
   let idx = 1;
 
-  if (patch.role !== undefined) { fields.push(`role = $${idx++}`); values.push(patch.role); }
-  if (patch.status !== undefined) { fields.push(`status = $${idx++}`); values.push(patch.status); }
+  if (patch.role !== undefined) {
+    fields.push(`role = $${idx++}`);
+    values.push(patch.role);
+  }
+  if (patch.status !== undefined) {
+    fields.push(`status = $${idx++}`);
+    values.push(patch.status);
+  }
 
   if (fields.length === 0) return null;
 
@@ -1327,13 +1438,16 @@ export async function updateOrgMember(
 }
 
 export async function removeOrgMember(orgId: string, userId: string): Promise<void> {
-  await sql.query(`DELETE FROM ai_todo_org_members WHERE org_id = $1 AND user_id = $2`, [orgId, userId]);
+  await sql.query(`DELETE FROM ai_todo_org_members WHERE org_id = $1 AND user_id = $2`, [
+    orgId,
+    userId,
+  ]);
 }
 
 export async function getOrgSpaces(orgId: string, userId?: string): Promise<Task[]> {
   const { rows } = await sql.query(
     `SELECT t.*,
-       ${userId ? `(SELECT my.role FROM ai_todo_task_members my WHERE my.task_id = t.id AND my.user_id = $2 AND my.status = 'active') AS my_role,` : ''}
+       ${userId ? `(SELECT my.role FROM ai_todo_task_members my WHERE my.task_id = t.id AND my.user_id = $2 AND my.status = 'active') AS my_role,` : ""}
        (SELECT COUNT(*) FROM ai_todo_task_members m WHERE m.task_id = t.id AND m.status = 'active') AS member_count,
        (SELECT COUNT(*) FROM ai_todo_tasks c WHERE c.space_id = t.id AND c.status != 2) AS task_count
      FROM ai_todo_tasks t

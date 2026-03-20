@@ -1,14 +1,36 @@
-import { getTaskMemberRecord } from "./db";
+import { getTaskMemberRecord, getTaskById, getOrgMemberRecord } from "./db";
 import type { TaskMember } from "./types";
 
 export async function getSpaceMember(spaceId: string, userId: string): Promise<TaskMember | null> {
-  return getTaskMemberRecord(spaceId, userId);
+  // 1. 先查直接成员
+  const direct = await getTaskMemberRecord(spaceId, userId);
+  if (direct && direct.status === "active") return direct;
+
+  // 2. 检查空间是否有 org_id
+  const space = await getTaskById(spaceId);
+  if (!space || !space.org_id) return null;
+
+  // 3. 检查用户是否是该 org 的 active 成员
+  const orgMember = await getOrgMemberRecord(space.org_id, userId);
+  if (!orgMember || orgMember.status !== "active") return null;
+
+  // 4. 构造虚拟 TaskMember（org 成员自动获得 member 角色）
+  return {
+    id: `org-virtual-${orgMember.user_id}`,
+    task_id: spaceId,
+    user_id: orgMember.user_id,
+    email: orgMember.email,
+    nickname: orgMember.nickname,
+    role: "member",
+    status: "active",
+    joined_at: orgMember.joined_at,
+  };
 }
 
 // Throws with { status, message } if user is not an active member
 export async function requireSpaceMember(spaceId: string, userId: string): Promise<TaskMember> {
-  const member = await getTaskMemberRecord(spaceId, userId);
-  if (!member || member.status !== "active") {
+  const member = await getSpaceMember(spaceId, userId);
+  if (!member) {
     throw Object.assign(new Error("Not a space member"), { status: 403 });
   }
   return member;
@@ -23,7 +45,10 @@ export async function requireSpaceOwner(spaceId: string, userId: string): Promis
 }
 
 // Throws with { status, message } if user is not admin or owner
-export async function requireSpaceAdminOrOwner(spaceId: string, userId: string): Promise<TaskMember> {
+export async function requireSpaceAdminOrOwner(
+  spaceId: string,
+  userId: string
+): Promise<TaskMember> {
   const member = await getTaskMemberRecord(spaceId, userId);
   if (!member || (member.role !== "owner" && member.role !== "admin")) {
     throw Object.assign(new Error("Requires admin or owner role"), { status: 403 });
