@@ -1,3 +1,6 @@
 node_modules
 dist
 *.tsbuildinfo
+.claude/autopilot.local.md
+.claude/doctor-report.md
+.claude/worktrees/

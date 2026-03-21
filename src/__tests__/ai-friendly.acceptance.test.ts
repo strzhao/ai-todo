@@ -7,10 +7,10 @@
  * 3. Smart correction — Levenshtein-based suggestion for typos
  * 4. Backward compatibility — existing commands still work
  */
-import { describe, it, expect, beforeEach } from "vitest";
+
 import { Command } from "commander";
-import { registerDynamicCommands } from "../commands.js";
-import { findClosestCommand } from "../commands.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { findClosestCommand, registerDynamicCommands } from "../commands.js";
 import type { ManifestOperation } from "../manifest.js";
 
 // ---------------------------------------------------------------------------
@@ -18,7 +18,9 @@ import type { ManifestOperation } from "../manifest.js";
 // ---------------------------------------------------------------------------
 
 /** Build a minimal ManifestOperation for testing */
-function makeOp(overrides: Partial<ManifestOperation> & { name: string }): ManifestOperation {
+function makeOp(
+  overrides: Partial<ManifestOperation> & { name: string },
+): ManifestOperation {
   return {
     id: overrides.id ?? overrides.name,
     description: overrides.description ?? `Test operation ${overrides.name}`,
@@ -62,10 +64,22 @@ describe("Command aliases", () => {
         name: "tasks:add-log",
         aliases: ["log"],
         params: [
-          { name: "id", in: "path", type: "string", required: true, description: "Task ID" },
-          { name: "content", in: "body", type: "string", required: true, description: "Log content" },
+          {
+            name: "id",
+            in: "path",
+            type: "string",
+            required: true,
+            description: "Task ID",
+          },
+          {
+            name: "content",
+            in: "body",
+            type: "string",
+            required: true,
+            description: "Log content",
+          },
         ],
-      } as ManifestOperation & { aliases: string[] }),
+      }),
     ];
 
     registerDynamicCommands(program, ops);
@@ -83,7 +97,7 @@ describe("Command aliases", () => {
         name: "tasks:list",
         aliases: ["ls", "list"],
         params: [],
-      } as ManifestOperation & { aliases: string[] }),
+      }),
     ];
 
     registerDynamicCommands(program, ops);
@@ -102,7 +116,7 @@ describe("Command aliases", () => {
         aliases: ["tree"],
         params: [],
         format: "text",
-      } as ManifestOperation & { aliases: string[] }),
+      }),
     ];
 
     registerDynamicCommands(program, ops);
@@ -110,7 +124,7 @@ describe("Command aliases", () => {
     // Commander stores aliases on the primary command object
     const primaryCmd = program.commands.find((c) => c.name() === "tasks:tree");
     expect(primaryCmd).toBeDefined();
-    expect(primaryCmd!.aliases()).toContain("tree");
+    expect(primaryCmd?.aliases()).toContain("tree");
   });
 });
 
@@ -137,7 +151,7 @@ describe("Parameter aliases", () => {
             required: true,
             description: "Task ID",
             aliases: ["task", "task_id", "task-id"],
-          } as any,
+          },
         ],
       }),
     ];
@@ -146,13 +160,18 @@ describe("Parameter aliases", () => {
 
     const cmd = program.commands.find((c) => c.name() === "tasks:complete");
     expect(cmd).toBeDefined();
+    if (!cmd) {
+      throw new Error("Expected command to be defined");
+    }
 
     // The command should have --task as an option (either as a separate option or via Commander's alias mechanism)
-    const optionFlags = cmd!.options.map((o) => o.long);
+    const optionFlags = cmd.options.map((o) => o.long);
     // At minimum, --id must exist
     expect(optionFlags).toContain("--id");
     // And the aliases should be registered as accepted flags
-    const allFlags = cmd!.options.flatMap((o) => [o.short, o.long].filter(Boolean));
+    const allFlags = cmd.options.flatMap((o) =>
+      [o.short, o.long].filter(Boolean),
+    );
     const allFlagStr = allFlags.join(" ");
     // Either --task is a separate option or combined in the primary option's flags
     expect(
@@ -175,7 +194,7 @@ describe("Parameter aliases", () => {
             required: true,
             description: "Task ID",
             aliases: ["task", "task_id", "task-id"],
-          } as any,
+          },
         ],
       }),
     ];
@@ -187,16 +206,22 @@ describe("Parameter aliases", () => {
     expect(cmd).toBeDefined();
 
     // Replace the action with a spy that captures the resolved options
-    cmd!.action((opts: Record<string, string>) => {
+    cmd?.action((opts: Record<string, string>) => {
       capturedOpts = opts;
     });
 
     // Parse with --task-id alias
-    await program.parseAsync(["node", "test", "test:param-alias", "--task-id", "abc-123"]);
+    await program.parseAsync([
+      "node",
+      "test",
+      "test:param-alias",
+      "--task-id",
+      "abc-123",
+    ]);
 
     // The resolved opts should have the canonical name "id" populated
     expect(capturedOpts).toBeDefined();
-    expect(capturedOpts!.id).toBe("abc-123");
+    expect(capturedOpts?.id).toBe("abc-123");
   });
 
   it("should map --task value to the id parameter", async () => {
@@ -213,7 +238,7 @@ describe("Parameter aliases", () => {
             required: true,
             description: "Task ID",
             aliases: ["task", "task_id", "task-id"],
-          } as any,
+          },
         ],
       }),
     ];
@@ -221,14 +246,99 @@ describe("Parameter aliases", () => {
     registerDynamicCommands(program, ops);
 
     const cmd = program.commands.find((c) => c.name() === "test:param-alias2");
-    cmd!.action((opts: Record<string, string>) => {
+    cmd?.action((opts: Record<string, string>) => {
       capturedOpts = opts;
     });
 
-    await program.parseAsync(["node", "test", "test:param-alias2", "--task", "def-456"]);
+    await program.parseAsync([
+      "node",
+      "test",
+      "test:param-alias2",
+      "--task",
+      "def-456",
+    ]);
 
     expect(capturedOpts).toBeDefined();
-    expect(capturedOpts!.id).toBe("def-456");
+    expect(capturedOpts?.id).toBe("def-456");
+  });
+});
+
+describe("Dynamic command execution", () => {
+  let program: Command;
+
+  beforeEach(() => {
+    program = new Command();
+    program.exitOverride();
+    vi.restoreAllMocks();
+  });
+
+  it("should pass path, query, and body params to apiRequest", async () => {
+    const apiRequestMock = vi.fn().mockResolvedValue({
+      data: { success: true },
+      status: 200,
+    });
+
+    const clientModule = await import("../client.js");
+    vi.spyOn(clientModule, "apiRequest").mockImplementation(apiRequestMock);
+
+    const ops: ManifestOperation[] = [
+      makeOp({
+        name: "test:execute",
+        method: "PATCH",
+        path: "/api/tasks/:id",
+        params: [
+          {
+            name: "id",
+            in: "path",
+            type: "string",
+            required: true,
+            description: "Task ID",
+            aliases: ["task-id"],
+          },
+          {
+            name: "space_id",
+            in: "query",
+            type: "string",
+            required: false,
+            description: "Space ID",
+          },
+          {
+            name: "progress",
+            in: "body",
+            type: "number",
+            required: false,
+            description: "Progress",
+          },
+        ],
+      }),
+    ];
+
+    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    registerDynamicCommands(program, ops);
+    await program.parseAsync([
+      "node",
+      "test",
+      "test:execute",
+      "--task-id",
+      "task-123",
+      "--space_id",
+      "space-456",
+      "--progress",
+      "42",
+    ]);
+
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "PATCH",
+      "/api/tasks/:id",
+      { id: "task-123" },
+      { space_id: "space-456" },
+      { progress: 42 },
+      undefined,
+    );
+    expect(consoleSpy).toHaveBeenCalledWith(
+      JSON.stringify({ success: true }, null, 2),
+    );
   });
 });
 
@@ -323,13 +433,25 @@ describe("Backward compatibility", () => {
       makeOp({
         name: "tasks:list",
         params: [
-          { name: "status", in: "query", type: "string", required: false, description: "Filter" },
+          {
+            name: "status",
+            in: "query",
+            type: "string",
+            required: false,
+            description: "Filter",
+          },
         ],
       }),
       makeOp({
         name: "tasks:create",
         params: [
-          { name: "title", in: "body", type: "string", required: true, description: "Title" },
+          {
+            name: "title",
+            in: "body",
+            type: "string",
+            required: true,
+            description: "Title",
+          },
         ],
       }),
     ];
@@ -350,7 +472,7 @@ describe("Backward compatibility", () => {
           { name: "id", in: "path", type: "string", required: true },
           { name: "content", in: "body", type: "string", required: true },
         ],
-      } as ManifestOperation & { aliases: string[] }),
+      }),
     ];
 
     registerDynamicCommands(program, ops);
@@ -358,7 +480,7 @@ describe("Backward compatibility", () => {
     // Original full name must still be a valid command
     const cmd = program.commands.find((c) => c.name() === "tasks:add-log");
     expect(cmd).toBeDefined();
-    expect(cmd!.name()).toBe("tasks:add-log");
+    expect(cmd?.name()).toBe("tasks:add-log");
   });
 
   it("should register params without aliases using only their canonical --name flag", () => {
@@ -366,8 +488,20 @@ describe("Backward compatibility", () => {
       makeOp({
         name: "tasks:update",
         params: [
-          { name: "id", in: "path", type: "string", required: true, description: "Task ID" },
-          { name: "title", in: "body", type: "string", required: false, description: "New title" },
+          {
+            name: "id",
+            in: "path",
+            type: "string",
+            required: true,
+            description: "Task ID",
+          },
+          {
+            name: "title",
+            in: "body",
+            type: "string",
+            required: false,
+            description: "New title",
+          },
         ],
       }),
     ];
@@ -377,7 +511,7 @@ describe("Backward compatibility", () => {
     const cmd = program.commands.find((c) => c.name() === "tasks:update");
     expect(cmd).toBeDefined();
 
-    const optionFlags = cmd!.options.map((o) => o.long);
+    const optionFlags = cmd?.options.map((o) => o.long);
     expect(optionFlags).toContain("--id");
     expect(optionFlags).toContain("--title");
   });
@@ -394,9 +528,9 @@ describe("Backward compatibility", () => {
             type: "string",
             required: true,
             aliases: ["task"],
-          } as any,
+          },
         ],
-      } as ManifestOperation & { aliases: string[] }),
+      }),
       makeOp({
         name: "tasks:list",
         // no aliases
@@ -414,6 +548,6 @@ describe("Backward compatibility", () => {
     expect(names).toContain("tasks:list");
     // tasks:list should NOT have any alias
     const listCmd = program.commands.find((c) => c.name() === "tasks:list");
-    expect(listCmd!.aliases()).toHaveLength(0);
+    expect(listCmd?.aliases()).toHaveLength(0);
   });
 });

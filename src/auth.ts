@@ -1,8 +1,8 @@
-import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
+import { createServer } from "node:http";
 import open from "open";
 import { API_BASE_URL } from "./config.js";
-import { saveCredentials, type Credentials } from "./credentials.js";
+import { type Credentials, saveCredentials } from "./credentials.js";
 
 const TIMEOUT_MS = 120_000;
 
@@ -30,10 +30,15 @@ export async function login(tokenDirect?: string): Promise<void> {
 
       if (req.method === "POST" && req.url === "/callback") {
         let body = "";
-        req.on("data", (chunk) => { body += chunk; });
+        req.on("data", (chunk) => {
+          body += chunk;
+        });
         req.on("end", () => {
           try {
-            const data = JSON.parse(body) as Credentials & { state: string; session_token?: string };
+            const data = JSON.parse(body) as Credentials & {
+              state: string;
+              session_token?: string;
+            };
 
             if (data.state !== state) {
               res.writeHead(400, {
@@ -57,11 +62,13 @@ export async function login(tokenDirect?: string): Promise<void> {
             });
             res.end(JSON.stringify({ success: true }));
 
-            console.log(JSON.stringify({
-              success: true,
-              email: data.email,
-              message: "Login successful",
-            }));
+            console.log(
+              JSON.stringify({
+                success: true,
+                email: data.email,
+                message: "Login successful",
+              }),
+            );
 
             server.close();
             resolve();
@@ -87,16 +94,20 @@ export async function login(tokenDirect?: string): Promise<void> {
       const port = addr.port;
       const authUrl = `${API_BASE_URL}/auth/cli?port=${port}&state=${state}`;
 
-      console.log(JSON.stringify({
-        message: "Opening browser for login...",
-        url: authUrl,
-      }));
+      console.log(
+        JSON.stringify({
+          message: "Opening browser for login...",
+          url: authUrl,
+        }),
+      );
 
       open(authUrl).catch(() => {
-        console.log(JSON.stringify({
-          message: "Could not open browser. Please visit this URL manually:",
-          url: authUrl,
-        }));
+        console.log(
+          JSON.stringify({
+            message: "Could not open browser. Please visit this URL manually:",
+            url: authUrl,
+          }),
+        );
       });
     });
 

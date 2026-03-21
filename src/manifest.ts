@@ -37,7 +37,9 @@ export interface Manifest {
 export async function fetchManifest(): Promise<Manifest> {
   const res = await fetch(`${API_BASE_URL}/api/manifest`);
   if (!res.ok) {
-    console.log(JSON.stringify({ error: "Failed to fetch manifest", status: res.status }));
+    console.log(
+      JSON.stringify({ error: "Failed to fetch manifest", status: res.status }),
+    );
     process.exit(1);
   }
   return res.json() as Promise<Manifest>;

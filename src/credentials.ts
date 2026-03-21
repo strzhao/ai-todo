@@ -1,6 +1,6 @@
-import { readFileSync, writeFileSync, mkdirSync, unlinkSync } from "node:fs";
+import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { CONFIG_DIR, CREDENTIALS_PATH } from "./config.js";
+import { CREDENTIALS_PATH } from "./config.js";
 
 export interface Credentials {
   access_token: string;

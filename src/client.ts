@@ -33,7 +33,11 @@ export async function apiRequest(
 
   let body: string | undefined;
   const mergedBody = { ...bodyParams, ...fixedBody };
-  if (method !== "GET" && method !== "DELETE" && Object.keys(mergedBody).length > 0) {
+  if (
+    method !== "GET" &&
+    method !== "DELETE" &&
+    Object.keys(mergedBody).length > 0
+  ) {
     headers["Content-Type"] = "application/json";
     body = JSON.stringify(mergedBody);
   }
@@ -52,7 +56,12 @@ export async function apiRequest(
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    console.log(JSON.stringify({ error: data.error ?? "Request failed", status: res.status }));
+    console.log(
+      JSON.stringify({
+        error: data.error ?? "Request failed",
+        status: res.status,
+      }),
+    );
     process.exit(1);
   }
 

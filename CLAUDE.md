@@ -28,3 +28,23 @@ ai-todo-cli 是为 AI agent 设计的命令行工具，与 ai-todo (https://ai-t
 - manifest 端点: app/api/manifest/route.ts
 - CLI 认证页面: app/auth/cli/page.tsx
 - CLI token 端点: app/api/auth/cli-token/route.ts
+
+## 常用命令
+
+- `npm run build` — 构建（tsup）
+- `npm run dev` — 开发模式（tsup --watch）
+- `npm test` — 运行测试（vitest run）
+- `npm run test:watch` — 测试监听模式
+- `npm run test:coverage` — 测试覆盖率
+- `npm run lint` — 代码检查（biome check）
+- `npm run lint:fix` — 自动修复
+- `npm run format` — 代码格式化（biome format）
+
+## 测试规范
+
+- 框架：vitest
+- 测试文件位置：`src/__tests__/`
+- 命名约定：`<module>.test.ts`（单元测试）、`<feature>.acceptance.test.ts`（验收测试）
+- Mock 模式：使用 `vi.mock()` 在导入前 mock 模块依赖
+- process.exit 处理：使用 `vi.spyOn(process, 'exit').mockImplementation()` 防止测试退出
+- 运行单个文件：`npx vitest run src/__tests__/<file>.test.ts`

@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import type { Command } from "commander";
 import { apiRequest } from "./client.js";
 import type { ManifestOperation } from "./manifest.js";
 
@@ -52,8 +52,11 @@ export function registerDynamicCommands(
     }
 
     // Use preAction hook for alias mapping — runs before any action (including test overrides)
-    if (Object.keys(paramAliasMap).length > 0 || requiredParamsWithAliases.size > 0) {
-      cmd.hook('preAction', (thisCommand) => {
+    if (
+      Object.keys(paramAliasMap).length > 0 ||
+      requiredParamsWithAliases.size > 0
+    ) {
+      cmd.hook("preAction", (thisCommand) => {
         const opts = thisCommand.opts();
         // Map alias values to original param names
         for (const [alias, original] of Object.entries(paramAliasMap)) {
@@ -66,12 +69,15 @@ export function registerDynamicCommands(
         const updatedOpts = thisCommand.opts();
         for (const name of requiredParamsWithAliases) {
           if (updatedOpts[name] === undefined) {
-            const param = op.params.find(p => p.name === name);
-            const aliasList = param?.aliases?.map(a => `--${a}`).join(', ') ?? '';
-            console.log(JSON.stringify({
-              error: `Missing required option: --${name}`,
-              aliases: aliasList ? `Also accepts: ${aliasList}` : undefined,
-            }));
+            const param = op.params.find((p) => p.name === name);
+            const aliasList =
+              param?.aliases?.map((a) => `--${a}`).join(", ") ?? "";
+            console.log(
+              JSON.stringify({
+                error: `Missing required option: --${name}`,
+                aliases: aliasList ? `Also accepts: ${aliasList}` : undefined,
+              }),
+            );
             process.exit(1);
           }
         }
@@ -79,6 +85,7 @@ export function registerDynamicCommands(
     }
 
     cmd.action(async (opts: Record<string, string>) => {
+      const pathParams: Record<string, string> = {};
       const queryParams: Record<string, string> = {};
       const bodyParams: Record<string, unknown> = {};
 
@@ -103,7 +110,12 @@ export function registerDynamicCommands(
         bodyParams,
         op.fixed_body,
       );
-      if (op.format === "text" && typeof data === "object" && data !== null && "output" in data) {
+      if (
+        op.format === "text" &&
+        typeof data === "object" &&
+        data !== null &&
+        "output" in data
+      ) {
         console.log((data as Record<string, string>).output);
       } else {
         console.log(JSON.stringify(data, null, 2));
@@ -112,7 +124,10 @@ export function registerDynamicCommands(
   }
 }
 
-function buildParamDesc(desc?: string, enumValues?: (string | number)[]): string {
+function buildParamDesc(
+  desc?: string,
+  enumValues?: (string | number)[],
+): string {
   if (!desc) return "";
   if (enumValues?.length) {
     return `${desc} [${enumValues.join("|")}]`;
@@ -121,21 +136,28 @@ function buildParamDesc(desc?: string, enumValues?: (string | number)[]): string
 }
 
 function levenshtein(a: string, b: string): number {
-  const m = a.length, n = b.length;
-  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  const m = a.length,
+    n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () =>
+    Array(n + 1).fill(0),
+  );
   for (let i = 0; i <= m; i++) dp[i][0] = i;
   for (let j = 0; j <= n; j++) dp[0][j] = j;
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      dp[i][j] =
+        a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
     }
   }
   return dp[m][n];
 }
 
-export function findClosestCommand(input: string, candidates: string[]): string | null {
+export function findClosestCommand(
+  input: string,
+  candidates: string[],
+): string | null {
   let best = "";
   let bestDist = Infinity;
 
