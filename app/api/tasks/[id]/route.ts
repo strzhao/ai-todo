@@ -10,6 +10,18 @@ import type { ParsedTask } from "@/lib/types";
 
 export const preferredRegion = "hkg1";
 
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const rt = createRouteTimer(req);
+  const user = await rt.track("auth", async () => getUserFromRequest(req));
+  if (!user) return rt.json({ error: "Unauthorized" }, { status: 401 });
+
+  await initDb();
+  const { id } = await params;
+  const task = await rt.track("db_query", async () => getTaskForUser(id, user.id));
+  if (!task) return rt.json({ error: "Not found" }, { status: 404 });
+  return rt.json(task);
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const traceId = getAiTraceIdFromHeaders(req.headers);
   const rt = createRouteTimer(req);

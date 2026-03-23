@@ -80,16 +80,25 @@ describe("NotificationItem", () => {
     const { container } = render(
       <NotificationItem notification={makeNotification({ read: true })} />
     );
-    const link = container.querySelector("a");
-    expect(link?.className).toContain("opacity-60");
+    // task_id 通知现在渲染为 button
+    const el = container.querySelector("button") || container.querySelector("a");
+    expect(el?.className).toContain("opacity-60");
   });
 
-  it("links to correct URL", () => {
+  it("links to correct URL for non-task notifications", () => {
+    const { container } = render(
+      <NotificationItem notification={makeNotification({ space_id: "s-1", task_id: undefined, type: "space_join_pending" })} />
+    );
+    const link = container.querySelector("a");
+    expect(link).toHaveAttribute("href", "/spaces/s-1");
+  });
+
+  it("renders as button for task notifications", () => {
     const { container } = render(
       <NotificationItem notification={makeNotification({ space_id: "s-1", task_id: "t-1" })} />
     );
-    const link = container.querySelector("a");
-    expect(link).toHaveAttribute("href", "/spaces/s-1?focus=t-1");
+    const button = container.querySelector("button");
+    expect(button).not.toBeNull();
   });
 
   it("calls onClick when clicked", async () => {
@@ -98,8 +107,9 @@ describe("NotificationItem", () => {
     const n = makeNotification();
     const { container } = render(<NotificationItem notification={n} onClick={onClick} />);
 
-    const link = container.querySelector("a")!;
-    await user.click(link);
+    // task_id 通知渲染为 button
+    const el = container.querySelector("button") || container.querySelector("a")!;
+    await user.click(el!);
     expect(onClick).toHaveBeenCalledWith(n);
   });
 

@@ -32,22 +32,25 @@ function getTypeIcon(type: string): string {
   }
 }
 
+// 判断通知是否应在抽屉内展示
+function shouldOpenInDrawer(n: AppNotification): boolean {
+  return !!(n.task_id || n.type === "daily_digest");
+}
+
 interface Props {
   notification: AppNotification;
   onClick?: (n: AppNotification) => void;
+  onOpenDetail?: (n: AppNotification) => void;
 }
 
-export function NotificationItem({ notification, onClick }: Props) {
-  const n = notification;
+const itemCls = (read: boolean) =>
+  `w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-muted/60 transition-colors cursor-pointer ${
+    read ? "opacity-60" : ""
+  }`;
 
+function ItemContent({ n }: { n: AppNotification }) {
   return (
-    <Link
-      href={getNotificationUrl(n)}
-      onClick={() => onClick?.(n)}
-      className={`w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-muted/60 transition-colors cursor-pointer ${
-        n.read ? "opacity-60" : ""
-      }`}
-    >
+    <>
       <span className="text-sm shrink-0 mt-0.5 w-5 text-center">{getTypeIcon(n.type)}</span>
       <div className="flex-1 min-w-0">
         <p className="text-sm text-foreground leading-snug">{n.title}</p>
@@ -59,6 +62,34 @@ export function NotificationItem({ notification, onClick }: Props) {
       {!n.read && (
         <span className="w-2 h-2 rounded-full bg-info shrink-0 mt-2" />
       )}
+    </>
+  );
+}
+
+export function NotificationItem({ notification, onClick, onOpenDetail }: Props) {
+  const n = notification;
+
+  if (shouldOpenInDrawer(n)) {
+    return (
+      <button
+        onClick={() => {
+          onClick?.(n);
+          onOpenDetail?.(n);
+        }}
+        className={itemCls(n.read)}
+      >
+        <ItemContent n={n} />
+      </button>
+    );
+  }
+
+  return (
+    <Link
+      href={getNotificationUrl(n)}
+      onClick={() => onClick?.(n)}
+      className={itemCls(n.read)}
+    >
+      <ItemContent n={n} />
     </Link>
   );
 }

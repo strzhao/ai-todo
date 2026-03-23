@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { NotificationItem } from "./NotificationItem";
-import type { AppNotification } from "@/lib/types";
+import { TaskDetail } from "./TaskDetail";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import type { AppNotification, Task } from "@/lib/types";
 
 interface Props {
   onClose?: () => void;
@@ -14,6 +16,9 @@ export function NotificationList({ onClose, compact }: Props) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<AppNotification | null>(null);
+  const [detailTask, setDetailTask] = useState<Task | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const fetchNotifications = useCallback(async (before?: string) => {
     try {
@@ -52,7 +57,6 @@ export function NotificationList({ onClose, compact }: Props) {
   };
 
   const handleClick = async (n: AppNotification) => {
-    // Mark as read (navigation handled by <Link> in NotificationItem)
     if (!n.read) {
       fetch("/api/notifications", {
         method: "PATCH",
@@ -64,7 +68,75 @@ export function NotificationList({ onClose, compact }: Props) {
       );
       window.dispatchEvent(new CustomEvent("tasks-changed"));
     }
-    onClose?.();
+    // 非抽屉展示的通知（Link 导航）需要关闭通知列表
+    const isDrawer = !!(n.task_id || n.type === "daily_digest");
+    if (!isDrawer) onClose?.();
+  };
+
+  const handleOpenDetail = async (n: AppNotification) => {
+    setSelectedNotification(n);
+    setDetailTask(null);
+    if (n.task_id) {
+      setDetailLoading(true);
+      try {
+        const res = await fetch(`/api/tasks/${n.task_id}`);
+        if (res.ok) {
+          const task = await res.json();
+          setDetailTask(task);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setDetailLoading(false);
+      }
+    }
+  };
+
+  const handleSheetClose = () => {
+    setSelectedNotification(null);
+    setDetailTask(null);
+    setDetailLoading(false);
+  };
+
+  const handleTaskUpdate = async (id: string, updates: Partial<Task>) => {
+    try {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setDetailTask((prev) => (prev?.id === id ? { ...prev, ...updated } : prev));
+        window.dispatchEvent(new CustomEvent("tasks-changed"));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleTaskComplete = async (id: string) => {
+    try {
+      await fetch(`/api/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ complete: true }),
+      });
+      window.dispatchEvent(new CustomEvent("tasks-changed"));
+      handleSheetClose();
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleTaskDelete = async (id: string) => {
+    try {
+      await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+      window.dispatchEvent(new CustomEvent("tasks-changed"));
+      handleSheetClose();
+    } catch {
+      // ignore
+    }
   };
 
   const handleLoadMore = () => {
@@ -103,7 +175,12 @@ export function NotificationList({ onClose, compact }: Props) {
         )}
 
         {notifications.map((n) => (
-          <NotificationItem key={n.id} notification={n} onClick={handleClick} />
+          <NotificationItem
+            key={n.id}
+            notification={n}
+            onClick={handleClick}
+            onOpenDetail={handleOpenDetail}
+          />
         ))}
 
         {hasMore && !loading && (
@@ -115,6 +192,51 @@ export function NotificationList({ onClose, compact }: Props) {
           </button>
         )}
       </div>
+
+      <Sheet open={!!selectedNotification} onOpenChange={(open) => { if (!open) handleSheetClose(); }}>
+        <SheetContent>
+          <SheetHeader className="sr-only">
+            <SheetTitle>详情</SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto">
+            {/* 任务详情 */}
+            {selectedNotification?.task_id && detailLoading && (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-5 h-5 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
+              </div>
+            )}
+            {selectedNotification?.task_id && !detailLoading && detailTask && (
+              <TaskDetail
+                task={detailTask}
+                mode="standalone"
+                readonly={detailTask.status === 2}
+                onUpdate={handleTaskUpdate}
+                onComplete={handleTaskComplete}
+                onDelete={handleTaskDelete}
+              />
+            )}
+            {selectedNotification?.task_id && !detailLoading && !detailTask && (
+              <div className="text-center py-12">
+                <p className="text-sm text-muted-foreground">任务不存在或无权访问</p>
+              </div>
+            )}
+            {/* 每日摘要：展示通知内容 */}
+            {selectedNotification?.type === "daily_digest" && !selectedNotification.task_id && (
+              <div className="px-1 py-4 space-y-3">
+                <h3 className="text-base font-medium text-foreground">{selectedNotification.title}</h3>
+                {selectedNotification.body && (
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                    {selectedNotification.body}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground/60 pt-2">
+                  如需查看完整摘要，请前往对应空间页面
+                </p>
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.39.0",
+    date: "2026-03-23",
+    title: "通知抽屉展示",
+    items: [
+      "任务相关通知点击后直接在抽屉中查看任务详情，无需跳转页面",
+      "每日摘要通知点击后抽屉内展示摘要内容",
+      "抽屉内可直接编辑、完成或删除任务",
+    ],
+  },
+  {
     version: "1.38.0",
     date: "2026-03-20",
     title: "笔记分享",

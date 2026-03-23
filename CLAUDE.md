@@ -158,7 +158,7 @@ app/
     parse-task/route.ts         # AI 解析自然语言 → { actions: ParsedAction[] }（支持创建/更新/完成/删除/日报/移动，附带 tasks + parent_task 上下文）
     tasks/route.ts              # GET（列表/今日/已完成/空间/指派）+ POST（创建）
     tasks/tree/route.ts         # GET 树形文本（CLI tasks:tree，format:text → { output }）
-    tasks/[id]/route.ts         # PATCH（完成/更新/分享/取消分享）+ DELETE
+    tasks/[id]/route.ts         # GET（单条任务）+ PATCH（完成/更新/分享/取消分享）+ DELETE
     notes/shared/[code]/route.ts  # GET 公开笔记（无需认证，按 share_code 查询）
     tasks/[id]/logs/route.ts    # GET + POST 任务进展日报
     spaces/route.ts             # GET（我的空间列表）+ POST（创建空间）
@@ -201,8 +201,8 @@ components/
   SpaceNotes.tsx                # 空间笔记面板（space_id 过滤 + 内联创建 + 标签筛选 + 日期分组）
   EmptyState.tsx                # 空状态展示组件
   (已删除 NotificationBell.tsx，通知改为图标直接导航到 /notifications 页面)
-  NotificationList.tsx          # 通知列表（Popover / 全屏页共用）
-  NotificationItem.tsx          # 单条通知行
+  NotificationList.tsx          # 通知列表（Popover / 全屏页共用）+ 任务/摘要抽屉展示
+  NotificationItem.tsx          # 单条通知行（任务/摘要通知渲染为 button + onOpenDetail，其他保留 Link）
   NotificationSettings.tsx      # 通知偏好设置（应用内 + 邮件 + 推送开关矩阵）
   PushPromptBanner.tsx          # 推送提醒横幅（访问 3 次后智能提示开启推送）
   PWAInstallBanner.tsx          # PWA 安装引导横幅（访问 5 次后提示添加到主屏幕，Chrome 一键安装 / iOS 步骤引导）
