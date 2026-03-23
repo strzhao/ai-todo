@@ -16,7 +16,7 @@ export class TaskValidationError extends Error {
   }
 }
 
-const DB_SCHEMA_VERSION = 3; // bump when adding new tables/columns
+const DB_SCHEMA_VERSION = 4; // bump when adding new tables/columns
 let _dbSchemaVersion = 0;
 let _dbInitPromise: Promise<void> | null = null;
 
@@ -254,6 +254,19 @@ async function _doInitDb() {
   // 17. Add share_code column to tasks (note sharing)
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS share_code TEXT`;
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_share_code ON ai_todo_tasks(share_code) WHERE share_code IS NOT NULL`;
+
+  // 18. Personal summary cache (per-user daily summary)
+  await sql`
+    CREATE TABLE IF NOT EXISTS ai_todo_personal_summary_cache (
+      id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id      TEXT NOT NULL,
+      summary_date DATE NOT NULL,
+      content      TEXT NOT NULL,
+      generated_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user_id, summary_date)
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_personal_summary_cache_user_date ON ai_todo_personal_summary_cache(user_id, summary_date)`;
 
   // Seed already executed on 2026-03-07: all existing users auto-activated.
 }
@@ -1200,6 +1213,41 @@ export async function incrementSummaryUsage(userId: string, date: string): Promi
     [userId, date]
   );
   return Number(rows[0].count);
+}
+
+// ─── Personal Summary Cache ──────────────────────────────────────────────────
+
+const PERSONAL_SUMMARY_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+export async function getPersonalSummaryCache(
+  userId: string,
+  date: string
+): Promise<{ content: string; generated_at: string } | null> {
+  const { rows } = await sql`
+    SELECT content, generated_at FROM ai_todo_personal_summary_cache
+    WHERE user_id = ${userId} AND summary_date = ${date} LIMIT 1
+  `;
+  if (!rows[0]) return null;
+  const generatedAtStr = rows[0].generated_at as string;
+  const generatedTime = new Date(generatedAtStr).getTime();
+  if (Number.isNaN(generatedTime) || Date.now() - generatedTime > PERSONAL_SUMMARY_CACHE_TTL_MS) return null;
+  return {
+    content: rows[0].content as string,
+    generated_at: generatedAtStr,
+  };
+}
+
+export async function upsertPersonalSummaryCache(
+  userId: string,
+  date: string,
+  content: string
+): Promise<void> {
+  await sql`
+    INSERT INTO ai_todo_personal_summary_cache (user_id, summary_date, content, generated_at)
+    VALUES (${userId}, ${date}, ${content}, NOW())
+    ON CONFLICT (user_id, summary_date)
+    DO UPDATE SET content = EXCLUDED.content, generated_at = NOW()
+  `;
 }
 
 // ─── Summary Config ──────────────────────────────────────────────────────────
