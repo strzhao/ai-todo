@@ -7,6 +7,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.40.0",
+    date: "2026-03-23",
+    title: "个人每日总结",
+    items: [
+      "首页新增 AI 个人每日总结，一键生成当日任务活动总结",
+      "支持保存总结为笔记，方便日后查阅",
+    ],
+  },
+  {
     version: "1.39.0",
     date: "2026-03-23",
     title: "通知抽屉展示",

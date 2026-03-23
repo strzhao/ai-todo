@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { NLInput } from "@/components/NLInput";
 import { ActionPreview } from "@/components/ActionPreview";
+import { PersonalDailySummary } from "@/components/PersonalDailySummary";
 import { TaskList } from "@/components/TaskList";
 import { Button } from "@/components/ui/button";
 import { useTasks, useCompletedTasks, mutateTasks } from "@/lib/use-tasks";
@@ -199,6 +200,8 @@ export default function TaskHomePage() {
           />
         </div>
       )}
+
+      <PersonalDailySummary />
 
       <TaskList
         tasks={tasks}

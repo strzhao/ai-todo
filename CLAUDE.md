@@ -173,6 +173,7 @@ app/
     orgs/[id]/spaces/route.ts            # GET 组织空间列表
     orgs/[id]/spaces/[spaceId]/join/route.ts  # POST 组织成员加入空间（自动 active）
     orgs/join/[code]/route.ts            # GET 预览 + POST 加入组织
+    me/summary/route.ts         # GET（缓存+配额）+ POST（流式 AI 个人每日总结）
     transcribe/route.ts         # POST 音频转文字（转发到 Whisper API）
     notifications/route.ts      # GET（分页查询）+ PATCH（批量标记已读）
     notifications/unread-count/route.ts  # GET 返回 { count }
@@ -196,6 +197,7 @@ components/
   TaskSkeleton.tsx              # 加载骨架屏（3 行）
   SpaceSettings.tsx             # 空间设置面板（Sheet 抽屉内容：邀请链接 + 所属组织 + 成员管理 + 归档 + 解散）
   DailySummary.tsx              # AI 总结面板（流式生成 + 多模板 Tab + 缓存 + 配额 + 转为笔记）
+  PersonalDailySummary.tsx      # 个人每日总结（折叠面板 + 流式 AI 总结 + 缓存 + 配额 + 保存为笔记）
   SummarySettings.tsx           # AI 总结设置（模板管理 + 关联空间 toggle + 外部数据源 + AI 配置助手 + 总结预览）
   ConfigActionPreview.tsx       # AI 配置操作预览（展示解析出的配置变更列表 + 确认执行）
   SpaceNotes.tsx                # 空间笔记面板（space_id 过滤 + 内联创建 + 标签筛选 + 日期分组）
