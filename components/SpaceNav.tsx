@@ -14,6 +14,7 @@ import { mutateTasks } from "@/lib/use-tasks";
 interface SpaceTaskNode {
   id: string;
   title: string;
+  assignee_email?: string;
   subtasks: SpaceTaskNode[];
 }
 
@@ -21,6 +22,7 @@ function toSpaceTaskNode(node: TaskNode): SpaceTaskNode {
   return {
     id: node.id,
     title: node.title,
+    assignee_email: node.assignee_email,
     subtasks: node.subtasks.map(toSpaceTaskNode),
   };
 }
@@ -182,13 +184,18 @@ export function SpaceNav({ spaces, orgs, userEmail, userNickname, isDev }: Props
             )}
             <Link
               href={`/spaces/${spaceId}?focus=${node.id}`}
-              className={`min-w-0 flex-1 py-1 px-2 rounded text-xs transition-colors ${
+              className={`min-w-0 flex-1 py-1 px-2 rounded text-xs transition-colors flex items-center gap-1 ${
                 isFocused
                   ? "bg-primary/10 text-primary font-medium"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               }`}
             >
-              <span className="truncate block">{node.title}</span>
+              <span className="truncate flex-1">{node.title}</span>
+              {node.assignee_email && node.assignee_email !== userEmail && (
+                <span className="w-3.5 h-3.5 rounded-full bg-primary/20 text-primary text-[9px] flex items-center justify-center shrink-0 font-medium" title={node.assignee_email}>
+                  {node.assignee_email.split("@")[0][0]?.toUpperCase()}
+                </span>
+              )}
             </Link>
           </div>
           {hasChildren && !collapsed && (
