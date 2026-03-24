@@ -169,6 +169,7 @@ const manifest = {
         { name: "name", in: "body", type: "string", required: true, description: "Space name" },
         { name: "description", in: "body", type: "string", required: false, description: "Space description" },
         { name: "invite_mode", in: "body", type: "string", enum: ["open", "approval"], required: false, description: "Invite mode" },
+        { name: "org_id", in: "body", type: "string", required: false, description: "Organization ID to associate with" },
       ],
     },
     {
