@@ -23,7 +23,7 @@
  * AC-8: POST /api/me/summary 超配额返回 429
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 
 // ── mock @vercel/postgres ─────────────────────────────────────────────────────
@@ -77,9 +77,14 @@ const USER_EMAIL = "test@example.com";
 const TEST_DATE = "2026-03-23";
 
 beforeEach(() => {
+  vi.useFakeTimers({ now: new Date("2026-03-23T13:00:00Z") });
   vi.clearAllMocks();
   mockTaggedTemplate.mockReturnValue({ rows: [] });
   mockQuery.mockResolvedValue({ rows: [] });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
