@@ -5,6 +5,7 @@ import { initDb, isUserActivated, activateUser } from "@/lib/db";
 export const preferredRegion = "hkg1";
 
 const AUTH_ISSUER = process.env.AUTH_ISSUER!;
+const BASE_ACCOUNT_API_KEY = process.env.BASE_ACCOUNT_API_KEY ?? "";
 
 export async function POST(req: NextRequest) {
   const user = await getUserFromRequest(req);
@@ -21,11 +22,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
   }
 
-  const cookie = req.headers.get("cookie") ?? "";
+  // Service proxy mode: use API key to authenticate with base-account,
+  // passing the end user's ID so we don't depend on the browser having
+  // base-account cookies.
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const body: Record<string, string> = { code: code.trim() };
+
+  if (BASE_ACCOUNT_API_KEY) {
+    headers["Authorization"] = `Bearer ${BASE_ACCOUNT_API_KEY}`;
+    body.userId = user.id;
+  } else {
+    // Fallback: forward browser cookies (legacy, requires base-account session)
+    const cookie = req.headers.get("cookie") ?? "";
+    if (cookie) headers["cookie"] = cookie;
+  }
+
   const res = await fetch(`${AUTH_ISSUER}/api/auth/invitation-codes/redeem`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", cookie },
-    body: JSON.stringify({ code: code.trim() }),
+    headers,
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
