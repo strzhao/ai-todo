@@ -7,6 +7,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.42.0",
+    date: "2026-03-24",
+    title: "空间加入引导",
+    items: [
+      "访问未加入的空间时显示友好引导页，支持一键加入或申请",
+      "开放空间直接加入，审批空间发起申请等待管理员通过",
+    ],
+  },
+  {
     version: "1.41.0",
     date: "2026-03-24",
     title: "笔记展示优化",
