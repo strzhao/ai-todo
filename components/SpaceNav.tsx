@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
-import type { Task } from "@/lib/types";
+import type { Task, TaskMember } from "@/lib/types";
 import type { Organization } from "@/lib/types";
+import { getDisplayLabel } from "@/lib/display-utils";
 import { buildTree, type TaskNode } from "@/lib/task-utils";
 import { hasNewUpdate } from "@/lib/changelog";
 import { useSidebarResize } from "@/lib/use-sidebar-resize";
@@ -40,6 +41,7 @@ export function SpaceNav({ spaces, orgs, userEmail, userNickname, isDev }: Props
   const searchParams = useSearchParams();
   const router = useRouter();
   const [spaceTasksMap, setSpaceTasksMap] = useState<Record<string, SpaceTaskNode[]>>({});
+  const [spaceMembersMap, setSpaceMembersMap] = useState<Record<string, TaskMember[]>>({});
   const [collapsedTaskIds, setCollapsedTaskIds] = useState<Record<string, boolean>>({});
   const [expandedSpaceIds, setExpandedSpaceIds] = useState<Set<string>>(new Set());
   const [openMenuSpaceId, setOpenMenuSpaceId] = useState<string | null>(null);
@@ -93,14 +95,32 @@ export function SpaceNav({ spaces, orgs, userEmail, userNickname, isDev }: Props
       .finally(() => { inflightRef.current.delete(spaceId); });
   }, []);
 
-  // Fetch tasks for all expanded spaces
+  const fetchSpaceMembers = useCallback((spaceId: string) => {
+    const key = `members:${spaceId}`;
+    if (inflightRef.current.has(key)) return;
+    inflightRef.current.add(key);
+    fetch(`/api/spaces/${spaceId}/members`)
+      .then((r) => r.json())
+      .then((data: TaskMember[]) => {
+        if (Array.isArray(data)) {
+          setSpaceMembersMap((prev) => ({ ...prev, [spaceId]: data }));
+        }
+      })
+      .catch(() => {})
+      .finally(() => { inflightRef.current.delete(key); });
+  }, []);
+
+  // Fetch tasks and members for all expanded spaces
   useEffect(() => {
     expandedSpaceIds.forEach((spaceId) => {
       if (!spaceTasksMap[spaceId]) {
         fetchSpaceTasks(spaceId);
       }
+      if (!spaceMembersMap[spaceId]) {
+        fetchSpaceMembers(spaceId);
+      }
     });
-  }, [expandedSpaceIds, fetchSpaceTasks]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [expandedSpaceIds, fetchSpaceTasks, fetchSpaceMembers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-fetch space task tree when tasks are mutated elsewhere (debounced 300ms)
   useEffect(() => {
@@ -111,6 +131,7 @@ export function SpaceNav({ spaces, orgs, userEmail, userNickname, isDev }: Props
       debounceTimerRef.current = setTimeout(() => {
         expandedSpaceIds.forEach((spaceId) => {
           fetchSpaceTasks(spaceId);
+          fetchSpaceMembers(spaceId);
         });
       }, 300);
     }
@@ -119,7 +140,7 @@ export function SpaceNav({ spaces, orgs, userEmail, userNickname, isDev }: Props
       window.removeEventListener("tasks-changed", onTasksChanged);
       clearTimeout(debounceTimerRef.current);
     };
-  }, [expandedSpaceIds, fetchSpaceTasks]);
+  }, [expandedSpaceIds, fetchSpaceTasks, fetchSpaceMembers]);
 
   async function handleUnpin(spaceId: string) {
     await fetch(`/api/tasks/${spaceId}`, {
@@ -191,11 +212,21 @@ export function SpaceNav({ spaces, orgs, userEmail, userNickname, isDev }: Props
               }`}
             >
               <span className="truncate flex-1">{node.title}</span>
-              {node.assignee_email && node.assignee_email !== userEmail && (
-                <span className="w-3.5 h-3.5 rounded-full bg-primary/20 text-primary text-[9px] flex items-center justify-center shrink-0 font-medium" title={node.assignee_email}>
-                  {node.assignee_email.split("@")[0][0]?.toUpperCase()}
-                </span>
-              )}
+              {node.assignee_email && node.assignee_email !== userEmail && (() => {
+                const member = spaceMembersMap[spaceId]?.find((m) => m.email === node.assignee_email);
+                const label = getDisplayLabel(node.assignee_email, member);
+                const emailLocal = node.assignee_email.split("@")[0];
+                const hasNickname = label !== emailLocal;
+                return hasNickname ? (
+                  <span className="text-[9px] text-muted-foreground shrink-0 max-w-[4rem] truncate" title={node.assignee_email}>
+                    {label}
+                  </span>
+                ) : (
+                  <span className="w-3.5 h-3.5 rounded-full bg-primary/20 text-primary text-[9px] flex items-center justify-center shrink-0 font-medium" title={node.assignee_email}>
+                    {emailLocal[0]?.toUpperCase()}
+                  </span>
+                );
+              })()}
             </Link>
           </div>
           {hasChildren && !collapsed && (
