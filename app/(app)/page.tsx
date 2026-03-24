@@ -61,7 +61,7 @@ function sortTasksWithTodayFirst(items: Task[]) {
 export default function TaskHomePage() {
   // --- All hooks at the top, before any conditional returns ---
   const { data: rawTasks, isLoading: tasksLoading, mutate: mutateCurrent } = useTasks();
-  const { data: rawCompleted, isLoading: completedLoading, mutate: mutateCompleted } = useCompletedTasks();
+  const { data: rawCompleted, isLoading: completedLoading, mutate: mutateCompleted, hasMore: hasMoreCompleted, loadMore: loadMoreCompleted, isLoadingMore: isLoadingMoreCompleted } = useCompletedTasks();
   const [inputText, setInputText] = useState("");
   const [preview, setPreview] = useState<{ actions: ParsedAction[]; raw: string; traceId?: string } | null>(null);
   const searchParams = useSearchParams();
@@ -217,6 +217,9 @@ export default function TaskHomePage() {
         groupPinnedAtBottom
         pinnedSectionDefaultCollapsed
         pinnedSectionTitle="置顶任务"
+        hasMoreCompleted={hasMoreCompleted}
+        onLoadMore={loadMoreCompleted}
+        isLoadingMore={isLoadingMoreCompleted}
       />
     </div>
   );

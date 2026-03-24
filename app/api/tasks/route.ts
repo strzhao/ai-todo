@@ -43,7 +43,19 @@ export async function GET(req: NextRequest) {
   } else if (filter === "assigned") {
     tasks = await rt.track("db_query", async () => getTasks(user.id, { filter: "assigned", type: 0 }));
   } else if (filter === "completed") {
-    tasks = await rt.track("db_query", async () => getCompletedTasks(user.id, spaceId, 0));
+    const before = req.nextUrl.searchParams.get("before") ?? undefined;
+    const beforeId = req.nextUrl.searchParams.get("before_id") ?? undefined;
+    const limitParam = req.nextUrl.searchParams.get("limit");
+    const limit = Math.min(limitParam ? parseInt(limitParam, 10) || 20 : 20, 50);
+    const { tasks: completedTasks, hasMore } = await rt.track("db_query", async () =>
+      getCompletedTasks(user.id, spaceId, 0, { limit, before, beforeId })
+    );
+    return rt.json(completedTasks, {
+      headers: {
+        "Cache-Control": "private, max-age=0, stale-while-revalidate=10",
+        "X-Has-More": String(hasMore),
+      },
+    });
   } else {
     tasks = await rt.track("db_query", async () => getTasks(user.id, { spaceId, type: 0 }));
   }
