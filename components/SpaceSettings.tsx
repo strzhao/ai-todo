@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import type { Space, TaskMember, SpaceMember, Organization } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
 
@@ -280,9 +281,23 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onName
                   </Button>
                 )}
                 {m.role !== "owner" && ((m.role === "member" && canManageMembers) || (m.role === "admin" && isOwner)) && (
-                  <Button size="sm" variant="ghost" className="text-xs h-7 text-muted-foreground" onClick={() => removeMember(m.user_id)}>
-                    移除
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="ghost" className="text-xs h-7 text-muted-foreground">
+                        移除
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>确认移除</AlertDialogTitle>
+                        <AlertDialogDescription>确定要移除成员「{getDisplayLabel(m.email, m)}」吗？</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>取消</AlertDialogCancel>
+                        <AlertDialogAction variant="destructive" onClick={() => removeMember(m.user_id)}>确认移除</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
               </div>
             </div>
@@ -335,9 +350,23 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onName
           <p className="text-xs text-muted-foreground">
             将空间标记为已完成，任务数据保留但不再活跃显示。可在「全部任务」中查看历史记录。
           </p>
-          <Button size="sm" variant="outline" onClick={archiveSpace} disabled={archiving}>
-            {archiving ? "归档中..." : "归档空间"}
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="sm" variant="outline" disabled={archiving}>
+                {archiving ? "归档中..." : "归档空间"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>确认归档</AlertDialogTitle>
+                <AlertDialogDescription>确定要归档此空间吗？归档后空间将从侧边栏移除。</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>取消</AlertDialogCancel>
+                <AlertDialogAction onClick={archiveSpace}>确认归档</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </section>
       )}
 

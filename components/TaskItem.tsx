@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, memo, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TaskDetail } from "@/components/TaskDetail";
 import { RichText } from "@/components/RichText";
 import { DateTimePicker } from "@/components/DateTimePicker";
@@ -44,6 +45,7 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
   const [expanded, setExpanded] = useState(() => focusAncestorIds?.has(task.id) ?? false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const moreRef = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
@@ -228,7 +230,6 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
   function onRowKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     if (editing) return;
     if (e.key === " ") { e.preventDefault(); handleComplete(); }
-    if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); handleDelete(); }
     if (e.key === "Enter") { e.preventDefault(); startEdit(); }
   }
 
@@ -612,7 +613,7 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
                 </button>
               )}
               <button
-                onClick={handleDelete}
+                onClick={() => { setMoreOpen(false); setDeleteConfirmOpen(true); }}
                 disabled={deleting}
                 className="w-full text-left px-3 py-1.5 text-sm text-destructive hover:bg-muted/60 disabled:opacity-50"
               >
@@ -622,6 +623,20 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
           )}
         </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogDescription>确定要删除任务「{task.title}」吗？此操作不可撤销。</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleDelete}>确认删除</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Detail panel — only description + logs */}
       {detailOpen && (

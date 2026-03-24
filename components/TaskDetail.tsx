@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { RichText } from "@/components/RichText";
 import { DateTimePicker } from "@/components/DateTimePicker";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import type { Task, TaskLog, TaskMember } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
 import { formatDateTime } from "@/lib/date-utils";
@@ -626,13 +627,26 @@ export function TaskDetail({
               >
                 {completing ? "完成中..." : "标记完成"}
               </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="text-xs px-3 py-1.5 rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
-              >
-                {deleting ? "删除中..." : "删除"}
-              </button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <button
+                    disabled={deleting}
+                    className="text-xs px-3 py-1.5 rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
+                  >
+                    {deleting ? "删除中..." : "删除"}
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>确认删除</AlertDialogTitle>
+                    <AlertDialogDescription>确定要删除任务「{task.title}」吗？此操作不可撤销。</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>取消</AlertDialogCancel>
+                    <AlertDialogAction variant="destructive" onClick={handleDelete}>确认删除</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </>
           )}
         </div>
