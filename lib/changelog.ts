@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.41.0",
+    date: "2026-03-24",
+    title: "笔记展示优化",
+    items: [
+      "笔记内容支持 Markdown 渲染（标题、引用、列表、代码等）",
+      "长笔记自动折叠，点击展开查看完整内容",
+      "笔记卡片显示作者信息",
+    ],
+  },
+  {
     version: "1.40.0",
     date: "2026-03-23",
     title: "个人每日总结",

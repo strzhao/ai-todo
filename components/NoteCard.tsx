@@ -33,8 +33,10 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
   const [shareUrl, setShareUrl] = useState("");
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [needsCollapse, setNeedsCollapse] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const deleteTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (editing && inputRef.current) {
@@ -44,6 +46,13 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
   }, [editing]);
 
   useEffect(() => () => clearTimeout(deleteTimerRef.current), []);
+
+  useEffect(() => {
+    if (!editing && contentRef.current) {
+      const height = contentRef.current.scrollHeight;
+      setNeedsCollapse(height > 120);
+    }
+  }, [editing, note.title, note.description]);
 
   function handleSave() {
     const trimmed = editValue.trim();
@@ -126,6 +135,8 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
     }
   }
 
+  const authorName = note.creator_nickname || note.creator_email?.split("@")[0] || "";
+
   return (
     <div className={`group rounded-lg border border-border/60 bg-background p-3 hover:border-border transition-colors ${highlight ? "animate-highlight-sage" : ""}`}>
       <div className="flex items-start justify-between gap-2">
@@ -141,23 +152,29 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
               rows={Math.max(1, editValue.split("\n").length)}
             />
           ) : (
-            <p
-              className="text-sm leading-relaxed cursor-text whitespace-pre-wrap"
-              onClick={() => setEditing(true)}
-            >
-              {note.title}
-            </p>
-          )}
-          {note.description && !editing && (
-            <div className="mt-1.5">
+            <div>
+              {/* Unified content area: title + description */}
               <div
-                className={`prose-summary text-xs text-muted-foreground leading-relaxed ${
-                  !expanded ? "max-h-[5rem] overflow-hidden" : ""
-                }`}
+                ref={contentRef}
+                className={`relative ${!expanded && needsCollapse ? "max-h-[120px] overflow-hidden" : ""}`}
               >
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{note.description}</ReactMarkdown>
+                <div
+                  className="prose-summary text-sm cursor-text"
+                  onClick={() => setEditing(true)}
+                >
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{note.title}</ReactMarkdown>
+                </div>
+                {note.description && (
+                  <div className="prose-summary text-xs text-muted-foreground leading-relaxed mt-1.5">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{note.description}</ReactMarkdown>
+                  </div>
+                )}
+                {/* Gradient mask when collapsed */}
+                {!expanded && needsCollapse && (
+                  <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+                )}
               </div>
-              {note.description.split("\n").length > 4 && (
+              {needsCollapse && (
                 <button
                   onClick={() => setExpanded(!expanded)}
                   className="text-[10px] text-sage mt-1 hover:underline"
@@ -221,7 +238,7 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
           ))}
         </div>
         <span className="text-[10px] text-muted-foreground shrink-0">
-          {formatTime(note.created_at)}
+          {authorName ? `${authorName} \u00B7 ` : ""}{formatTime(note.created_at)}
         </span>
       </div>
     </div>

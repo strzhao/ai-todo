@@ -312,6 +312,26 @@
   .prose-summary strong {
     @apply text-foreground font-medium;
   }
+  .prose-summary h1 {
+    @apply text-base font-semibold text-foreground mt-4 mb-2;
+  }
+  .prose-summary h1:first-child {
+    @apply mt-0;
+  }
+  .prose-summary h3 {
+    @apply text-sm font-medium text-foreground mt-3 mb-1;
+  }
+  .prose-summary blockquote {
+    @apply pl-3 border-l-2 border-border text-muted-foreground italic my-2;
+  }
+  .prose-summary code {
+    @apply px-1 py-0.5 rounded bg-muted text-xs;
+  }
+  .prose-summary pre > code {
+    @apply block p-2 rounded bg-muted text-xs overflow-x-auto;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
   .prose-summary table {
     @apply w-full my-2 text-xs;
     border-collapse: collapse;

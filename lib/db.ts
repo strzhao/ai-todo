@@ -351,6 +351,8 @@ function rowToTask(row: Record<string, unknown>): Task {
     invite_code: (row.invite_code as string) || undefined,
     invite_mode: (row.invite_mode as "open" | "approval") || undefined,
     share_code: (row.share_code as string) || undefined,
+    creator_email: (row.creator_email as string) || undefined,
+    creator_nickname: (row.creator_nickname as string) || undefined,
     org_id: (row.org_id as string) || undefined,
     member_count: row.member_count != null ? Number(row.member_count) : undefined,
     task_count: row.task_count != null ? Number(row.task_count) : undefined,
@@ -386,10 +388,12 @@ export async function getTasks(userId: string, options: GetTasksOptions = {}): P
   const typeClause = hasType ? ` AND (COALESCE(type, 0) = ${Number(type)})` : "";
 
   if (filter === "assigned") {
+    const joinClause = type === 1 ? " LEFT JOIN ai_todo_activated_users creator ON t.user_id = creator.user_id" : "";
+    const selectClause = type === 1 ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname" : "t.*";
     const { rows } = await sql.query(
-      `SELECT * FROM ai_todo_tasks
-       WHERE assignee_id = $1 AND status != 2${typeClause}
-       ORDER BY priority ASC, created_at DESC`,
+      `SELECT ${selectClause} FROM ai_todo_tasks t${joinClause}
+       WHERE t.assignee_id = $1 AND t.status != 2${typeClause}
+       ORDER BY t.priority ASC, t.created_at DESC`,
       [userId]
     );
     return rows.map(rowToTask);
@@ -397,10 +401,12 @@ export async function getTasks(userId: string, options: GetTasksOptions = {}): P
 
   if (spaceId) {
     // space_id is denormalized on all tasks within a space — no recursive CTE needed
+    const joinClause = type === 1 ? " LEFT JOIN ai_todo_activated_users creator ON t.user_id = creator.user_id" : "";
+    const selectClause = type === 1 ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname" : "t.*";
     const { rows } = await sql.query(
-      `SELECT * FROM ai_todo_tasks
-       WHERE space_id = $1 AND status != 2${typeClause}
-       ORDER BY priority ASC, created_at DESC`,
+      `SELECT ${selectClause} FROM ai_todo_tasks t${joinClause}
+       WHERE t.space_id = $1 AND t.status != 2${typeClause}
+       ORDER BY t.priority ASC, t.created_at DESC`,
       [spaceId]
     );
     return rows.map(rowToTask);
@@ -409,10 +415,12 @@ export async function getTasks(userId: string, options: GetTasksOptions = {}): P
   // No spaceId: use sql template tag when no type filter (preserves original behavior),
   // use sql.query when type filter is needed for string concatenation
   if (hasType) {
+    const joinClause = type === 1 ? " LEFT JOIN ai_todo_activated_users creator ON t.user_id = creator.user_id" : "";
+    const selectClause = type === 1 ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname" : "t.*";
     const { rows } = await sql.query(
-      `SELECT * FROM ai_todo_tasks
-       WHERE user_id = $1 AND space_id IS NULL AND status != 2${typeClause}
-       ORDER BY priority ASC, created_at DESC`,
+      `SELECT ${selectClause} FROM ai_todo_tasks t${joinClause}
+       WHERE t.user_id = $1 AND t.space_id IS NULL AND t.status != 2${typeClause}
+       ORDER BY t.priority ASC, t.created_at DESC`,
       [userId]
     );
     return rows.map(rowToTask);
@@ -464,10 +472,12 @@ export async function getCompletedTasks(userId: string, spaceId?: string, type?:
   const hasType = type !== undefined;
   const typeClause = hasType ? ` AND (COALESCE(type, 0) = ${Number(type)})` : "";
   if (spaceId) {
+    const joinClause = type === 1 ? " LEFT JOIN ai_todo_activated_users creator ON t.user_id = creator.user_id" : "";
+    const selectClause = type === 1 ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname" : "t.*";
     const { rows } = await sql.query(
-      `SELECT * FROM ai_todo_tasks
-       WHERE space_id = $1 AND status = 2${typeClause}
-       ORDER BY completed_at DESC
+      `SELECT ${selectClause} FROM ai_todo_tasks t${joinClause}
+       WHERE t.space_id = $1 AND t.status = 2${typeClause}
+       ORDER BY t.completed_at DESC
        LIMIT 20`,
       [spaceId]
     );
@@ -476,10 +486,12 @@ export async function getCompletedTasks(userId: string, spaceId?: string, type?:
 
   // No spaceId: use sql template tag when no type filter, sql.query when type is specified
   if (hasType) {
+    const joinClause = type === 1 ? " LEFT JOIN ai_todo_activated_users creator ON t.user_id = creator.user_id" : "";
+    const selectClause = type === 1 ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname" : "t.*";
     const { rows } = await sql.query(
-      `SELECT * FROM ai_todo_tasks
-       WHERE user_id = $1 AND space_id IS NULL AND status = 2${typeClause}
-       ORDER BY completed_at DESC
+      `SELECT ${selectClause} FROM ai_todo_tasks t${joinClause}
+       WHERE t.user_id = $1 AND t.space_id IS NULL AND t.status = 2${typeClause}
+       ORDER BY t.completed_at DESC
        LIMIT 20`,
       [userId]
     );
