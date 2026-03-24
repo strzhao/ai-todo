@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { getTaskById, getTaskMembers, updatePinnedTask, unpinTask, deleteTask, initDb } from "@/lib/db";
+import { getTaskById, getTaskMembers, getTaskMemberRecord, updatePinnedTask, unpinTask, deleteTask, initDb } from "@/lib/db";
 import { requireSpaceMember, requireSpaceOwner } from "@/lib/spaces";
 import { createRouteTimer } from "@/lib/route-timing";
 import { sql } from "@vercel/postgres";
@@ -16,7 +16,26 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     await rt.track("db_query", async () => requireSpaceMember(id, user.id));
   } catch {
-    return rt.json({ error: "Not a space member" }, { status: 403 });
+    // Non-member: return space preview info for join guidance UI
+    const [previewSpace, previewMembers, memberRecord] = await rt.track("db_preview", async () =>
+      Promise.all([
+        getTaskById(id),
+        getTaskMembers(id),
+        getTaskMemberRecord(id, user.id),
+      ])
+    );
+    if (!previewSpace) return rt.json({ error: "Not found" }, { status: 404 });
+    const activeCount = previewMembers.filter((m) => m.status === "active").length;
+    return rt.json({
+      error: "Not a space member",
+      space_preview: {
+        title: previewSpace.title,
+        invite_mode: previewSpace.invite_mode ?? "open",
+        invite_code: previewSpace.invite_code ?? "",
+        member_count: activeCount,
+      },
+      pending: memberRecord?.status === "pending",
+    }, { status: 403 });
   }
 
   const [space, members] = await rt.track("db_query", async () =>

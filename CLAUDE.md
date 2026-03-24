@@ -166,6 +166,7 @@ app/
     spaces/[id]/members/route.ts          # GET 成员列表
     spaces/[id]/members/[uid]/route.ts    # PATCH（审批/更新）+ DELETE（移除/退出）
     spaces/join/[code]/route.ts           # GET 预览 + POST 加入
+    spaces/[id]/join/route.ts             # POST 通过空间 ID 直接加入（空间页内加入引导用）
     orgs/route.ts                        # GET（我的组织列表）+ POST（创建组织）
     orgs/[id]/route.ts                   # GET + PATCH + DELETE
     orgs/[id]/members/route.ts           # GET 成员列表

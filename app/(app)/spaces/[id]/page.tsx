@@ -10,6 +10,7 @@ import { TaskDetail } from "@/components/TaskDetail";
 import { DailySummary } from "@/components/DailySummary";
 import { SpaceSettings } from "@/components/SpaceSettings";
 import { SpaceNotes } from "@/components/SpaceNotes";
+import { Button } from "@/components/ui/button";
 import { useTasks, useCompletedTasks, mutateTasks } from "@/lib/use-tasks";
 
 const GanttLoading = () => (
@@ -63,6 +64,10 @@ export default function SpacePage({ params }: SpacePageProps) {
   const [filterMember, setFilterMember] = useState<string>("all");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [ganttSelectedTask, setGanttSelectedTask] = useState<Task | null>(null);
+  const [spacePreview, setSpacePreview] = useState<{ title: string; invite_mode: string; member_count: number } | null>(null);
+  const [isPending, setIsPending] = useState(false);
+  const [joinStatus, setJoinStatus] = useState<"idle" | "joining" | "joined" | "pending" | "error">("idle");
+  const [fetchError, setFetchError] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -95,10 +100,26 @@ export default function SpacePage({ params }: SpacePageProps) {
     params.then(({ id }) => {
       setSpaceId(id);
       fetch(`/api/spaces/${id}`)
-        .then((r) => r.json())
-        .then((spaceData: { space: Space; members: SpaceMember[] }) => {
-          setSpace(spaceData.space);
-          setMembers(spaceData.members);
+        .then(async (r) => {
+          if (r.status === 403) {
+            const data = await r.json();
+            if (data.space_preview) {
+              setSpacePreview(data.space_preview);
+              setIsPending(!!data.pending);
+            }
+            return null;
+          }
+          if (!r.ok) {
+            setFetchError(true);
+            return null;
+          }
+          return r.json() as Promise<{ space: Space; members: SpaceMember[] }>;
+        })
+        .then((spaceData) => {
+          if (spaceData) {
+            setSpace(spaceData.space);
+            setMembers(spaceData.members);
+          }
         })
         .finally(() => setSpaceLoading(false));
     });
@@ -276,9 +297,79 @@ export default function SpacePage({ params }: SpacePageProps) {
   }
 
   if (!space) {
+    if (spacePreview) {
+      const handleJoin = async () => {
+        setJoinStatus("joining");
+        try {
+          const res = await fetch(`/api/spaces/${spaceId}/join`, { method: "POST" });
+          if (!res.ok) {
+            setJoinStatus("error");
+            return;
+          }
+          const data = await res.json() as { space_id: string; status: string };
+          if (data.status === "active") {
+            setJoinStatus("joined");
+            setTimeout(() => window.location.reload(), 1500);
+          } else {
+            setJoinStatus("pending");
+            setIsPending(true);
+          }
+        } catch {
+          setJoinStatus("error");
+        }
+      };
+
+      return (
+        <div className="app-content">
+          <div className="max-w-sm mx-auto py-12">
+            <div className="border border-border rounded-xl p-6 space-y-5">
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-full bg-sage-mist flex items-center justify-center text-sage font-bold text-2xl mx-auto mb-3">
+                  {spacePreview.title[0]?.toUpperCase()}
+                </div>
+                <h2 className="text-lg font-semibold">{spacePreview.title}</h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {spacePreview.member_count} 名成员
+                </p>
+              </div>
+
+              {(isPending || joinStatus === "pending") ? (
+                <div className="text-center space-y-2">
+                  <p className="text-sm font-medium">申请已提交</p>
+                  <p className="text-xs text-muted-foreground">等待管理员审批后即可访问空间</p>
+                </div>
+              ) : joinStatus === "joined" ? (
+                <div className="text-center text-sm text-sage">
+                  加入成功！正在刷新...
+                </div>
+              ) : joinStatus === "error" ? (
+                <div className="text-center space-y-2">
+                  <p className="text-xs text-destructive">加入失败，请重试</p>
+                  <Button variant="outline" size="sm" onClick={() => setJoinStatus("idle")}>重试</Button>
+                </div>
+              ) : (
+                <>
+                  {spacePreview.invite_mode === "approval" && (
+                    <p className="text-xs text-center text-muted-foreground">
+                      此空间需要管理员审批才能加入
+                    </p>
+                  )}
+                  <Button className="w-full" onClick={handleJoin} disabled={joinStatus === "joining"}>
+                    {joinStatus === "joining" ? "加入中..." : spacePreview.invite_mode === "approval" ? "申请加入" : "加入空间"}
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="app-content">
-        <p className="text-sm text-muted-foreground">空间不存在或你没有访问权限</p>
+        <p className="text-sm text-muted-foreground">
+          {fetchError ? "加载失败，请刷新重试" : "空间不存在或你没有访问权限"}
+        </p>
       </div>
     );
   }
