@@ -86,10 +86,26 @@ describe("NoteCard", () => {
   });
 
   it("renders description with expand/collapse when long", () => {
+    // New collapse logic uses scrollHeight > 120px instead of line count
+    const originalScrollHeight = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "scrollHeight"
+    );
+    Object.defineProperty(HTMLElement.prototype, "scrollHeight", {
+      configurable: true,
+      get() { return 200; },
+    });
+
     const longDesc = "line1\nline2\nline3\nline4\nline5";
     const { container } = render(
       <NoteCard note={makeNote({ description: longDesc })} onUpdate={vi.fn()} onDelete={vi.fn()} />
     );
     expect(within(container).getByText("展开全部")).toBeInTheDocument();
+
+    if (originalScrollHeight) {
+      Object.defineProperty(HTMLElement.prototype, "scrollHeight", originalScrollHeight);
+    } else {
+      delete (HTMLElement.prototype as unknown as Record<string, unknown>).scrollHeight;
+    }
   });
 });
