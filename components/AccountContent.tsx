@@ -13,11 +13,6 @@ interface InvitationCode {
   createdAt: string;
 }
 
-interface InviteData {
-  codes: InvitationCode[];
-  quota: { used: number; total: number };
-}
-
 interface Props {
   userEmail: string;
   userNickname?: string;
@@ -98,8 +93,12 @@ const SwitchIcon = (
 
 export function AccountContent({ userEmail, userNickname, isDev }: Props) {
   const router = useRouter();
-  const [inviteData, setInviteData] = useState<InviteData | null>(null);
+  const [codes, setCodes] = useState<InvitationCode[]>([]);
+  const [quota, setQuota] = useState<{ used: number; total: number }>({ used: 0, total: 3 });
+  const [codesTotal, setCodesTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editingNickname, setEditingNickname] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -108,17 +107,50 @@ export function AccountContent({ userEmail, userNickname, isDev }: Props) {
   const nicknameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchCodes();
+    // Load from cache first (stale-while-revalidate)
+    try {
+      const cached = localStorage.getItem("invite-codes-cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.codes?.length) {
+          setCodes(parsed.codes);
+          setQuota(parsed.quota);
+          setCodesTotal(parsed.total);
+          setHasMore(parsed.hasMore);
+        }
+      }
+    } catch { /* ignore corrupt cache */ }
+    loadCodes(0);
   }, []);
 
-  async function fetchCodes() {
+  function updateCache(allCodes: InvitationCode[], q: { used: number; total: number }, total: number, more: boolean) {
     try {
-      const res = await fetch("/api/invitation/codes");
-      setInviteData(await res.json());
+      localStorage.setItem("invite-codes-cache", JSON.stringify({ codes: allCodes, quota: q, total, hasMore: more }));
+    } catch { /* quota exceeded */ }
+  }
+
+  async function loadCodes(offset: number) {
+    const isFirst = offset === 0;
+    if (!isFirst) setLoadingMore(true);
+    try {
+      const res = await fetch(`/api/invitation/codes?limit=3&offset=${offset}`);
+      const data = await res.json();
+      const newCodes = isFirst ? data.codes : [...codes, ...data.codes];
+      setCodes(newCodes);
+      setQuota(data.quota);
+      setCodesTotal(data.total);
+      setHasMore(data.hasMore);
+      updateCache(newCodes, data.quota, data.total, data.hasMore);
     } catch {
-      setInviteData({ codes: [], quota: { used: 0, total: 3 } });
+      if (isFirst) {
+        setCodes([]);
+        setQuota({ used: 0, total: 3 });
+        setCodesTotal(0);
+        setHasMore(false);
+      }
     } finally {
-      setInviteLoading(false);
+      if (isFirst) setInviteLoading(false);
+      setLoadingMore(false);
     }
   }
 
@@ -161,8 +193,6 @@ export function AccountContent({ userEmail, userNickname, isDev }: Props) {
     window.location.href = "/api/auth/switch-account";
   }
 
-  const codes = (inviteData?.codes ?? []).filter((c) => c.status !== "REVOKED");
-  const redeemedCount = codes.filter((c) => c.status === "REDEEMED").length;
   const initial = userEmail[0].toUpperCase();
   const displayName = userNickname || userEmail.split("@")[0];
 
@@ -268,10 +298,19 @@ export function AccountContent({ userEmail, userNickname, isDev }: Props) {
             }
           />
         ))}
+        {!inviteLoading && hasMore && (
+          <button
+            onClick={() => loadCodes(codes.length)}
+            disabled={loadingMore}
+            className="w-full px-4 py-2.5 text-xs text-sage font-medium hover:bg-muted/40 transition-colors disabled:opacity-50"
+          >
+            {loadingMore ? "加载中…" : `展开更多 (剩余 ${codesTotal - codes.length} 个)`}
+          </button>
+        )}
       </SettingsCard>
       {!inviteLoading && codes.length > 0 && (
         <p className="text-xs text-muted-foreground px-1 -mt-3">
-          已使用 {redeemedCount} / {codes.length} 个邀请码
+          已使用 {quota.used} / {codesTotal} 个邀请码
         </p>
       )}
 

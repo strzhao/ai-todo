@@ -27,21 +27,39 @@ export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { searchParams } = new URL(req.url);
+  const limit = Math.max(1, parseInt(searchParams.get("limit") ?? "3", 10) || 3);
+  const offset = Math.max(0, parseInt(searchParams.get("offset") ?? "0", 10) || 0);
+
   const cookie = req.headers.get("cookie") ?? "";
 
   let data = await fetchCodes(cookie);
   if (!data) {
-    return NextResponse.json({ codes: [], quota: { used: 0, total: 3 } });
+    return NextResponse.json({ codes: [], quota: { used: 0, total: 3 }, total: 0, hasMore: false });
   }
 
-  // Auto-fill: generate remaining codes if quota not fully used
-  const missing = data.quota.total - data.codes.length;
-  if (missing > 0) {
-    for (let i = 0; i < missing; i++) {
-      await generateCode(cookie);
+  // Auto-fill: only on first page load (offset === 0)
+  if (offset === 0) {
+    const missing = data.quota.total - data.codes.length;
+    if (missing > 0) {
+      for (let i = 0; i < missing; i++) {
+        await generateCode(cookie);
+      }
+      data = await fetchCodes(cookie) ?? data;
     }
-    data = await fetchCodes(cookie) ?? data;
   }
 
-  return NextResponse.json(data);
+  // Filter out REVOKED codes, then paginate
+  const filtered = (data.codes as { status: string }[]).filter(
+    (c) => c.status !== "REVOKED"
+  );
+  const total = filtered.length;
+  const paged = filtered.slice(offset, offset + limit);
+
+  return NextResponse.json({
+    codes: paged,
+    quota: data.quota,
+    total,
+    hasMore: offset + limit < total,
+  });
 }
