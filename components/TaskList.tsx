@@ -116,6 +116,9 @@ interface Props {
   childCountMap?: Record<string, number>;
   focusedTaskId?: string | null;
   focusAncestorIds?: Set<string>;
+  hasMoreCompleted?: boolean;
+  onLoadMore?: () => void;
+  isLoadingMore?: boolean;
 }
 
 export function TaskList({
@@ -138,6 +141,9 @@ export function TaskList({
   childCountMap,
   focusedTaskId,
   focusAncestorIds,
+  hasMoreCompleted,
+  onLoadMore,
+  isLoadingMore,
 }: Props) {
   const [showCompleted, setShowCompleted] = useState(false);
   const [expandedCompletedId, setExpandedCompletedId] = useState<string | null>(null);
@@ -234,6 +240,15 @@ export function TaskList({
                 />
               ))}
             </div>
+          )}
+          {showCompleted && hasMoreCompleted && (
+            <button
+              onClick={onLoadMore}
+              disabled={isLoadingMore}
+              className="mt-2 w-full text-xs text-muted-foreground hover:text-foreground transition-colors py-1.5"
+            >
+              {isLoadingMore ? "加载中..." : "加载更多"}
+            </button>
           )}
         </div>
       )}

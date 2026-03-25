@@ -91,15 +91,20 @@ describe("getCompletedTasks with spaceId", () => {
     expect(sqlText).toContain("space_id = $1");
     expect(sqlText).not.toContain("WITH RECURSIVE");
     expect(sqlText).toContain("status = 2");
-    expect(result).toHaveLength(1);
+    expect(result.tasks).toHaveLength(1);
   });
 
-  it("无 spaceId 时使用 sql 模板标签查询", async () => {
-    mockTaggedTemplate.mockReturnValueOnce({ rows: [] });
+  it("无 spaceId 时使用 sql.query 查询", async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
 
-    await getCompletedTasks("user1");
+    const result = await getCompletedTasks("user1");
 
-    expect(mockQuery).not.toHaveBeenCalled();
+    expect(mockQuery).toHaveBeenCalledOnce();
+    const sqlText = mockQuery.mock.calls[0][0] as string;
+    expect(sqlText).toContain("user_id = $1");
+    expect(sqlText).toContain("status = 2");
+    expect(result.tasks).toHaveLength(0);
+    expect(result.hasMore).toBe(false);
   });
 });
 

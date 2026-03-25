@@ -468,43 +468,74 @@ export async function getTodayTasks(userId: string, spaceId?: string): Promise<T
   return rows.map(rowToTask);
 }
 
-export async function getCompletedTasks(userId: string, spaceId?: string, type?: number): Promise<Task[]> {
+export async function getCompletedTasks(
+  userId: string,
+  spaceId?: string,
+  type?: number,
+  opts?: { limit?: number; before?: string; beforeId?: string }
+): Promise<{ tasks: Task[]; hasMore: boolean }> {
+  const limit = opts?.limit ?? 20;
+  const fetchLimit = limit + 1;
+  const hasCursor = opts?.before && opts?.beforeId;
   const hasType = type !== undefined;
   const typeClause = hasType ? ` AND (COALESCE(type, 0) = ${Number(type)})` : "";
+
   if (spaceId) {
     const joinClause = type === 1 ? " LEFT JOIN ai_todo_activated_users creator ON t.user_id = creator.user_id" : "";
     const selectClause = type === 1 ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname" : "t.*";
+    const params: unknown[] = [spaceId];
+    let cursorSql = "";
+    if (hasCursor) {
+      params.push(opts!.before, opts!.beforeId);
+      cursorSql = ` AND (t.completed_at, t.id) < ($${params.length - 1}, $${params.length})`;
+    }
     const { rows } = await sql.query(
       `SELECT ${selectClause} FROM ai_todo_tasks t${joinClause}
-       WHERE t.space_id = $1 AND t.status = 2${typeClause}
-       ORDER BY t.completed_at DESC
-       LIMIT 20`,
-      [spaceId]
+       WHERE t.space_id = $1 AND t.status = 2${typeClause}${cursorSql}
+       ORDER BY t.completed_at DESC, t.id DESC
+       LIMIT ${fetchLimit}`,
+      params
     );
-    return rows.map(rowToTask);
+    const hasMore = rows.length > limit;
+    return { tasks: rows.slice(0, limit).map(rowToTask), hasMore };
   }
 
-  // No spaceId: use sql template tag when no type filter, sql.query when type is specified
+  // No spaceId: always use sql.query for cursor support
   if (hasType) {
     const joinClause = type === 1 ? " LEFT JOIN ai_todo_activated_users creator ON t.user_id = creator.user_id" : "";
     const selectClause = type === 1 ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname" : "t.*";
+    const params: unknown[] = [userId];
+    let cursorSql = "";
+    if (hasCursor) {
+      params.push(opts!.before, opts!.beforeId);
+      cursorSql = ` AND (t.completed_at, t.id) < ($${params.length - 1}, $${params.length})`;
+    }
     const { rows } = await sql.query(
       `SELECT ${selectClause} FROM ai_todo_tasks t${joinClause}
-       WHERE t.user_id = $1 AND t.space_id IS NULL AND t.status = 2${typeClause}
-       ORDER BY t.completed_at DESC
-       LIMIT 20`,
-      [userId]
+       WHERE t.user_id = $1 AND t.space_id IS NULL AND t.status = 2${typeClause}${cursorSql}
+       ORDER BY t.completed_at DESC, t.id DESC
+       LIMIT ${fetchLimit}`,
+      params
     );
-    return rows.map(rowToTask);
+    const hasMore = rows.length > limit;
+    return { tasks: rows.slice(0, limit).map(rowToTask), hasMore };
   }
 
-  const { rows } = await sql`
-    SELECT * FROM ai_todo_tasks
-    WHERE user_id = ${userId} AND space_id IS NULL AND status = 2
-    ORDER BY completed_at DESC
-    LIMIT 20
-  `;
-  return rows.map(rowToTask);
+  const params: unknown[] = [userId];
+  let cursorSql = "";
+  if (hasCursor) {
+    params.push(opts!.before, opts!.beforeId);
+    cursorSql = ` AND (completed_at, id) < ($${params.length - 1}, $${params.length})`;
+  }
+  const { rows } = await sql.query(
+    `SELECT * FROM ai_todo_tasks
+     WHERE user_id = $1 AND space_id IS NULL AND status = 2${cursorSql}
+     ORDER BY completed_at DESC, id DESC
+     LIMIT ${fetchLimit}`,
+    params
+  );
+  const hasMore = rows.length > limit;
+  return { tasks: rows.slice(0, limit).map(rowToTask), hasMore };
 }
 
 export async function getTaskForUser(taskId: string, userId: string): Promise<Task | null> {

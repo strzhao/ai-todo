@@ -57,7 +57,7 @@ export default function SpacePage({ params }: SpacePageProps) {
   const [space, setSpace] = useState<Space | null>(null);
   const [members, setMembers] = useState<SpaceMember[]>([]);
   const { data: rawTasks, isLoading: tasksLoading, mutate: mutateCurrent } = useTasks(spaceId || undefined);
-  const { data: rawCompleted, isLoading: completedLoading, mutate: mutateSpaceCompleted } = useCompletedTasks(spaceId || undefined);
+  const { data: rawCompleted, isLoading: completedLoading, mutate: mutateSpaceCompleted, hasMore: hasMoreCompleted, loadMore: loadMoreCompleted, isLoadingMore: isLoadingMoreCompleted } = useCompletedTasks(spaceId || undefined);
   const [inputText, setInputText] = useState("");
   const [preview, setPreview] = useState<{ actions: ParsedAction[]; raw: string; traceId?: string } | null>(null);
   const [spaceLoading, setSpaceLoading] = useState(true);
@@ -525,6 +525,9 @@ export default function SpacePage({ params }: SpacePageProps) {
             members={members}
             onDrillDown={focusedTaskId || !isDesktop ? (taskId) => router.push(`/spaces/${spaceId}?focus=${taskId}`) : undefined}
             childCountMap={focusedTaskId || !isDesktop ? childCountMap : undefined}
+            hasMoreCompleted={hasMoreCompleted}
+            onLoadMore={loadMoreCompleted}
+            isLoadingMore={isLoadingMoreCompleted}
           />
         </>
       )}
