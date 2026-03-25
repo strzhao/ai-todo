@@ -90,6 +90,90 @@ export function truncateText(text: string, maxChars: number): string {
   return text.slice(0, maxChars - 20) + "\n\n...(数据已截断)";
 }
 
+// ─── Smart task tree compression ─────────────────────────────────────────────
+
+/**
+ * Build a compressed task tree that preserves all top-level modules but collapses
+ * inactive subtasks. Returns { text, compressed } where compressed=true if any
+ * content was folded to stay within maxChars.
+ *
+ * Strategy (applied in rounds until within budget):
+ * 1. Remove descriptions (` | ...` suffix)
+ * 2. Collapse completed subtasks into summary lines
+ * 3. Collapse deep (3+ level) inactive subtasks
+ */
+export function compressTaskTree(
+  allTasks: Task[],
+  rootId: string,
+  nameMap: Map<string, string>,
+  logs: TaskLog[],
+  date: string,
+  maxChars: number,
+): { text: string; compressed: boolean } {
+  // Build full tree first
+  const rootTask = allTasks.find((t) => t.id === rootId);
+  if (!rootTask) return { text: "", compressed: false };
+
+  const fullTree = buildFullTreeText(allTasks, rootId, 1, nameMap, true);
+  const rootLine = `- [${rootTask.status === 2 ? "已完成" : "待办"}][P${rootTask.priority}] ${rootTask.title}`;
+  const fullText = `${rootLine}\n${fullTree}`;
+
+  if (fullText.length <= maxChars) {
+    return { text: fullText, compressed: false };
+  }
+
+  // Round 1: Remove descriptions
+  const noDescTree = buildFullTreeText(allTasks, rootId, 1, nameMap, false);
+  const noDescText = `${rootLine}\n${noDescTree}`;
+  if (noDescText.length <= maxChars) {
+    return { text: noDescText, compressed: true };
+  }
+
+  // Round 2: Use activity-based filtering (collapse inactive subtasks)
+  const activeIds = getActiveTaskIds(allTasks, logs, date, 7);
+  const relevantIds = new Set(activeIds);
+  for (const id of activeIds) {
+    for (const ancestorId of getAncestorIds(id, allTasks)) {
+      relevantIds.add(ancestorId);
+    }
+  }
+  // Always include all direct children of root (top-level modules)
+  for (const t of allTasks) {
+    if (t.parent_id === rootId || (t.space_id === rootId && !t.parent_id)) {
+      relevantIds.add(t.id);
+    }
+  }
+  relevantIds.add(rootId);
+
+  const filteredTree = buildFilteredTaskTree(allTasks, rootId, 0, nameMap, relevantIds);
+  if (filteredTree.length <= maxChars) {
+    return { text: filteredTree, compressed: true };
+  }
+
+  // Round 3: Final truncation as last resort
+  return { text: truncateText(filteredTree, maxChars), compressed: true };
+}
+
+function buildFullTreeText(
+  allTasks: Task[],
+  parentId: string,
+  indent: number,
+  nameMap: Map<string, string>,
+  includeDesc: boolean,
+): string {
+  const children = allTasks.filter((t) =>
+    t.parent_id === parentId || (t.space_id === parentId && !t.parent_id)
+  );
+  return children
+    .map((t) => {
+      const line = formatTaskLine(t, indent, nameMap, allTasks)
+        + (includeDesc && t.description ? ` | ${t.description.slice(0, 80)}` : "");
+      const childLines = buildFullTreeText(allTasks, t.id, indent + 1, nameMap, includeDesc);
+      return childLines ? `${line}\n${childLines}` : line;
+    })
+    .join("\n");
+}
+
 // ─── Compressed space text builder ────────────────────────────────────────────
 
 export function buildCompressedSpaceText(
@@ -145,9 +229,9 @@ export function buildCompressedSpaceText(
   return truncateText(text, maxChars);
 }
 
-// ─── Filtered task tree (internal) ────────────────────────────────────────────
+// ─── Filtered task tree ──────────────────────────────────────────────────────
 
-function buildFilteredTaskTree(
+export function buildFilteredTaskTree(
   allTasks: Task[],
   parentId: string | undefined,
   indent: number,
@@ -160,7 +244,7 @@ function buildFilteredTaskTree(
       // Root level: the root task itself
       return t.id === parentId;
     }
-    return t.parent_id === parentId;
+    return t.parent_id === parentId || (t.space_id === parentId && !t.parent_id);
   });
 
   const lines: string[] = [];
@@ -203,7 +287,7 @@ function buildFilteredTaskTree(
   return lines.join("\n");
 }
 
-function formatTaskLine(
+export function formatTaskLine(
   t: Task,
   indent: number,
   nameMap: Map<string, string>,

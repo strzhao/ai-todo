@@ -80,6 +80,7 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, spaceId, canConfi
   const triggered = useRef(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [truncated, setTruncated] = useState(false);
 
   // Fetch templates on mount / spaceId change
   useEffect(() => {
@@ -125,6 +126,8 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, spaceId, canConfi
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
       let full = "";
+
+      setTruncated(res.headers.get("X-Data-Truncated") === "1");
 
       while (true) {
         const { done, value } = await reader.read();
@@ -297,8 +300,19 @@ export function DailySummary({ taskId, taskTitle, autoTrigger, spaceId, canConfi
       )}
 
       {summary && (
-        <div className="prose-summary text-sm text-foreground/80">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
+        <div>
+          {truncated && !loading && (
+            <div className="flex items-center gap-1.5 text-xs text-warning bg-warning/8 border border-warning/20 rounded-md px-3 py-1.5 mb-3">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                <path d="M12 9v4"/><path d="M12 17h.01"/>
+              </svg>
+              任务数据量较大，部分不活跃的子任务已被折叠，总结可能不完整
+            </div>
+          )}
+          <div className="prose-summary text-sm text-foreground/80">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
+          </div>
         </div>
       )}
 

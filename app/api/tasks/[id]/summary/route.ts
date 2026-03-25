@@ -5,7 +5,7 @@ import { getDisplayLabel } from "@/lib/display-utils";
 import { requireSpaceMember, getSpaceMember } from "@/lib/spaces";
 import { LLMClient } from "@/lib/llm-client";
 import { DEFAULT_SYSTEM_PROMPT, DEFAULT_DATA_TEMPLATE } from "@/app/api/spaces/[id]/summary-config/route";
-import { allocateCharBudget, buildCompressedSpaceText, truncateText, LINKED_SPACES_TOTAL_CHAR_LIMIT, MAIN_SPACE_CHAR_LIMIT } from "@/lib/summary-utils";
+import { allocateCharBudget, buildCompressedSpaceText, truncateText, compressTaskTree, LINKED_SPACES_TOTAL_CHAR_LIMIT, MAIN_SPACE_CHAR_LIMIT } from "@/lib/summary-utils";
 import type { Task, TaskLog, SummaryDataSource, LinkedSpace } from "@/lib/types";
 
 export const preferredRegion = "hkg1";
@@ -116,12 +116,9 @@ function buildTemplateVariables(
   nameMap: Map<string, string>,
   dsResults: Record<string, string>,
   linkedSpacesText?: string
-): Record<string, string> {
+): { vars: Record<string, string>; truncated: boolean } {
   const allTasks = [parentTask, ...descendants];
   const taskIdToTitle = new Map(allTasks.map((t) => [t.id, t.title]));
-
-  const childrenTree = buildTaskTreeText(allTasks, parentTask.id, 1, nameMap);
-  const fullTree = `- [${parentTask.status === 2 ? "已完成" : "待办"}][P${parentTask.priority}] ${parentTask.title}\n${childrenTree}`;
 
   const totalCount = allTasks.length;
   const completedCount = allTasks.filter((t) => t.status === 2).length;
@@ -130,7 +127,7 @@ function buildTemplateVariables(
   const vars: Record<string, string> = {
     date,
     project_name: parentTask.title,
-    task_tree: fullTree,
+    task_tree: "", // filled below
     all_logs: allLogs.length > 0
       ? formatLogs(allLogs, taskIdToTitle, nameMap)
       : "暂无进展日志",
@@ -146,17 +143,28 @@ function buildTemplateVariables(
     vars[`ds.${key}`] = value;
   }
 
-  // Apply char limit protection: truncate large individual fields
+  // Calculate budget for task_tree: total limit minus other fields
+  const otherChars = Object.entries(vars).reduce(
+    (sum, [k, v]) => (k === "task_tree" ? sum : sum + v.length), 0
+  );
+  const treeLimit = Math.max(4000, MAIN_SPACE_CHAR_LIMIT - otherChars);
+
+  // Smart compression: preserve all modules, collapse inactive subtasks
+  const { text: treeText, compressed } = compressTaskTree(
+    allTasks, parentTask.id, nameMap, allLogs, date, treeLimit
+  );
+  vars.task_tree = treeText;
+
+  // Also cap logs if still over total limit
   const totalChars = Object.values(vars).reduce((sum, v) => sum + v.length, 0);
+  let truncated = compressed;
   if (totalChars > MAIN_SPACE_CHAR_LIMIT) {
-    // Truncate the biggest contributors first: task_tree, all_logs
-    const treeLimit = Math.floor(MAIN_SPACE_CHAR_LIMIT * 0.4);
     const logsLimit = Math.floor(MAIN_SPACE_CHAR_LIMIT * 0.3);
-    vars.task_tree = truncateText(vars.task_tree, treeLimit);
     vars.all_logs = truncateText(vars.all_logs, logsLimit);
+    truncated = true;
   }
 
-  return vars;
+  return { vars, truncated };
 }
 
 function renderTemplate(template: string, vars: Record<string, string>): string {
@@ -442,9 +450,11 @@ export async function POST(
   const llm = new LLMClient();
 
   // Build user message: custom template or default
+  let dataTruncated = false;
   function buildMessage(logs: TaskLog[]): string {
     if (dataTemplate) {
-      const vars = buildTemplateVariables(task!, descendants, logs, todayLogs, date, nameMap, dsResults, linkedSpacesText);
+      const { vars, truncated } = buildTemplateVariables(task!, descendants, logs, todayLogs, date, nameMap, dsResults, linkedSpacesText);
+      dataTruncated = truncated;
       return renderTemplate(dataTemplate, vars);
     }
     // Default path: use original buildDefaultUserMessage + append data source results
@@ -504,6 +514,7 @@ export async function POST(
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-cache",
+      "X-Data-Truncated": dataTruncated ? "1" : "0",
     },
   });
 }
