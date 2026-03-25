@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { initDb, getTaskForUser, getDescendantTasks, getLogsForTasks, getTaskMembers, getSummaryCache, upsertSummaryCache, getSummaryUsageCount, incrementSummaryUsage, getSummaryConfig } from "@/lib/db";
+import { initDb, getTaskForUser, getDescendantTasks, getDescendantTasksForSummary, getLogsForTasks, getTaskMembers, getSummaryCache, upsertSummaryCache, getSummaryUsageCount, incrementSummaryUsage, getSummaryConfig } from "@/lib/db";
 import { getDisplayLabel } from "@/lib/display-utils";
 import { requireSpaceMember, getSpaceMember } from "@/lib/spaces";
 import { LLMClient } from "@/lib/llm-client";
@@ -381,7 +381,7 @@ export async function POST(
     dataTemplate = template.data_template ?? null;
   }
 
-  const descendants = await getDescendantTasks(id);
+  const descendants = await getDescendantTasksForSummary(id, 7);
   const allTaskIds = [id, ...descendants.map((t) => t.id)];
   const [allLogs, members] = await Promise.all([
     getLogsForTasks(allTaskIds, 500),

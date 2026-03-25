@@ -1145,6 +1145,26 @@ export async function getDescendantTasks(parentId: string): Promise<Task[]> {
   return rows.map(rowToTask);
 }
 
+/**
+ * Get descendant tasks for summary generation.
+ * Unlike getDescendantTasks, this filters out old completed tasks to reduce noise.
+ * Returns: active tasks + tasks completed within `recentDays` days.
+ */
+export async function getDescendantTasksForSummary(
+  parentId: string,
+  recentDays: number = 7,
+): Promise<Task[]> {
+  const { rows } = await sql.query(
+    `SELECT * FROM ai_todo_tasks
+     WHERE space_id = $1
+       AND (status != 2 OR completed_at >= NOW() - $2::INT * INTERVAL '1 day')
+     ORDER BY priority ASC, created_at DESC
+     LIMIT 500`,
+    [parentId, recentDays]
+  );
+  return rows.map(rowToTask);
+}
+
 export async function getLogsForTasksByDate(taskIds: string[], date: string): Promise<TaskLog[]> {
   if (taskIds.length === 0) return [];
   const placeholders = taskIds.map((_, i) => `$${i + 1}`).join(",");
