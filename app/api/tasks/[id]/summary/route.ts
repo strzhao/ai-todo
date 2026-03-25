@@ -143,26 +143,26 @@ function buildTemplateVariables(
     vars[`ds.${key}`] = value;
   }
 
-  // Calculate budget for task_tree: total limit minus other fields
+  // Budget allocation: tree gets at least 50% of total, logs get the rest
+  // Pre-cap logs BEFORE calculating tree budget so logs don't steal tree space
+  const logsMaxChars = Math.floor(MAIN_SPACE_CHAR_LIMIT * 0.35);
+  let truncated = false;
+  if (vars.all_logs.length > logsMaxChars) {
+    vars.all_logs = truncateText(vars.all_logs, logsMaxChars);
+    truncated = true;
+  }
+
   const otherChars = Object.entries(vars).reduce(
     (sum, [k, v]) => (k === "task_tree" ? sum : sum + v.length), 0
   );
-  const treeLimit = Math.max(4000, MAIN_SPACE_CHAR_LIMIT - otherChars);
+  const treeLimit = Math.max(8000, MAIN_SPACE_CHAR_LIMIT - otherChars);
 
   // Smart compression: preserve all modules, collapse inactive subtasks
   const { text: treeText, compressed } = compressTaskTree(
     allTasks, parentTask.id, nameMap, allLogs, date, treeLimit
   );
   vars.task_tree = treeText;
-
-  // Also cap logs if still over total limit
-  const totalChars = Object.values(vars).reduce((sum, v) => sum + v.length, 0);
-  let truncated = compressed;
-  if (totalChars > MAIN_SPACE_CHAR_LIMIT) {
-    const logsLimit = Math.floor(MAIN_SPACE_CHAR_LIMIT * 0.3);
-    vars.all_logs = truncateText(vars.all_logs, logsLimit);
-    truncated = true;
-  }
+  if (compressed) truncated = true;
 
   return { vars, truncated };
 }
