@@ -157,7 +157,8 @@ describe("不显示经办人的条件", () => {
     expect(spaceNavSource).toMatch(/userEmail\s*:\s*string/);
   });
 
-  it("当 assignee_email 等于当前用户 email 时不显示", () => {
-    expect(spaceNavSource).toMatch(/!==\s*userEmail|!==\s*props\.userEmail/);
+  it("所有有 assignee_email 的任务统一显示负责人（不过滤自己）", () => {
+    // 确保没有 !== userEmail 的自我过滤条件
+    expect(spaceNavSource).not.toMatch(/assignee_email\s*!==\s*userEmail/);
   });
 });
