@@ -41,6 +41,10 @@ export function getActiveTaskIds(
     if (task.completed_at && task.completed_at.slice(0, 10) === date) {
       activeIds.add(task.id);
     }
+    // Tasks with manual progress (1-99%) are actively being worked on
+    if (task.progress > 0 && task.status !== 2) {
+      activeIds.add(task.id);
+    }
   }
 
   return activeIds;
