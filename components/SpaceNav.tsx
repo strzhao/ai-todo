@@ -212,7 +212,7 @@ export function SpaceNav({ spaces, orgs, userEmail, userNickname, isDev }: Props
               }`}
             >
               <span className="truncate flex-1">{node.title}</span>
-              {node.assignee_email && node.assignee_email !== userEmail && (() => {
+              {node.assignee_email && (() => {
                 const member = spaceMembersMap[spaceId]?.find((m) => m.email === node.assignee_email);
                 const label = getDisplayLabel(node.assignee_email, member);
                 const emailLocal = node.assignee_email.split("@")[0];
