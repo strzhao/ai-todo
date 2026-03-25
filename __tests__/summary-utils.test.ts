@@ -43,7 +43,7 @@ function makeLog(overrides: Partial<TaskLog> & { task_id: string }): TaskLog {
 
 describe("constants", () => {
   it("should have expected values", () => {
-    expect(MAIN_SPACE_CHAR_LIMIT).toBe(20000);
+    expect(MAIN_SPACE_CHAR_LIMIT).toBe(40000);
     expect(LINKED_SPACES_TOTAL_CHAR_LIMIT).toBe(15000);
     expect(MIN_SPACE_CHAR_LIMIT).toBe(2000);
   });

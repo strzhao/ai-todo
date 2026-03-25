@@ -2,7 +2,7 @@ import type { Task, TaskLog } from "@/lib/types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-export const MAIN_SPACE_CHAR_LIMIT = 20000;
+export const MAIN_SPACE_CHAR_LIMIT = 40000;
 export const LINKED_SPACES_TOTAL_CHAR_LIMIT = 15000;
 export const MIN_SPACE_CHAR_LIMIT = 2000;
 

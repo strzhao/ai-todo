@@ -46,7 +46,7 @@ function makeLog(overrides: Partial<TaskLog> = {}): TaskLog {
 describe("常量", () => {
   it("MAIN_SPACE_CHAR_LIMIT 应为合理的主空间预算", () => {
     expect(MAIN_SPACE_CHAR_LIMIT).toBeGreaterThanOrEqual(15000);
-    expect(MAIN_SPACE_CHAR_LIMIT).toBeLessThanOrEqual(30000);
+    expect(MAIN_SPACE_CHAR_LIMIT).toBeLessThanOrEqual(50000);
   });
 
   it("LINKED_SPACES_TOTAL_CHAR_LIMIT = 15000", () => {
