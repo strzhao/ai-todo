@@ -108,45 +108,35 @@ describe("AC-1: getPersonalDaySummaryData 返回正确数据结构", () => {
   });
 
   it("返回对象包含 createdTasks 数组", async () => {
-    const { getPersonalDaySummaryData } = await import(
-      "@/lib/personal-summary"
-    );
+    const { getPersonalDaySummaryData } = await import("@/lib/personal-summary");
     const result = await getPersonalDaySummaryData(USER_ID, TEST_DATE);
     expect(result).toHaveProperty("createdTasks");
     expect(Array.isArray(result.createdTasks)).toBe(true);
   });
 
   it("返回对象包含 logs 数组", async () => {
-    const { getPersonalDaySummaryData } = await import(
-      "@/lib/personal-summary"
-    );
+    const { getPersonalDaySummaryData } = await import("@/lib/personal-summary");
     const result = await getPersonalDaySummaryData(USER_ID, TEST_DATE);
     expect(result).toHaveProperty("logs");
     expect(Array.isArray(result.logs)).toBe(true);
   });
 
   it("返回对象包含 overdueTasks 数组", async () => {
-    const { getPersonalDaySummaryData } = await import(
-      "@/lib/personal-summary"
-    );
+    const { getPersonalDaySummaryData } = await import("@/lib/personal-summary");
     const result = await getPersonalDaySummaryData(USER_ID, TEST_DATE);
     expect(result).toHaveProperty("overdueTasks");
     expect(Array.isArray(result.overdueTasks)).toBe(true);
   });
 
   it("返回对象包含 dueTodayTasks 数组", async () => {
-    const { getPersonalDaySummaryData } = await import(
-      "@/lib/personal-summary"
-    );
+    const { getPersonalDaySummaryData } = await import("@/lib/personal-summary");
     const result = await getPersonalDaySummaryData(USER_ID, TEST_DATE);
     expect(result).toHaveProperty("dueTodayTasks");
     expect(Array.isArray(result.dueTodayTasks)).toBe(true);
   });
 
   it("恰好包含 5 个数组字段", async () => {
-    const { getPersonalDaySummaryData } = await import(
-      "@/lib/personal-summary"
-    );
+    const { getPersonalDaySummaryData } = await import("@/lib/personal-summary");
     const result = await getPersonalDaySummaryData(USER_ID, TEST_DATE);
     const expectedKeys = [
       "completedTasks",
@@ -157,16 +147,12 @@ describe("AC-1: getPersonalDaySummaryData 返回正确数据结构", () => {
     ];
     for (const key of expectedKeys) {
       expect(result).toHaveProperty(key);
-      expect(Array.isArray((result as Record<string, unknown>)[key])).toBe(
-        true
-      );
+      expect(Array.isArray((result as Record<string, unknown>)[key])).toBe(true);
     }
   });
 
   it("当 DB 有数据时返回非空数组", async () => {
-    const { getPersonalDaySummaryData } = await import(
-      "@/lib/personal-summary"
-    );
+    const { getPersonalDaySummaryData } = await import("@/lib/personal-summary");
 
     // 模拟完成的任务
     mockTaggedTemplate.mockReturnValueOnce({
@@ -304,9 +290,7 @@ describe("AC-3: getPersonalSummaryCache 缓存读取", () => {
   });
 
   it("无缓存时返回 null", async () => {
-    const { getPersonalSummaryCache } = await import(
-      "@/lib/personal-summary"
-    );
+    const { getPersonalSummaryCache } = await import("@/lib/personal-summary");
 
     // DB 返回空行
     mockTaggedTemplate.mockReturnValueOnce({ rows: [] });
@@ -316,13 +300,11 @@ describe("AC-3: getPersonalSummaryCache 缓存读取", () => {
   });
 
   it("有缓存时返回包含 content 和 generated_at 的对象", async () => {
-    const { getPersonalSummaryCache } = await import(
-      "@/lib/personal-summary"
-    );
+    const { getPersonalSummaryCache } = await import("@/lib/personal-summary");
 
     const cachedRow = {
       content: "# 每日总结\n今天完成了 3 个任务。",
-      generated_at: "2026-03-23T12:00:00Z",
+      generated_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
     };
     mockTaggedTemplate.mockReturnValueOnce({ rows: [cachedRow] });
 
@@ -346,18 +328,12 @@ describe("AC-4: upsertPersonalSummaryCache 缓存写入", () => {
   });
 
   it("调用后不抛异常", async () => {
-    const { upsertPersonalSummaryCache } = await import(
-      "@/lib/personal-summary"
-    );
+    const { upsertPersonalSummaryCache } = await import("@/lib/personal-summary");
 
     mockTaggedTemplate.mockReturnValueOnce({ rows: [] });
 
     await expect(
-      upsertPersonalSummaryCache(
-        USER_ID,
-        TEST_DATE,
-        "# 总结\n完成了一些工作。"
-      )
+      upsertPersonalSummaryCache(USER_ID, TEST_DATE, "# 总结\n完成了一些工作。")
     ).resolves.not.toThrow();
   });
 
@@ -376,7 +352,7 @@ describe("AC-4: upsertPersonalSummaryCache 缓存写入", () => {
       rows: [
         {
           content: summaryContent,
-          generated_at: "2026-03-23T12:00:00Z",
+          generated_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
         },
       ],
     });
@@ -402,9 +378,7 @@ describe("AC-5: GET /api/me/summary 返回正确格式", () => {
     mockTaggedTemplate.mockReturnValue({ rows: [] });
 
     const { GET } = await import("@/app/api/me/summary/route");
-    const req = new NextRequest(
-      "https://ai-todo.stringzhao.life/api/me/summary?date=" + TEST_DATE
-    );
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/me/summary?date=" + TEST_DATE);
 
     const res = await GET(req);
     const body = await res.json();
@@ -428,9 +402,7 @@ describe("AC-5: GET /api/me/summary 返回正确格式", () => {
     mockTaggedTemplate.mockReturnValue({ rows: [] });
 
     const { GET } = await import("@/app/api/me/summary/route");
-    const req = new NextRequest(
-      "https://ai-todo.stringzhao.life/api/me/summary?date=" + TEST_DATE
-    );
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/me/summary?date=" + TEST_DATE);
 
     const res = await GET(req);
     const body = await res.json();
@@ -447,7 +419,7 @@ describe("AC-5: GET /api/me/summary 返回正确格式", () => {
     });
 
     const cachedContent = "# 每日总结\n今天做了很多事情。";
-    const generatedAt = "2026-03-23T12:00:00Z";
+    const generatedAt = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
     // 模拟缓存存在 - 为可能的多次查询提供足够的 mock
     mockTaggedTemplate
@@ -457,9 +429,7 @@ describe("AC-5: GET /api/me/summary 返回正确格式", () => {
       .mockReturnValue({ rows: [] });
 
     const { GET } = await import("@/app/api/me/summary/route");
-    const req = new NextRequest(
-      "https://ai-todo.stringzhao.life/api/me/summary?date=" + TEST_DATE
-    );
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/me/summary?date=" + TEST_DATE);
 
     const res = await GET(req);
     const body = await res.json();
@@ -479,9 +449,7 @@ describe("AC-5: GET /api/me/summary 返回正确格式", () => {
     mockTaggedTemplate.mockReturnValue({ rows: [] });
 
     const { GET } = await import("@/app/api/me/summary/route");
-    const req = new NextRequest(
-      "https://ai-todo.stringzhao.life/api/me/summary?date=" + TEST_DATE
-    );
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/me/summary?date=" + TEST_DATE);
 
     const res = await GET(req);
     const body = await res.json();
@@ -494,9 +462,7 @@ describe("AC-5: GET /api/me/summary 返回正确格式", () => {
     mockGetUserFromRequest.mockResolvedValue(null);
 
     const { GET } = await import("@/app/api/me/summary/route");
-    const req = new NextRequest(
-      "https://ai-todo.stringzhao.life/api/me/summary?date=" + TEST_DATE
-    );
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/me/summary?date=" + TEST_DATE);
 
     const res = await GET(req);
     expect(res.status).toBe(401);
@@ -511,9 +477,7 @@ describe("AC-5: GET /api/me/summary 返回正确格式", () => {
     mockTaggedTemplate.mockReturnValue({ rows: [] });
 
     const { GET } = await import("@/app/api/me/summary/route");
-    const req = new NextRequest(
-      "https://ai-todo.stringzhao.life/api/me/summary"
-    );
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/me/summary");
 
     const res = await GET(req);
     // 不传 date 也应正常返回，不报错
@@ -529,9 +493,7 @@ describe("AC-5: GET /api/me/summary 返回正确格式", () => {
     mockTaggedTemplate.mockReturnValue({ rows: [] });
 
     const { GET } = await import("@/app/api/me/summary/route");
-    const req = new NextRequest(
-      "https://ai-todo.stringzhao.life/api/me/summary?date=" + TEST_DATE
-    );
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/me/summary?date=" + TEST_DATE);
 
     const res = await GET(req);
     const body = await res.json();
@@ -549,14 +511,11 @@ describe("AC-6: POST /api/me/summary 认证要求", () => {
     mockGetUserFromRequest.mockResolvedValue(null);
 
     const { POST } = await import("@/app/api/me/summary/route");
-    const req = new NextRequest(
-      "https://ai-todo.stringzhao.life/api/me/summary",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: TEST_DATE }),
-      }
-    );
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/me/summary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ date: TEST_DATE }),
+    });
 
     const res = await POST(req);
     expect(res.status).toBe(401);
@@ -579,14 +538,11 @@ describe("AC-7: POST /api/me/summary 无任务活动时返回错误", () => {
     mockQuery.mockResolvedValue({ rows: [] });
 
     const { POST } = await import("@/app/api/me/summary/route");
-    const req = new NextRequest(
-      "https://ai-todo.stringzhao.life/api/me/summary",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: TEST_DATE }),
-      }
-    );
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/me/summary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ date: TEST_DATE }),
+    });
 
     const res = await POST(req);
     // 无活动应返回错误（可能是 400 或 200 带 error 字段）
@@ -641,14 +597,11 @@ describe("AC-8: POST /api/me/summary 配额限制", () => {
     });
 
     const { POST } = await import("@/app/api/me/summary/route");
-    const req = new NextRequest(
-      "https://ai-todo.stringzhao.life/api/me/summary",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: TEST_DATE }),
-      }
-    );
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/me/summary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ date: TEST_DATE }),
+    });
 
     const res = await POST(req);
     expect(res.status).toBe(429);
