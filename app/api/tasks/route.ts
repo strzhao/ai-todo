@@ -1,12 +1,14 @@
 import { NextRequest } from "next/server";
+import { z } from "zod";
 import { getUserFromRequest } from "@/lib/auth";
 import { getTasks, getTodayTasks, getCompletedTasks, createTask, getTaskById } from "@/lib/db";
 import { requireSpaceMember } from "@/lib/spaces";
 import { aiFlowLog, getAiTraceIdFromHeaders } from "@/lib/ai-flow-log";
 import { createRouteTimer } from "@/lib/route-timing";
 import { fireNotifications } from "@/lib/notifications";
+import { createTaskSchema, formatZodError } from "@/lib/validations";
 import type { CreateNotificationParams } from "@/lib/notifications";
-import type { ParsedTask, Task } from "@/lib/types";
+import type { Task } from "@/lib/types";
 
 export const preferredRegion = "hkg1";
 
@@ -73,12 +75,15 @@ export async function POST(req: NextRequest) {
   const user = await rt.track("auth", async () => getUserFromRequest(req));
   if (!user) return rt.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = (await req.json()) as ParsedTask & {
-    space_id?: string;
-    assignee_email?: string;
-    parent_id?: string;
-    type?: 0 | 1;
-  };
+  let body;
+  try {
+    body = createTaskSchema.parse(await req.json());
+  } catch (e) {
+    if (e instanceof z.ZodError) {
+      return rt.json({ error: formatZodError(e) }, { status: 400 });
+    }
+    return rt.json({ error: "Invalid request body" }, { status: 400 });
+  }
   aiFlowLog("tasks.post.request", {
     trace_id: traceId ?? null,
     title: body.title,
@@ -86,9 +91,6 @@ export async function POST(req: NextRequest) {
     space_id: body.space_id ?? null,
     assignee_email: body.assignee_email ?? body.assignee ?? null,
   });
-  if (!body.title?.trim()) {
-    return rt.json({ error: "title is required" }, { status: 400 });
-  }
 
   // Validate parent_id exists + auto-inherit space_id from parent
   if (body.parent_id) {

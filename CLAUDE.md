@@ -33,6 +33,7 @@ npm run test:coverage  # 运行测试并生成覆盖率报告
 npm run test:e2e       # 运行 E2E 测试（Playwright）
 npm run lint   # ESLint 检查
 npm run lint:fix  # ESLint 自动修复
+npm run dead-code  # 死代码检测（Knip）
 ```
 
 ## 技术栈
@@ -239,7 +240,10 @@ lib/
   use-media-query.ts            # 响应式 hook（useIsDesktop，768px 断点，SSR-safe）
   db.ts                         # Vercel Postgres CRUD（tasks + task_members + task_logs + push_subscriptions）；空间 = pinned 任务
   task-permissions.ts            # 任务粒度权限矩阵（纯函数：getTaskRoles / checkTaskPermission / getDisallowedFields / TaskPermissionError）
+  validations.ts                 # Zod schema（createTaskSchema + formatZodError，API 输入验证）
 __tests__/
+  helpers/                       # 共享测试工具（mock-auth, mock-db, fixtures, make-request）
+  api/                           # API Route 验收测试（notifications, tasks, tasks/[id]）
   task-utils.test.ts            # buildTree 单元测试
   gantt-utils.test.ts           # 日期函数单元测试
   parse-utils.test.ts           # parseItem / parseActions 单元测试（含 move action）
