@@ -33,9 +33,7 @@ export async function GET(req: NextRequest) {
   let tasks;
   if (wantType === 1) {
     // Notes: optionally scoped to a space, type filter pushed to DB
-    tasks = await rt.track("db_query", async () =>
-      getTasks(user.id, spaceId ? { spaceId, type: 1 } : { type: 1 })
-    );
+    tasks = await rt.track("db_query", async () => getTasks(user.id, spaceId ? { spaceId, type: 1 } : { type: 1 }));
     tasks = tasks.sort(
       (a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
@@ -43,9 +41,7 @@ export async function GET(req: NextRequest) {
     tasks = await rt.track("db_query", async () => getTodayTasks(user.id, spaceId));
     tasks = tasks.filter((t: Task) => (t.type ?? 0) === 0);
   } else if (filter === "assigned") {
-    tasks = await rt.track("db_query", async () =>
-      getTasks(user.id, { filter: "assigned", type: 0 })
-    );
+    tasks = await rt.track("db_query", async () => getTasks(user.id, { filter: "assigned", type: 0 }));
   } else if (filter === "completed") {
     const before = req.nextUrl.searchParams.get("before") ?? undefined;
     const beforeId = req.nextUrl.searchParams.get("before_id") ?? undefined;
