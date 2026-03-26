@@ -1113,6 +1113,17 @@ export async function getTaskLogs(taskId: string): Promise<TaskLog[]> {
   return rows.map(rowToTaskLog);
 }
 
+
+export async function getChildTasks(parentId: string): Promise<Task[]> {
+  const { rows } = await sql.query(
+    `SELECT * FROM ai_todo_tasks
+     WHERE parent_id = $1 AND status != 2
+     ORDER BY priority ASC, created_at DESC
+     LIMIT 500`,
+    [parentId]
+  );
+  return rows.map(rowToTask);
+}
 export async function getDescendantTasks(parentId: string): Promise<Task[]> {
   // Try fast path: if parentId is a space (pinned task), use indexed space_id
   const { rows: spaceCheck } = await sql.query(
