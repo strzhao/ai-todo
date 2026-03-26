@@ -3,6 +3,7 @@ import path from "path";
 
 export default defineConfig({
   test: {
+    exclude: ["e2e/**", "node_modules/**"],
     environment: "node",
     env: {
       AUTH_GATEWAY_SESSION_SECRET: "test-cli-session-secret",
