@@ -13,6 +13,7 @@ interface UseVoiceInputReturn {
   isTranscribing: boolean;
   isSupported: boolean;
   duration: number;
+  method: "webspeech" | "whisper" | null;
   startListening: () => void;
   stopListening: () => void;
   toggleListening: () => void;
@@ -20,14 +21,80 @@ interface UseVoiceInputReturn {
 
 const MAX_DURATION_S = 30;
 
+// ─── Web Speech API detection ────────────────────────────────────────────────
+
+interface SpeechRecognitionConstructor {
+  new (): SpeechRecognitionInstance;
+}
+
+interface SpeechRecognitionInstance extends EventTarget {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+}
+
+interface SpeechRecognitionEvent {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  isFinal: boolean;
+  length: number;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
+interface SpeechRecognitionErrorEvent {
+  error: string;
+  message?: string;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  }
+}
+
+function getWebSpeechConstructor(): SpeechRecognitionConstructor | null {
+  if (typeof window === "undefined") return null;
+  // iOS Safari's Web Speech API is unreliable - force Whisper fallback
+  const ua = navigator.userAgent;
+  const isIOS =
+    /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isChrome = /CriOS|Chrome/.test(ua) && !/Edge/.test(ua);
+  if (isIOS && !isChrome) return null;
+  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+}
+
+// ─── MediaRecorder helpers (Whisper fallback) ────────────────────────────────
+
 function getPreferredMimeType(): string {
   if (typeof MediaRecorder === "undefined") return "";
-  // Prefer webm (Chrome/Edge/Firefox), fall back to mp4 (iOS Safari)
   for (const type of ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"]) {
     if (MediaRecorder.isTypeSupported(type)) return type;
   }
-  return ""; // let browser pick default
+  return "";
 }
+
+// ─── Hook ────────────────────────────────────────────────────────────────────
 
 export function useVoiceInput(
   options: UseVoiceInputOptions = {}
@@ -38,10 +105,13 @@ export function useVoiceInput(
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const [duration, setDuration] = useState(0);
+  const [method, setMethod] = useState<"webspeech" | "whisper" | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+  const accumulatedRef = useRef<string>("");
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onResultRef = useRef(onResult);
@@ -51,11 +121,17 @@ export function useVoiceInput(
   onErrorRef.current = onError;
 
   useEffect(() => {
-    setIsSupported(
+    const hasWebSpeech = !!getWebSpeechConstructor();
+    const hasMediaRecorder =
       typeof window !== "undefined" &&
-        typeof MediaRecorder !== "undefined" &&
-        !!navigator.mediaDevices?.getUserMedia
-    );
+      typeof MediaRecorder !== "undefined" &&
+      !!navigator.mediaDevices?.getUserMedia;
+    setIsSupported(hasWebSpeech || hasMediaRecorder);
+    if (hasWebSpeech) {
+      setMethod("webspeech");
+    } else if (hasMediaRecorder) {
+      setMethod("whisper");
+    }
   }, []);
 
   const clearTimers = useCallback(() => {
@@ -71,6 +147,17 @@ export function useVoiceInput(
 
   const cleanup = useCallback(() => {
     clearTimers();
+    // Clean up Web Speech
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch {
+        // ignore
+      }
+      recognitionRef.current = null;
+    }
+    accumulatedRef.current = "";
+    // Clean up MediaRecorder
     const recorder = mediaRecorderRef.current;
     if (recorder && recorder.state !== "inactive") {
       recorder.stop();
@@ -82,6 +169,8 @@ export function useVoiceInput(
     mediaRecorderRef.current = null;
     chunksRef.current = [];
   }, [clearTimers]);
+
+  // ─── Whisper (MediaRecorder) path ──────────────────────────────────────────
 
   const transcribe = useCallback(
     async (blob: Blob) => {
@@ -122,72 +211,153 @@ export function useVoiceInput(
     [lang]
   );
 
-  const stopListening = useCallback(() => {
-    const recorder = mediaRecorderRef.current;
-    if (recorder && recorder.state !== "inactive") {
-      recorder.stop(); // triggers onstop → transcribe
-    }
-    setIsListening(false);
+  // ─── Duration timer helper ─────────────────────────────────────────────────
+
+  const startDurationTimer = useCallback(() => {
     setDuration(0);
+    const startTime = Date.now();
+    timerRef.current = setInterval(() => {
+      setDuration(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+  }, []);
+
+  // ─── Stop ──────────────────────────────────────────────────────────────────
+
+  const stopListening = useCallback(() => {
+    if (recognitionRef.current) {
+      // Web Speech path: stop() triggers onend which delivers result
+      recognitionRef.current.stop();
+      // Don't set isListening here; onend handler will do it
+    } else {
+      // MediaRecorder path
+      const recorder = mediaRecorderRef.current;
+      if (recorder && recorder.state !== "inactive") {
+        recorder.stop(); // triggers onstop -> transcribe
+      }
+      setIsListening(false);
+      setDuration(0);
+    }
     clearTimers();
   }, [clearTimers]);
 
+  // ─── Start ─────────────────────────────────────────────────────────────────
+
   const startListening = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
+    const WebSpeechCtor = getWebSpeechConstructor();
 
-      const mimeType = getPreferredMimeType();
-      const recorder = mimeType
-        ? new MediaRecorder(stream, { mimeType })
-        : new MediaRecorder(stream);
+    if (WebSpeechCtor) {
+      // ── Web Speech API path ──
+      try {
+        const recognition = new WebSpeechCtor();
+        // Map lang codes
+        const langMap: Record<string, string> = { zh: "zh-CN", en: "en-US", ja: "ja-JP" };
+        recognition.lang = langMap[lang] || lang;
+        recognition.continuous = true;
+        recognition.interimResults = false;
 
-      chunksRef.current = [];
+        accumulatedRef.current = "";
 
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+              accumulatedRef.current += event.results[i][0].transcript;
+            }
+          }
+        };
 
-      recorder.onstop = () => {
-        const chunks = chunksRef.current;
-        // Release mic
-        stream.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
-        mediaRecorderRef.current = null;
+        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+          const errorMap: Record<string, string> = {
+            "not-allowed": "麦克风权限被拒绝，请在浏览器设置中允许",
+            "no-speech": "未检测到语音，请重试",
+            "audio-capture": "无法访问麦克风",
+            network: "网络连接问题，请检查网络",
+            aborted: "",
+          };
+          const msg = errorMap[event.error] || `语音识别出错: ${event.error}`;
+          if (msg) onErrorRef.current?.(msg);
+        };
 
-        if (chunks.length > 0) {
-          const blob = new Blob(chunks, {
-            type: recorder.mimeType || "audio/webm",
-          });
-          transcribe(blob);
-        }
+        recognition.onend = () => {
+          const text = accumulatedRef.current.trim();
+          if (text) {
+            onResultRef.current?.(text);
+          }
+          accumulatedRef.current = "";
+          recognitionRef.current = null;
+          setIsListening(false);
+          setDuration(0);
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+        setIsListening(true);
+
+        startDurationTimer();
+
+        // Auto-stop after max duration
+        maxTimerRef.current = setTimeout(() => {
+          stopListening();
+        }, MAX_DURATION_S * 1000);
+      } catch (err) {
+        cleanup();
+        onErrorRef.current?.(
+          err instanceof DOMException && err.name === "NotAllowedError"
+            ? "麦克风权限被拒绝，请在浏览器设置中允许"
+            : "语音识别启动失败"
+        );
+      }
+    } else {
+      // ── MediaRecorder (Whisper) path ──
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        streamRef.current = stream;
+
+        const mimeType = getPreferredMimeType();
+        const recorder = mimeType
+          ? new MediaRecorder(stream, { mimeType })
+          : new MediaRecorder(stream);
+
         chunksRef.current = [];
-      };
 
-      mediaRecorderRef.current = recorder;
-      recorder.start();
-      setIsListening(true);
-      setDuration(0);
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) chunksRef.current.push(e.data);
+        };
 
-      // Duration counter
-      const startTime = Date.now();
-      timerRef.current = setInterval(() => {
-        setDuration(Math.floor((Date.now() - startTime) / 1000));
-      }, 1000);
+        recorder.onstop = () => {
+          const chunks = chunksRef.current;
+          stream.getTracks().forEach((t) => t.stop());
+          streamRef.current = null;
+          mediaRecorderRef.current = null;
 
-      // Auto-stop after max duration
-      maxTimerRef.current = setTimeout(() => {
-        stopListening();
-      }, MAX_DURATION_S * 1000);
-    } catch (err) {
-      cleanup();
-      if (err instanceof DOMException && err.name === "NotAllowedError") {
-        onErrorRef.current?.("麦克风权限被拒绝，请在浏览器设置中允许");
-      } else {
-        onErrorRef.current?.("无法访问麦克风");
+          if (chunks.length > 0) {
+            const blob = new Blob(chunks, {
+              type: recorder.mimeType || "audio/webm",
+            });
+            transcribe(blob);
+          }
+          chunksRef.current = [];
+        };
+
+        mediaRecorderRef.current = recorder;
+        recorder.start();
+        setIsListening(true);
+
+        startDurationTimer();
+
+        // Auto-stop after max duration
+        maxTimerRef.current = setTimeout(() => {
+          stopListening();
+        }, MAX_DURATION_S * 1000);
+      } catch (err) {
+        cleanup();
+        if (err instanceof DOMException && err.name === "NotAllowedError") {
+          onErrorRef.current?.("麦克风权限被拒绝，请在浏览器设置中允许");
+        } else {
+          onErrorRef.current?.("无法访问麦克风");
+        }
       }
     }
-  }, [stopListening, transcribe, cleanup]);
+  }, [lang, stopListening, transcribe, cleanup, startDurationTimer]);
 
   const toggleListening = useCallback(() => {
     if (isListening) {
@@ -198,17 +368,14 @@ export function useVoiceInput(
   }, [isListening, startListening, stopListening]);
 
   // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      cleanup();
-    };
-  }, [cleanup]);
+  useEffect(() => cleanup, [cleanup]);
 
   return {
     isListening,
     isTranscribing,
     isSupported,
     duration,
+    method,
     startListening,
     stopListening,
     toggleListening,

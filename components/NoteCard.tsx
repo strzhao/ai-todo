@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { extractTags } from "@/lib/note-utils";
 import type { Task } from "@/lib/types";
 
 interface Props {
@@ -17,14 +18,6 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
-function extractTags(text: string): string[] {
-  const matches = text.match(/(?<![#])#([^\s#,，。！？：；]+)/g);
-  if (!matches) return [];
-  return [...new Set(
-    matches.map((m) => m.slice(1).replace(/[.,;:!?。，；：！？、]+$/, ""))
-  )].filter(Boolean);
-}
-
 export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(note.title);
@@ -34,6 +27,7 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [needsCollapse, setNeedsCollapse] = useState(false);
+  const [showRaw, setShowRaw] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const deleteTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -135,6 +129,7 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
     }
   }
 
+  const displayTitle = showRaw && note.voice_raw_text ? note.voice_raw_text : note.title;
   const authorName = note.creator_nickname || note.creator_email?.split("@")[0] || "";
 
   return (
@@ -162,7 +157,7 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
                   className="prose-summary text-sm cursor-text"
                   onClick={() => setEditing(true)}
                 >
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{note.title}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayTitle}</ReactMarkdown>
                 </div>
                 {note.description && (
                   <div className="prose-summary text-xs text-muted-foreground leading-relaxed mt-1.5">
@@ -237,6 +232,14 @@ export function NoteCard({ note, highlight, onUpdate, onDelete }: Props) {
             </span>
           ))}
         </div>
+        {note.voice_raw_text && (
+          <button
+            onClick={() => setShowRaw(!showRaw)}
+            className="text-[10px] text-sage hover:underline shrink-0"
+          >
+            {showRaw ? "摘要" : "原文"}
+          </button>
+        )}
         <span className="text-[10px] text-muted-foreground shrink-0">
           {authorName ? `${authorName} \u00B7 ` : ""}{formatTime(note.created_at)}
         </span>

@@ -1,48 +1,17 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { FileText } from "lucide-react";
+import { useVoiceNote } from "@/lib/use-voice-note";
+import { extractTags, groupNotesByDate } from "@/lib/note-utils";
 import { NoteCard } from "@/components/NoteCard";
+import { VoiceButton } from "@/components/VoiceButton";
 import { TaskSkeleton } from "@/components/TaskSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { useNotes, mutateTasks } from "@/lib/use-tasks";
 import type { Task } from "@/lib/types";
 
-function extractTags(text: string): string[] {
-  const matches = text.match(/(?<![#])#([^\s#,，。！？：；]+)/g);
-  if (!matches) return [];
-  return [...new Set(
-    matches.map((m) => m.slice(1).replace(/[.,;:!?。，；：！？、]+$/, ""))
-  )].filter(Boolean);
-}
-
-function groupByDate(notes: Task[]): { label: string; notes: Task[] }[] {
-  const groups = new Map<string, Task[]>();
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  for (const note of notes) {
-    const d = new Date(note.created_at);
-    d.setHours(0, 0, 0, 0);
-    let label: string;
-    if (d.getTime() === today.getTime()) {
-      label = "今天";
-    } else if (d.getTime() === yesterday.getTime()) {
-      label = "昨天";
-    } else {
-      label = d.toLocaleDateString("zh-CN", { month: "long", day: "numeric" });
-    }
-    if (!groups.has(label)) groups.set(label, []);
-    groups.get(label)!.push(note);
-  }
-
-  return Array.from(groups, ([label, notes]) => ({ label, notes }));
-}
-
 export default function NotesPage() {
-  // --- All hooks at the top ---
   const { data: rawNotes, isLoading, error: fetchError, mutate: mutateNotes } = useNotes();
   const [inputText, setInputText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -50,6 +19,16 @@ export default function NotesPage() {
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [voiceRawText, setVoiceRawText] = useState<string | null>(null);
+
+  const handleVoiceResult = useCallback((title: string, rawText: string, tags: string[]) => {
+    const tagStr = tags.length ? ` ${tags.map((t) => `#${t}`).join(" ")}` : "";
+    setInputText(title + tagStr);
+    setVoiceRawText(rawText);
+  }, []);
+
+  const { voiceState, isTranscribing, isSupported: voiceSupported, duration, toggleListening } =
+    useVoiceNote({ onResult: handleVoiceResult });
 
   const notes = useMemo(() => (rawNotes && Array.isArray(rawNotes)) ? rawNotes : [], [rawNotes]);
 
@@ -64,7 +43,7 @@ export default function NotesPage() {
     return notes.filter((n) => n.tags.includes(selectedTag));
   }, [notes, selectedTag]);
 
-  const groups = useMemo(() => groupByDate(filteredNotes), [filteredNotes]);
+  const groups = useMemo(() => groupNotesByDate(filteredNotes), [filteredNotes]);
 
   // Auto-resize textarea to fit content
   useEffect(() => {
@@ -93,11 +72,12 @@ export default function NotesPage() {
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, tags, type: 1 }),
+        body: JSON.stringify({ title, tags, type: 1, ...(voiceRawText ? { voice_raw_text: voiceRawText } : {}) }),
       });
       if (res.ok) {
         const note = await res.json() as Task;
         setInputText("");
+        setVoiceRawText(null);
         setHighlightId(note.id);
         clearTimeout(highlightTimerRef.current);
         highlightTimerRef.current = setTimeout(() => setHighlightId(null), 1000);
@@ -150,6 +130,15 @@ export default function NotesPage() {
           disabled={saving}
         />
         <div className="flex items-center gap-2">
+          {voiceSupported && (
+            <VoiceButton
+              voiceState={voiceState}
+              isTranscribing={isTranscribing}
+              duration={duration}
+              disabled={saving}
+              onClick={toggleListening}
+            />
+          )}
           <div className="ml-auto flex items-center gap-2">
             <span className="text-xs text-muted-foreground hidden md:inline">⌘ + Enter</span>
             <button

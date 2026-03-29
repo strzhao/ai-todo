@@ -178,6 +178,7 @@ app/
     orgs/join/[code]/route.ts            # GET 预览 + POST 加入组织
     me/summary/route.ts         # GET（缓存+配额）+ POST（流式 AI 个人每日总结）
     transcribe/route.ts         # POST 音频转文字（转发到 Whisper API）
+    summarize-voice/route.ts    # POST 语音文本 AI 整理（DeepSeek 提取标题/描述/标签）
     notifications/route.ts      # GET（分页查询）+ PATCH（批量标记已读）
     notifications/unread-count/route.ts  # GET 返回 { count }
     notifications/prefs/route.ts         # GET + PUT 通知偏好
@@ -211,6 +212,7 @@ components/
   NotificationSettings.tsx      # 通知偏好设置（应用内 + 邮件 + 推送开关矩阵）
   PushPromptBanner.tsx          # 推送提醒横幅（访问 3 次后智能提示开启推送）
   PWAInstallBanner.tsx          # PWA 安装引导横幅（访问 5 次后提示添加到主屏幕，Chrome 一键安装 / iOS 步骤引导）
+  VoiceButton.tsx               # 语音按钮组件（idle/recording/transcribing 三态 UI）
   ServiceWorkerRegistrar.tsx    # Service Worker 注册（app 加载时自动注册）
 lib/
   types.ts                      # Task、ParsedTask、ParsedAction、ActionResult、TaskLog、AppNotification、SummaryConfig、LinkedSpace、Organization、OrgMember 等接口
@@ -221,7 +223,9 @@ lib/
   gantt-utils.ts                # 纯函数：daysBetween / addDays / formatAxisDate / getMemberName
   parse-utils.ts                # 纯函数：parseItem / parseActions / cleanupCache（可测试）
   route-timing.ts               # API 路由计时工具（createRouteTimer）
-  use-voice-input.ts            # 语音输入 hook（MediaRecorder 录音 + /api/transcribe 转写）
+  use-voice-input.ts            # 语音输入 hook（Web Speech API 优先 + Whisper fallback）
+  use-voice-note.ts             # 语音笔记 hook（录音 → 转写 → AI 整理 → 创建笔记）
+  note-utils.ts                 # 纯函数：extractTags / groupNotesByDate
   auth.ts                       # JWT 验证（jose + JWKS）+ DEV_BYPASS 模式
   auth-config.ts                # 统一授权配置（authorize/callback）
   server-auth.ts                # Server Component 用 getServerUser()

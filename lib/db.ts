@@ -16,7 +16,7 @@ export class TaskValidationError extends Error {
   }
 }
 
-const DB_SCHEMA_VERSION = 4; // bump when adding new tables/columns
+const DB_SCHEMA_VERSION = 5; // bump when adding new tables/columns
 let _dbSchemaVersion = 0;
 let _dbInitPromise: Promise<void> | null = null;
 
@@ -64,6 +64,7 @@ async function _doInitDb() {
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS invite_mode TEXT DEFAULT 'open'`;
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS progress SMALLINT DEFAULT 0`;
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS type SMALLINT DEFAULT 0`;
+  await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS voice_raw_text TEXT`;
 
   // 3. Indexes on tasks
   await sql`CREATE INDEX IF NOT EXISTS idx_ai_todo_tasks_user_id ON ai_todo_tasks(user_id)`;
@@ -351,6 +352,7 @@ function rowToTask(row: Record<string, unknown>): Task {
     invite_code: (row.invite_code as string) || undefined,
     invite_mode: (row.invite_mode as "open" | "approval") || undefined,
     share_code: (row.share_code as string) || undefined,
+    voice_raw_text: (row.voice_raw_text as string) || undefined,
     creator_email: (row.creator_email as string) || undefined,
     creator_nickname: (row.creator_nickname as string) || undefined,
     org_id: (row.org_id as string) || undefined,
@@ -579,13 +581,14 @@ export interface CreateTaskData extends ParsedTask {
   startDate?: string;
   endDate?: string;
   type?: 0 | 1;
+  voice_raw_text?: string;
 }
 
 export async function createTask(userId: string, data: CreateTaskData): Promise<Task> {
   const { rows } = await sql.query(
     `INSERT INTO ai_todo_tasks
-       (user_id, title, description, due_date, priority, tags, space_id, assignee_id, assignee_email, mentioned_emails, parent_id, start_date, end_date, progress, type)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       (user_id, title, description, due_date, priority, tags, space_id, assignee_id, assignee_email, mentioned_emails, parent_id, start_date, end_date, progress, type, voice_raw_text)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
      RETURNING *`,
     [
       userId,
@@ -603,6 +606,7 @@ export async function createTask(userId: string, data: CreateTaskData): Promise<
       data.endDate ?? data.end_date ?? null,
       data.progress ?? 0,
       data.type ?? 0,
+      data.voice_raw_text ?? null,
     ]
   );
   return rowToTask(rows[0]);

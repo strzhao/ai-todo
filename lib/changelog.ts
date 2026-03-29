@@ -7,6 +7,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.43.0",
+    date: "2026-03-29",
+    title: "语音笔记",
+    items: [
+      "支持语音录入笔记：按住录音 → 自动转写 → AI 整理标题/描述/标签",
+      "语音输入升级为 Web Speech API 优先，Whisper 作为 fallback",
+    ],
+  },
+  {
     version: "1.42.0",
     date: "2026-03-24",
     title: "空间加入引导",

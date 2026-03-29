@@ -28,6 +28,7 @@ export interface Task {
   invite_code?: string;
   invite_mode?: "open" | "approval";
   share_code?: string;
+  voice_raw_text?: string;
   creator_email?: string;
   creator_nickname?: string;
   org_id?: string;

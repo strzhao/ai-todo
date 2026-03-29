@@ -17,6 +17,7 @@ export const createTaskSchema = z.object({
   progress: z.number().min(0).max(100).optional(),
   parent_target_id: z.string().optional(),
   parent_target_title: z.string().optional(),
+  voice_raw_text: z.string().optional(),
 });
 
 /** Format zod errors into a single readable message */
