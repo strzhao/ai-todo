@@ -1,6 +1,10 @@
 import type { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+type SqlMock = ReturnType<typeof vi.fn> & {
+  query: ReturnType<typeof vi.fn>;
+};
+
 function setupRouteMocks(options?: {
   users?: Array<{ user_id: string; email: string }>;
   existingRows?: Array<Record<string, unknown>>;
@@ -8,14 +12,18 @@ function setupRouteMocks(options?: {
 }) {
   vi.resetModules();
 
-  const sql = vi.fn().mockResolvedValue({
-    rows: options?.users ?? [{ user_id: "user-1", email: "user@example.com" }],
-  });
-  sql.query = vi
-    .fn()
-    .mockResolvedValueOnce({ rows: options?.existingRows ?? [] })
-    .mockResolvedValueOnce({ rows: [{ id: "notif-1" }] })
-    .mockResolvedValueOnce({ rows: [] });
+  const sql = Object.assign(
+    vi.fn().mockResolvedValue({
+      rows: options?.users ?? [{ user_id: "user-1", email: "user@example.com" }],
+    }),
+    {
+      query: vi
+        .fn()
+        .mockResolvedValueOnce({ rows: options?.existingRows ?? [] })
+        .mockResolvedValueOnce({ rows: [{ id: "notif-1" }] })
+        .mockResolvedValueOnce({ rows: [] }),
+    }
+  ) as SqlMock;
 
   const getUserNotificationPrefs = vi.fn().mockResolvedValue(
     options?.prefs ?? {
@@ -107,11 +115,7 @@ describe("GET /api/cron/daily-digest", () => {
     expect(mocks.buildDigestSections).not.toHaveBeenCalled();
     expect(mocks.sql.query).toHaveBeenCalledWith(
       expect.stringContaining("INSERT INTO ai_todo_notifications"),
-      expect.arrayContaining([
-        "user-1",
-        "每日摘要 · 2026-03-31",
-        "2 个逾期，今天 1 个到期",
-      ])
+      expect.arrayContaining(["user-1", "每日摘要 · 2026-03-31", "2 个逾期，今天 1 个到期"])
     );
     expect(mocks.sql.query).toHaveBeenCalledWith(
       expect.stringContaining("INSERT INTO ai_todo_digest_delivery"),
