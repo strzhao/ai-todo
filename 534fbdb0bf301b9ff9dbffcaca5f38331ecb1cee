@@ -1,0 +1,25 @@
+components/TaskItem.tsx
+  b9183a73178390a1 63-64,68-69,79,93,99-101,105,112-125,344,513-574,585
+components/NLInput.tsx
+  b9183a73178390a1 31,154-174,191,239,242,244
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.22",
+  "base_commit_sha": "534fbdb0bf301b9ff9dbffcaca5f38331ecb1cee",
+  "prompts": {
+    "b9183a73178390a1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9f7d6ce3-c90f-456b-a847-274fd7ec3d39",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "stringzhao <daniel21436@hotmail.com>",
+      "messages": [],
+      "total_additions": 119,
+      "total_deletions": 12,
+      "accepted_lines": 114,
+      "overriden_lines": 0
+    }
+  }
+}
