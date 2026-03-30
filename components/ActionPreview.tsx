@@ -157,6 +157,9 @@ function ActionRow({ action, allTasks, parentTaskId, spaceId, members }: { actio
       changeParts.push(`经办人→${c.assignee_email ? getDisplayLabel(c.assignee_email, am) : "未指派"}`);
     }
     if (c.progress !== undefined) changeParts.push(`进度→${c.progress}%`);
+    if (c.milestone !== undefined) {
+      changeParts.push(c.milestone ? `里程碑→${c.milestone}` : "取消里程碑");
+    }
     return (
       <div className={`flex items-start gap-2 text-sm ${notFound ? "text-destructive" : ""}`}>
         <span className="flex-shrink-0 text-info">↻</span>

@@ -40,6 +40,7 @@ const manifest = {
         { name: "space_id", in: "body", type: "string", required: false, description: "Space ID to create task in" },
         { name: "parent_id", in: "body", type: "string", required: false, description: "Parent task ID for subtask" },
         { name: "assignee_email", in: "body", type: "string", required: false, description: "Assignee email (in space)" },
+        { name: "milestone", in: "body", type: "string", required: false, description: "Milestone label (e.g. 'v1.0 Release')" },
       ],
     },
     {
@@ -61,6 +62,7 @@ const manifest = {
         { name: "progress", in: "body", type: "number", required: false, description: "Progress 0-100" },
         { name: "parent_id", in: "body", type: "string", required: false, description: "Move to new parent" },
         { name: "assignee_email", in: "body", type: "string", required: false, description: "New assignee email" },
+        { name: "milestone", in: "body", type: "string", required: false, description: "Milestone label (e.g. 'v1.0 Release')" },
       ],
     },
     {

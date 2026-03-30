@@ -316,6 +316,7 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
               title="单击编辑"
             >
               <RichText text={task.title} truncate />
+              {task.milestone && <span className="text-[10px] text-sage ml-1" title={task.milestone}>{"\ud83d\udea9"}</span>}
             </p>
           )}
           {task.description && (

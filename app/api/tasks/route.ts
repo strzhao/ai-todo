@@ -155,6 +155,7 @@ export async function POST(req: NextRequest) {
       assigneeEmail,
       mentionedEmails: body.mentions ?? [],
       parentId: body.parent_id,
+      milestone: body.milestone,
     })
   );
 

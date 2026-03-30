@@ -283,6 +283,15 @@ public/
 
 笔记与任务共享 `ai_todo_tasks` 表，通过 `type` 字段区分。笔记无截止日期和优先级，给笔记加上这些属性时 AI 自动将 type 翻转为 0（任务）。
 
+## 里程碑（Milestone）
+
+- `milestone` 字段：可选字符串（max 100），标记任务为里程碑
+- 甘特图中 milestone 任务使用苔色高亮条 + 🚩旗帜图标
+- 任务列表中 milestone 任务标题旁显示 🚩 小标记
+- AI 输入："标记为里程碑"、"设为 milestone" 触发设置
+- CLI：`tasks:update --id xxx --milestone "v1.0"`
+- 权限与 title 相同（creator + space_owner 可修改）
+
 ## 任务层级
 
 - 支持任意深度嵌套（`parent_id` 指向父任务 ID）

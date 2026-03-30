@@ -30,7 +30,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   await initDb();
   const { id } = await params;
-  const body = await req.json() as { complete?: boolean; reopen?: boolean; action?: "pin" | "unpin" | "share" | "unshare"; invite_mode?: string } & Partial<ParsedTask> & { assignee_email?: string | null; assigneeEmail?: string | null; start_date?: string | null; end_date?: string | null; parent_id?: string | null; progress?: number; type?: 0 | 1 };
+  const body = await req.json() as { complete?: boolean; reopen?: boolean; action?: "pin" | "unpin" | "share" | "unshare"; invite_mode?: string } & Partial<ParsedTask> & { assignee_email?: string | null; assigneeEmail?: string | null; start_date?: string | null; end_date?: string | null; parent_id?: string | null; progress?: number; type?: 0 | 1; milestone?: string | null };
   aiFlowLog("tasks.patch.request", {
     trace_id: traceId ?? null,
     task_id: id,

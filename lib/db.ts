@@ -16,7 +16,7 @@ export class TaskValidationError extends Error {
   }
 }
 
-const DB_SCHEMA_VERSION = 5; // bump when adding new tables/columns
+const DB_SCHEMA_VERSION = 6; // bump when adding new tables/columns
 let _dbSchemaVersion = 0;
 let _dbInitPromise: Promise<void> | null = null;
 
@@ -65,6 +65,7 @@ async function _doInitDb() {
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS progress SMALLINT DEFAULT 0`;
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS type SMALLINT DEFAULT 0`;
   await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS voice_raw_text TEXT`;
+  await sql`ALTER TABLE ai_todo_tasks ADD COLUMN IF NOT EXISTS milestone TEXT`;
 
   // 3. Indexes on tasks
   await sql`CREATE INDEX IF NOT EXISTS idx_ai_todo_tasks_user_id ON ai_todo_tasks(user_id)`;
@@ -353,6 +354,7 @@ function rowToTask(row: Record<string, unknown>): Task {
     invite_mode: (row.invite_mode as "open" | "approval") || undefined,
     share_code: (row.share_code as string) || undefined,
     voice_raw_text: (row.voice_raw_text as string) || undefined,
+    milestone: (row.milestone as string) || undefined,
     creator_email: (row.creator_email as string) || undefined,
     creator_nickname: (row.creator_nickname as string) || undefined,
     org_id: (row.org_id as string) || undefined,
@@ -587,8 +589,8 @@ export interface CreateTaskData extends ParsedTask {
 export async function createTask(userId: string, data: CreateTaskData): Promise<Task> {
   const { rows } = await sql.query(
     `INSERT INTO ai_todo_tasks
-       (user_id, title, description, due_date, priority, tags, space_id, assignee_id, assignee_email, mentioned_emails, parent_id, start_date, end_date, progress, type, voice_raw_text)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+       (user_id, title, description, due_date, priority, tags, space_id, assignee_id, assignee_email, mentioned_emails, parent_id, start_date, end_date, progress, type, voice_raw_text, milestone)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
      RETURNING *`,
     [
       userId,
@@ -607,6 +609,7 @@ export async function createTask(userId: string, data: CreateTaskData): Promise<
       data.progress ?? 0,
       data.type ?? 0,
       data.voice_raw_text ?? null,
+      data.milestone ?? null,
     ]
   );
   return rowToTask(rows[0]);
@@ -688,6 +691,7 @@ export async function updateTask(
     parent_id?: string | null;
     progress?: number;
     type?: 0 | 1;
+    milestone?: string | null;
   }
 ): Promise<Task | null> {
   const task = await getTaskForUser(taskId, userId);
@@ -778,6 +782,10 @@ export async function updateTask(
   if (patch.type !== undefined) {
     fields.push(`type = $${idx++}`);
     values.push(patch.type);
+  }
+  if (patch.milestone !== undefined) {
+    fields.push(`milestone = $${idx++}`);
+    values.push(patch.milestone || null);  // 空字符串也清除
   }
   if (patch.parent_id !== undefined) {
     const nextParentId = patch.parent_id || null;

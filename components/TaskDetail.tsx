@@ -80,6 +80,11 @@ export function TaskDetail({
   // Progress
   const [localProgress, setLocalProgress] = useState(task.progress);
 
+  // Milestone
+  const [localMilestone, setLocalMilestone] = useState(task.milestone ?? "");
+  const [milestoneEditing, setMilestoneEditing] = useState(false);
+  const milestoneInputRef = useRef<HTMLInputElement>(null);
+
   // Assignee
   const [members, setMembers] = useState<TaskMember[]>(membersProp ?? []);
   const [assigneeOpen, setAssigneeOpen] = useState(false);
@@ -95,6 +100,7 @@ export function TaskDetail({
   useEffect(() => { setLocalPriority(task.priority); }, [task.priority]);
   useEffect(() => { setLocalTags(task.tags ?? []); }, [task.tags]);
   useEffect(() => { setLocalProgress(task.progress); }, [task.progress]);
+  useEffect(() => { setLocalMilestone(task.milestone ?? ""); }, [task.milestone]);
 
   // Fetch members if not passed but space_id exists
   useEffect(() => {
@@ -121,6 +127,14 @@ export function TaskDetail({
   useEffect(() => {
     if (tagAdding && tagInputRef.current) tagInputRef.current.focus();
   }, [tagAdding]);
+
+  // Auto-focus milestone input
+  useEffect(() => {
+    if (milestoneEditing && milestoneInputRef.current) {
+      milestoneInputRef.current.focus();
+      milestoneInputRef.current.select();
+    }
+  }, [milestoneEditing]);
 
   // Auto-focus title input
   useEffect(() => {
@@ -327,6 +341,63 @@ export function TaskDetail({
                   {opt.label}
                 </button>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* Milestone */}
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground w-14 shrink-0">里程碑</span>
+          {readonly ? (
+            <span className="text-sm text-foreground">
+              {localMilestone ? <>{"\ud83d\udea9"} {localMilestone}</> : <span className="text-muted-foreground/50">无</span>}
+            </span>
+          ) : milestoneEditing ? (
+            <div className="flex items-center gap-1.5 flex-1">
+              <input
+                ref={milestoneInputRef}
+                value={localMilestone}
+                onChange={(e) => setLocalMilestone(e.target.value)}
+                onBlur={() => {
+                  setMilestoneEditing(false);
+                  patchTask({ milestone: localMilestone || null });
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    setMilestoneEditing(false);
+                    patchTask({ milestone: localMilestone || null });
+                  }
+                  if (e.key === "Escape") {
+                    setMilestoneEditing(false);
+                    setLocalMilestone(task.milestone ?? "");
+                  }
+                }}
+                maxLength={100}
+                placeholder="输入里程碑名称"
+                className="flex-1 text-sm bg-transparent border-b-2 border-sage outline-none pb-0.5 placeholder:text-muted-foreground/30"
+              />
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <button
+                className="text-sm text-foreground hover:text-sage transition-colors"
+                onClick={() => setMilestoneEditing(true)}
+              >
+                {localMilestone ? <>{"\ud83d\udea9"} {localMilestone}</> : <span className="text-muted-foreground/50">设为里程碑</span>}
+              </button>
+              {localMilestone && (
+                <button
+                  onClick={() => {
+                    setLocalMilestone("");
+                    patchTask({ milestone: null });
+                  }}
+                  className="text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors text-xs"
+                  title="清除里程碑"
+                >
+                  x
+                </button>
+              )}
             </div>
           )}
         </div>

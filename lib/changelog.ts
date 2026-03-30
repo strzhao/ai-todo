@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.44.0",
+    date: "2026-03-30",
+    title: "里程碑标记",
+    items: [
+      "任务支持标记为里程碑（Milestone），快速识别核心目标",
+      "甘特图中里程碑任务用苔色高亮条 + 🚩旗帜醒目展示",
+      "AI 输入和 CLI 均支持设置/清除里程碑",
+    ],
+  },
+  {
     version: "1.43.0",
     date: "2026-03-29",
     title: "语音笔记",

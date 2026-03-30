@@ -15,6 +15,7 @@ export const createTaskSchema = z.object({
   space_id: z.string().optional(),
   parent_id: z.string().optional(),
   progress: z.number().min(0).max(100).optional(),
+  milestone: z.string().max(100).optional(),
   parent_target_id: z.string().optional(),
   parent_target_title: z.string().optional(),
   voice_raw_text: z.string().optional(),

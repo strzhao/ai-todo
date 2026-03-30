@@ -43,6 +43,7 @@ export function parseItem(item: Record<string, unknown>, fallbackTitle: string):
     ...(Array.isArray(item.mentions) && item.mentions.length > 0
       ? { mentions: (item.mentions as unknown[]).map(String) }
       : {}),
+    ...(typeof item.milestone === "string" && item.milestone ? { milestone: item.milestone.slice(0, 100) } : {}),
   };
 }
 
@@ -86,6 +87,7 @@ export function parseActions(result: Record<string, unknown>, fallbackText: stri
           ...(typeof c.progress === "number" && c.progress >= 0 && c.progress <= 100
             ? { progress: c.progress }
             : {}),
+          ...(c.milestone !== undefined ? { milestone: c.milestone ? String(c.milestone).slice(0, 100) : null } : {}),
         };
       }
 

@@ -240,8 +240,13 @@ const BAR_INSET = 2; // px inset from cell edge
 
 function TaskBarEl({ bar, onClick }: { bar: TaskBar; onClick: () => void }) {
   const isCompleted = bar.task.status === 2;
-  const borderClass =
-    PRIORITY_LEFT_BORDER[bar.task.priority] ?? PRIORITY_LEFT_BORDER[2];
+  const isMilestone = !!bar.task.milestone;
+  const borderClass = isMilestone
+    ? "border-l-sage"
+    : (PRIORITY_LEFT_BORDER[bar.task.priority] ?? PRIORITY_LEFT_BORDER[2]);
+  const bgClass = isMilestone
+    ? "bg-sage/15 hover:bg-sage/25"
+    : "bg-muted/40 hover:bg-muted/70";
 
   const left = `calc(${(bar.startCol / 7) * 100}% + ${BAR_INSET}px)`;
   const width = `calc(${(bar.spanCols / 7) * 100}% - ${BAR_INSET * 2}px)`;
@@ -249,8 +254,8 @@ function TaskBarEl({ bar, onClick }: { bar: TaskBar; onClick: () => void }) {
 
   return (
     <div
-      className={`absolute border-l-[3px] ${borderClass} rounded-r bg-muted/40
-        cursor-pointer hover:bg-muted/70 transition-colors flex items-center gap-1 px-1.5
+      className={`absolute border-l-[3px] ${borderClass} rounded-r ${bgClass}
+        cursor-pointer transition-colors flex items-center gap-1 px-1.5
         ${isCompleted ? "opacity-45" : ""}`}
       style={{
         left,
@@ -268,7 +273,7 @@ function TaskBarEl({ bar, onClick }: { bar: TaskBar; onClick: () => void }) {
             : "text-foreground"
         }`}
       >
-        {bar.task.title}
+        {isMilestone && "\ud83d\udea9"}{bar.task.title}
       </span>
       {!isCompleted && bar.task.priority <= 1 && (
         <span

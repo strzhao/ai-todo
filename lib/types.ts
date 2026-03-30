@@ -29,6 +29,7 @@ export interface Task {
   invite_mode?: "open" | "approval";
   share_code?: string;
   voice_raw_text?: string;
+  milestone?: string;
   creator_email?: string;
   creator_nickname?: string;
   org_id?: string;
@@ -55,6 +56,7 @@ export interface ParsedTask {
   progress?: number;
   // 0=task(default), 1=note
   type?: 0 | 1;
+  milestone?: string;
   // Phase D: hierarchy — subtasks (max 1 level deep in AI output)
   children?: Omit<ParsedTask, "children">[];
 }
@@ -98,6 +100,7 @@ export interface ParsedActionChanges {
   assignee_email?: string | null;
   progress?: number;
   type?: 0 | 1;
+  milestone?: string | null;
 }
 
 export interface ParsedAction {

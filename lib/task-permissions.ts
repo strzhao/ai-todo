@@ -65,6 +65,7 @@ const FIELD_OPERATION_MAP: Record<string, TaskOperation> = {
   assigneeEmail: "update_assignee",
   progress: "update_progress",
   type: "update_type",
+  milestone: "update_title",
   parent_id: "move",
 };
 
