@@ -60,9 +60,13 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
   const [tagInput, setTagInput] = useState("");
   const [members, setMembers] = useState<TaskMember[]>([]);
   const [localTags, setLocalTags] = useState(task.tags ?? []);
+  const [milestoneEditing, setMilestoneEditing] = useState(false);
+  const [milestoneInput, setMilestoneInput] = useState(task.milestone ?? "");
 
   const priorityRef = useRef<HTMLDivElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
+  const milestoneRef = useRef<HTMLDivElement>(null);
+  const milestoneInputRef = useRef<HTMLInputElement>(null);
 
   const p = PRIORITY_BADGES[task.priority] ?? PRIORITY_BADGES[2];
   const hasSubtasks = (subtasks?.length ?? 0) > 0 || (onDrillDown && (childCountMap?.[task.id] ?? 0) > 0);
@@ -72,6 +76,7 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
   // Sync local state when task prop changes
   useEffect(() => { setLocalProgress(task.progress); }, [task.progress]);
   useEffect(() => { setLocalTags(task.tags ?? []); }, [task.tags]);
+  useEffect(() => { setMilestoneInput(task.milestone ?? ""); }, [task.milestone]);
 
   // Use members from props if available, otherwise fetch
   useEffect(() => {
@@ -85,21 +90,38 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
 
   // Close popovers on outside click
   useEffect(() => {
-    const anyOpen = moreOpen || priorityOpen;
+    const anyOpen = moreOpen || priorityOpen || milestoneEditing;
     if (!anyOpen) return;
     function handler(e: MouseEvent) {
       const target = e.target as Node;
       if (moreOpen && moreRef.current && !moreRef.current.contains(target)) setMoreOpen(false);
       if (priorityOpen && priorityRef.current && !priorityRef.current.contains(target)) setPriorityOpen(false);
+      if (milestoneEditing && milestoneRef.current && !milestoneRef.current.contains(target)) {
+        saveMilestone();
+      }
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [moreOpen, priorityOpen]);
+  }, [moreOpen, priorityOpen, milestoneEditing]);
 
   // Auto-focus tag input
   useEffect(() => {
     if (tagAdding && tagInputRef.current) tagInputRef.current.focus();
   }, [tagAdding]);
+
+  // Auto-focus milestone input
+  useEffect(() => {
+    if (milestoneEditing && milestoneInputRef.current) milestoneInputRef.current.focus();
+  }, [milestoneEditing]);
+
+  function saveMilestone() {
+    const trimmed = milestoneInput.trim();
+    const newVal = trimmed || null;
+    if (newVal !== (task.milestone ?? null)) {
+      patchTask({ milestone: newVal });
+    }
+    setMilestoneEditing(false);
+  }
 
   // Scroll to focused task and auto-expand ancestors when focusedTaskId changes
   useEffect(() => {
@@ -310,7 +332,6 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
               title="单击编辑"
             >
               <RichText text={task.title} truncate />
-              {task.milestone && <span className="text-[10px] text-sage ml-1" title={task.milestone}>{"\ud83d\udea9"}</span>}
             </p>
           )}
           {task.description && (
@@ -320,7 +341,7 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
           )}
 
           {/* Interactive badge row */}
-          <div className="flex gap-1.5 mt-1.5 flex-wrap items-center">
+          <div className="flex gap-1.5 mt-4 flex-wrap items-center min-h-[22px]">
 
             {/* Priority — clickable with popover */}
             <div className="relative" ref={priorityRef}>
@@ -489,6 +510,68 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
               />
             )}
 
+            {/* Milestone quick-set */}
+            <div ref={milestoneRef} className="relative">
+              {milestoneEditing ? (
+                <div className="flex items-center gap-1 h-[22px]">
+                  <span className="text-[10px]">🚩</span>
+                  <input
+                    ref={milestoneInputRef}
+                    className="text-xs border border-sage/40 rounded px-1.5 py-0.5 bg-background w-28 focus:outline-none focus:ring-1 focus:ring-sage"
+                    value={milestoneInput}
+                    onChange={(e) => setMilestoneInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); saveMilestone(); }
+                      if (e.key === "Escape") { setMilestoneEditing(false); setMilestoneInput(task.milestone ?? ""); }
+                    }}
+                    maxLength={100}
+                    placeholder="里程碑名称"
+                  />
+                  <div className="absolute left-0 top-full mt-1 z-50 bg-background border border-border rounded shadow-md text-[11px] w-32">
+                    {["本周目标", "Sprint 目标", "版本发布", "阶段交付"].map((preset) => (
+                      <button
+                        key={preset}
+                        className="w-full text-left px-2 py-1.5 hover:bg-muted transition-colors"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setMilestoneInput(preset);
+                          patchTask({ milestone: preset });
+                          setMilestoneEditing(false);
+                        }}
+                      >
+                        🚩 {preset}
+                      </button>
+                    ))}
+                    {task.milestone && (
+                      <button
+                        className="w-full text-left px-2 py-1.5 hover:bg-muted transition-colors text-destructive"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setMilestoneInput("");
+                          patchTask({ milestone: null });
+                          setMilestoneEditing(false);
+                        }}
+                      >
+                        清除里程碑
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setMilestoneEditing(true); setMilestoneInput(task.milestone ?? ""); }}
+                  className={`text-xs px-1.5 h-[22px] inline-flex items-center rounded border transition-colors ${
+                    task.milestone
+                      ? "border-sage/30 text-sage hover:border-sage"
+                      : "border-border text-muted-foreground hover:text-foreground hover:border-foreground"
+                  }`}
+                  title={task.milestone ? `里程碑: ${task.milestone}` : "设为里程碑"}
+                >
+                  <span className={task.milestone ? "" : "grayscale opacity-50"}>🚩</span>{task.milestone ? ` ${task.milestone.length > 8 ? task.milestone.slice(0, 8) + "…" : task.milestone}` : ""}
+                </button>
+              )}
+            </div>
+
             {/* Subtask count toggle */}
             {hasSubtasks && (
               <button
@@ -499,7 +582,7 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
                     setExpanded((v) => !v);
                   }
                 }}
-                className="text-xs px-1.5 py-0 rounded border border-border text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
+                className="text-xs px-1.5 py-0 h-[22px] inline-flex items-center rounded border border-border text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
               >
                 {onDrillDown ? "▶" : (expanded ? "▼" : "▶")} {subtaskCount} 子任务
               </button>

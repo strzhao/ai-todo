@@ -28,6 +28,7 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionIdx, setMentionIdx] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const text = value ?? internalText;
@@ -150,6 +151,27 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
       parse();
       return;
     }
+    // @mention keyboard navigation
+    if (mentionQuery !== null && filteredMembers.length > 0) {
+      const visible = filteredMembers.slice(0, 6);
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setMentionIdx((prev) => (prev + 1) % visible.length);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setMentionIdx((prev) => (prev <= 0 ? visible.length - 1 : prev - 1));
+        return;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (mentionIdx >= 0 && mentionIdx < visible.length) {
+          insertMention(visible[mentionIdx]);
+        }
+        return;
+      }
+    }
     if (e.key === "Escape" && mentionQuery !== null) {
       e.preventDefault();
       setMentionQuery(null);
@@ -166,6 +188,7 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
       const textBeforeCursor = val.slice(0, cursor);
       const atMatch = textBeforeCursor.match(/@(\S*)$/);
       setMentionQuery(atMatch ? atMatch[1] : null);
+      if (atMatch) setMentionIdx(0);
     }
   }
 
@@ -213,11 +236,12 @@ export function NLInput({ onResult, onParsed, tasks, spaceId, members, parentTas
       {/* @mention dropdown */}
       {mentionQuery !== null && filteredMembers.length > 0 && (
         <div className="absolute z-50 bottom-full mb-1 left-0 w-72 bg-background border border-border rounded-md shadow-lg overflow-hidden">
-          {filteredMembers.slice(0, 6).map((m) => (
+          {filteredMembers.slice(0, 6).map((m, idx) => (
             <button
               key={m.user_id}
-              className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-accent text-sm"
+              className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm ${idx === mentionIdx ? "bg-accent" : "hover:bg-accent"}`}
               onMouseDown={(e) => { e.preventDefault(); insertMention(m); }}
+              onMouseEnter={() => setMentionIdx(idx)}
             >
               <span className="w-6 h-6 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-medium flex-shrink-0">
                 {getDisplayLabel(m.email, m)[0]?.toUpperCase()}
