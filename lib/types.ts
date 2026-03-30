@@ -131,12 +131,52 @@ export interface ActionResult {
 
 // ─── Notifications ──────────────────────────────────────────────────────────────
 
+export interface DailyDigestMetric {
+  key: "overdue" | "due_today" | "completed" | "logs";
+  label: string;
+  count: number;
+}
+
+export interface DailyDigestSectionItem {
+  kind: "task" | "log";
+  task_id?: string;
+  space_id?: string;
+  space_name?: string;
+  title: string;
+  meta?: string;
+  excerpt?: string;
+  due_date?: string;
+  priority?: 0 | 1 | 2 | 3;
+  progress?: number;
+  completed_at?: string;
+}
+
+export interface DailyDigestSection {
+  key: DailyDigestMetric["key"];
+  title: string;
+  count: number;
+  overflow_count: number;
+  items: DailyDigestSectionItem[];
+}
+
+export interface DailyDigestSnapshot {
+  date: string;
+  headline: string;
+  metrics: DailyDigestMetric[];
+  sections: DailyDigestSection[];
+}
+
+export interface AppNotificationData {
+  daily_digest?: DailyDigestSnapshot;
+}
+
 export interface AppNotification {
   id: string;
   user_id: string;
   type: string;
   title: string;
   body?: string;
+  data?: AppNotificationData;
   task_id?: string;
   space_id?: string;
   actor_id?: string;

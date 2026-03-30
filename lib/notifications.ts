@@ -1,7 +1,7 @@
 import { sql } from "@vercel/postgres";
 import { initDb } from "./db";
 import { NOTIFICATION_TYPES, type NotificationType } from "./notification-types";
-import type { AppNotification, NotificationPrefs } from "./types";
+import type { AppNotification, AppNotificationData, NotificationPrefs } from "./types";
 import { getNotificationUrl } from "./notification-utils";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
@@ -11,6 +11,7 @@ export interface CreateNotificationParams {
   type: NotificationType;
   title: string;
   body?: string;
+  data?: AppNotificationData;
   taskId?: string;
   spaceId?: string;
   actorId?: string;
@@ -81,6 +82,7 @@ function rowToNotification(row: Record<string, unknown>): AppNotification {
     type: row.type as string,
     title: row.title as string,
     body: (row.body as string) || undefined,
+    data: (row.data as AppNotificationData) || undefined,
     task_id: (row.task_id as string) || undefined,
     space_id: (row.space_id as string) || undefined,
     actor_id: (row.actor_id as string) || undefined,
@@ -101,13 +103,14 @@ export async function createNotification(params: CreateNotificationParams): Prom
   // Write inapp notification record
   if (pref?.inapp) {
     await sql.query(
-      `INSERT INTO ai_todo_notifications (user_id, type, title, body, task_id, space_id, actor_id, actor_email)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      `INSERT INTO ai_todo_notifications (user_id, type, title, body, data, task_id, space_id, actor_id, actor_email)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         params.userId,
         params.type,
         params.title,
         params.body ?? null,
+        params.data ? JSON.stringify(params.data) : null,
         params.taskId ?? null,
         params.spaceId ?? null,
         params.actorId ?? null,

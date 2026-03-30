@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { NotificationItem } from "./NotificationItem";
 import { TaskDetail } from "./TaskDetail";
+import { DailyDigestNotificationDetail } from "./DailyDigestNotificationDetail";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { AppNotification, Task } from "@/lib/types";
 
@@ -222,17 +223,7 @@ export function NotificationList({ onClose, compact }: Props) {
             )}
             {/* 每日摘要：展示通知内容 */}
             {selectedNotification?.type === "daily_digest" && !selectedNotification.task_id && (
-              <div className="px-1 py-4 space-y-3">
-                <h3 className="text-base font-medium text-foreground">{selectedNotification.title}</h3>
-                {selectedNotification.body && (
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                    {selectedNotification.body}
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground/60 pt-2">
-                  如需查看完整摘要，请前往对应空间页面
-                </p>
-              </div>
+              <DailyDigestNotificationDetail notification={selectedNotification} />
             )}
           </div>
         </SheetContent>

@@ -184,7 +184,7 @@ app/
     notifications/prefs/route.ts         # GET + PUT 通知偏好
     push/vapid/route.ts         # GET 返回 VAPID 公钥
     push/subscribe/route.ts     # POST（订阅）+ DELETE（取消订阅）
-    cron/daily-digest/route.ts  # Cron 每日摘要邮件（UTC 01:00 = 北京 09:00）
+    cron/daily-digest/route.ts  # Cron 每日摘要（按 in-app / 邮件 / 推送偏好分发，UTC 01:00 = 北京 09:00）
 components/
   SpaceNav.tsx                  # 侧边栏导航（桌面）+ 底部 Tab（移动端）+ 组织区块 + 当前空间一级任务目录 + 通知铃铛
   NLInput.tsx                   # 自然语言输入框，Cmd+K 聚焦，@ 触发成员菜单，传 tasks + parent_task 上下文给 AI；聚焦态下 placeholder 提示父任务名
@@ -210,6 +210,7 @@ components/
   (已删除 NotificationBell.tsx，通知改为图标直接导航到 /notifications 页面)
   NotificationList.tsx          # 通知列表（Popover / 全屏页共用）+ 任务/摘要抽屉展示
   NotificationItem.tsx          # 单条通知行（任务/摘要通知渲染为 button + onOpenDetail，其他保留 Link）
+  DailyDigestNotificationDetail.tsx  # 每日摘要通知详情（指标卡 + 分组明细 + 任务直达）
   NotificationSettings.tsx      # 通知偏好设置（应用内 + 邮件 + 推送开关矩阵）
   PushPromptBanner.tsx          # 推送提醒横幅（访问 3 次后智能提示开启推送）
   PWAInstallBanner.tsx          # PWA 安装引导横幅（访问 5 次后提示添加到主屏幕，Chrome 一键安装 / iOS 步骤引导）

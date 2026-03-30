@@ -157,6 +157,7 @@ async function _doInitDb() {
       type        TEXT NOT NULL,
       title       TEXT NOT NULL,
       body        TEXT,
+      data        JSONB,
       task_id     UUID REFERENCES ai_todo_tasks(id) ON DELETE CASCADE,
       space_id    UUID REFERENCES ai_todo_tasks(id) ON DELETE CASCADE,
       actor_id    TEXT,
@@ -165,6 +166,7 @@ async function _doInitDb() {
       created_at  TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+  await sql`ALTER TABLE ai_todo_notifications ADD COLUMN IF NOT EXISTS data JSONB`;
   await sql`CREATE INDEX IF NOT EXISTS idx_notif_user ON ai_todo_notifications(user_id, read, created_at DESC)`;
 
   // 11. Notification preferences table
@@ -176,6 +178,20 @@ async function _doInitDb() {
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+
+  // 11b. Daily digest delivery log (channel-aware dedupe)
+  await sql`
+    CREATE TABLE IF NOT EXISTS ai_todo_digest_delivery (
+      id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id         TEXT NOT NULL,
+      digest_date     DATE NOT NULL,
+      channels        JSONB NOT NULL DEFAULT '{}',
+      notification_id UUID REFERENCES ai_todo_notifications(id) ON DELETE SET NULL,
+      created_at      TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user_id, digest_date)
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_digest_delivery_user_date ON ai_todo_digest_delivery(user_id, digest_date DESC)`;
 
   // 12. Summary config table (per-space AI summary customization)
   await sql`

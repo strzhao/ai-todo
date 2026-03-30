@@ -1,11 +1,27 @@
 import { sql } from "@vercel/postgres";
-import type { Task, TaskLog } from "./types";
+import type {
+  AppNotificationData,
+  DailyDigestMetric,
+  DailyDigestSection,
+  DailyDigestSectionItem,
+  DailyDigestSnapshot,
+  Task,
+  TaskLog,
+} from "./types";
 
-interface DigestData {
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const NOTIFICATION_ITEM_LIMIT = 4;
+const EMAIL_ITEM_LIMIT = 20;
+
+type DigestSectionKey = DailyDigestMetric["key"];
+type DigestLogEntry = TaskLog & { task_title: string; space_id?: string };
+
+export interface DigestData {
   overdueTasks: Task[];
   dueTodayTasks: Task[];
   completedYesterday: Task[];
-  logsYesterday: Array<TaskLog & { task_title: string }>;
+  logsYesterday: DigestLogEntry[];
+  spaceNames: Record<string, string>;
 }
 
 export async function getUserDigestData(userId: string, today: string): Promise<DigestData> {
@@ -50,7 +66,7 @@ export async function getUserDigestData(userId: string, today: string): Promise<
 
   // Logs added yesterday by the user
   const { rows: logRows } = await sql.query(
-    `SELECT l.*, t.title as task_title
+    `SELECT l.*, t.title as task_title, t.space_id as space_id
      FROM ai_todo_task_logs l
      JOIN ai_todo_tasks t ON t.id = l.task_id
      WHERE l.user_id = $1
@@ -61,19 +77,34 @@ export async function getUserDigestData(userId: string, today: string): Promise<
     [userId, yesterdayStr]
   );
 
+  const overdueTasks = overdueRows.map(rowToTask);
+  const dueTodayTasks = dueTodayRows.map(rowToTask);
+  const completedYesterday = completedRows.map(rowToTask);
+  const logsYesterday = logRows.map((r) => ({
+    id: r.id as string,
+    task_id: r.task_id as string,
+    user_id: r.user_id as string,
+    user_email: r.user_email as string,
+    content: r.content as string,
+    created_at: (r.created_at as Date).toISOString(),
+    task_title: r.task_title as string,
+    space_id: (r.space_id as string) || undefined,
+  }));
+
+  const spaceIds = [...new Set(
+    [...overdueTasks, ...dueTodayTasks, ...completedYesterday]
+      .map((t) => t.space_id)
+      .concat(logsYesterday.map((l) => l.space_id))
+      .filter(Boolean)
+  )] as string[];
+  const spaceNames = await getSpaceNames(spaceIds);
+
   return {
-    overdueTasks: overdueRows.map(rowToTask),
-    dueTodayTasks: dueTodayRows.map(rowToTask),
-    completedYesterday: completedRows.map(rowToTask),
-    logsYesterday: logRows.map((r) => ({
-      id: r.id as string,
-      task_id: r.task_id as string,
-      user_id: r.user_id as string,
-      user_email: r.user_email as string,
-      content: r.content as string,
-      created_at: (r.created_at as Date).toISOString(),
-      task_title: r.task_title as string,
-    })),
+    overdueTasks,
+    dueTodayTasks,
+    completedYesterday,
+    logsYesterday,
+    spaceNames,
   };
 }
 
@@ -86,37 +117,87 @@ export function hasDigestContent(data: DigestData): boolean {
   );
 }
 
-export function buildDigestSections(data: DigestData): Array<{ title: string; items: string[] }> {
+export function buildDailyDigestSnapshot(data: DigestData, today: string): DailyDigestSnapshot {
+  const metrics = buildDigestMetrics(data);
+  const sections = [
+    buildTaskSection("overdue", "已过期任务", data.overdueTasks, data.spaceNames, today, NOTIFICATION_ITEM_LIMIT),
+    buildTaskSection("due_today", "今日到期", data.dueTodayTasks, data.spaceNames, today, NOTIFICATION_ITEM_LIMIT),
+    buildTaskSection("completed", "昨日完成", data.completedYesterday, data.spaceNames, today, NOTIFICATION_ITEM_LIMIT),
+    buildLogSection(data.logsYesterday, data.spaceNames, NOTIFICATION_ITEM_LIMIT),
+  ].filter((section): section is DailyDigestSection => !!section);
+
+  return {
+    date: today,
+    headline: buildDigestHeadline(metrics),
+    metrics,
+    sections,
+  };
+}
+
+export function buildDigestPreviewText(snapshot: DailyDigestSnapshot): string {
+  const countOf = (key: DigestSectionKey) =>
+    snapshot.metrics.find((metric) => metric.key === key)?.count ?? 0;
+  const fragments = [
+    countOf("overdue") > 0 ? `${countOf("overdue")} 个逾期` : null,
+    countOf("due_today") > 0 ? `今天 ${countOf("due_today")} 个到期` : null,
+    countOf("completed") > 0 ? `昨天完成 ${countOf("completed")} 个` : null,
+    countOf("logs") > 0 ? `新增 ${countOf("logs")} 条进展` : null,
+  ].filter(Boolean);
+
+  return fragments.join("，") || snapshot.headline;
+}
+
+export function buildDailyDigestNotification(
+  data: DigestData,
+  today: string
+): { title: string; body: string; data: AppNotificationData } {
+  const snapshot = buildDailyDigestSnapshot(data, today);
+  return {
+    title: `每日摘要 · ${today}`,
+    body: buildDigestPreviewText(snapshot),
+    data: { daily_digest: snapshot },
+  };
+}
+
+export function buildDigestSections(
+  data: DigestData,
+  today = new Date().toISOString().slice(0, 10)
+): Array<{ title: string; items: string[] }> {
   const sections: Array<{ title: string; items: string[] }> = [];
 
   if (data.overdueTasks.length > 0) {
     sections.push({
       title: "已过期任务",
-      items: data.overdueTasks.map((t) => {
-        const dueDate = t.due_date ? new Date(t.due_date).toLocaleDateString("zh-CN") : "";
-        return `${t.title}${dueDate ? ` (截止 ${dueDate})` : ""}`;
-      }),
+      items: data.overdueTasks
+        .slice(0, EMAIL_ITEM_LIMIT)
+        .map((task) => formatDigestTaskLine(task, data.spaceNames, "overdue", today)),
     });
   }
 
   if (data.dueTodayTasks.length > 0) {
     sections.push({
       title: "今日到期",
-      items: data.dueTodayTasks.map((t) => t.title),
+      items: data.dueTodayTasks
+        .slice(0, EMAIL_ITEM_LIMIT)
+        .map((task) => formatDigestTaskLine(task, data.spaceNames, "due_today", today)),
     });
   }
 
   if (data.completedYesterday.length > 0) {
     sections.push({
       title: "昨日完成",
-      items: data.completedYesterday.map((t) => t.title),
+      items: data.completedYesterday
+        .slice(0, EMAIL_ITEM_LIMIT)
+        .map((task) => formatDigestTaskLine(task, data.spaceNames, "completed", today)),
     });
   }
 
   if (data.logsYesterday.length > 0) {
     sections.push({
       title: "昨日进展",
-      items: data.logsYesterday.map((l) => `${l.task_title}: ${l.content.slice(0, 80)}`),
+      items: data.logsYesterday
+        .slice(0, EMAIL_ITEM_LIMIT)
+        .map((log) => formatDigestLogLine(log, data.spaceNames)),
     });
   }
 
@@ -129,7 +210,7 @@ export interface PersonalDaySummaryData {
   [key: string]: unknown;
   completedTasks: Task[];
   createdTasks: Task[];
-  logs: Array<TaskLog & { task_title: string }>;
+  logs: Array<TaskLog & { task_title: string; space_id?: string }>;
   overdueTasks: Task[];
   dueTodayTasks: Task[];
   spaceNames: Record<string, string>;
@@ -169,7 +250,7 @@ export async function getPersonalDaySummaryData(
     ),
     // 3. Task logs added on date by userId
     sql.query(
-      `SELECT l.*, t.title as task_title
+      `SELECT l.*, t.title as task_title, t.space_id as space_id
        FROM ai_todo_task_logs l
        JOIN ai_todo_tasks t ON t.id = l.task_id
        WHERE l.user_id = $1
@@ -215,24 +296,17 @@ export async function getPersonalDaySummaryData(
     content: r.content as string,
     created_at: (r.created_at as Date).toISOString(),
     task_title: r.task_title as string,
+    space_id: (r.space_id as string) || undefined,
   }));
 
   // Collect all unique space_ids
-  const allTasks = [...completedTasks, ...createdTasks, ...overdueTasks, ...dueTodayTasks];
-  const spaceIds = [...new Set(allTasks.map((t) => t.space_id).filter(Boolean))] as string[];
-
-  // Fetch space names
-  const spaceNames: Record<string, string> = {};
-  if (spaceIds.length > 0) {
-    const placeholders = spaceIds.map((_, i) => `$${i + 1}`).join(",");
-    const { rows: spaceRows } = await sql.query(
-      `SELECT id, title FROM ai_todo_tasks WHERE id IN (${placeholders})`,
-      spaceIds
-    );
-    for (const row of spaceRows) {
-      spaceNames[row.id as string] = row.title as string;
-    }
-  }
+  const spaceIds = [...new Set(
+    [...completedTasks, ...createdTasks, ...overdueTasks, ...dueTodayTasks]
+      .map((t) => t.space_id)
+      .concat(logs.map((log) => log.space_id))
+      .filter(Boolean)
+  )] as string[];
+  const spaceNames = await getSpaceNames(spaceIds);
 
   return { completedTasks, createdTasks, logs, overdueTasks, dueTodayTasks, spaceNames };
 }
@@ -269,4 +343,211 @@ function rowToTask(row: Record<string, unknown>): Task {
     progress: row.progress != null ? Number(row.progress) : 0,
     parent_id: (row.parent_id as string) || undefined,
   };
+}
+
+async function getSpaceNames(spaceIds: string[]): Promise<Record<string, string>> {
+  if (spaceIds.length === 0) return {};
+
+  const placeholders = spaceIds.map((_, i) => `$${i + 1}`).join(",");
+  const { rows } = await sql.query(
+    `SELECT id, title FROM ai_todo_tasks WHERE id IN (${placeholders})`,
+    spaceIds
+  );
+
+  const spaceNames: Record<string, string> = {};
+  for (const row of rows) {
+    spaceNames[row.id as string] = row.title as string;
+  }
+  return spaceNames;
+}
+
+function buildDigestMetrics(data: DigestData): DailyDigestMetric[] {
+  return [
+    { key: "overdue", label: "逾期", count: data.overdueTasks.length },
+    { key: "due_today", label: "今日到期", count: data.dueTodayTasks.length },
+    { key: "completed", label: "昨日完成", count: data.completedYesterday.length },
+    { key: "logs", label: "昨日进展", count: data.logsYesterday.length },
+  ];
+}
+
+function buildDigestHeadline(metrics: DailyDigestMetric[]): string {
+  const countOf = (key: DigestSectionKey) =>
+    metrics.find((metric) => metric.key === key)?.count ?? 0;
+  const overdue = countOf("overdue");
+  const dueToday = countOf("due_today");
+  const completed = countOf("completed");
+  const logs = countOf("logs");
+
+  if (overdue > 0 && dueToday > 0) {
+    return `先处理 ${overdue} 个逾期任务，今天还有 ${dueToday} 个到期`;
+  }
+  if (overdue > 0) {
+    return `先处理 ${overdue} 个逾期任务`;
+  }
+  if (dueToday > 0) {
+    return `今天有 ${dueToday} 个任务到期`;
+  }
+  if (completed > 0 && logs > 0) {
+    return `昨天完成 ${completed} 个任务，并记录了 ${logs} 条进展`;
+  }
+  if (completed > 0) {
+    return `昨天完成了 ${completed} 个任务`;
+  }
+  if (logs > 0) {
+    return `昨天记录了 ${logs} 条进展`;
+  }
+  return "今天继续保持节奏";
+}
+
+function buildTaskSection(
+  key: Exclude<DigestSectionKey, "logs">,
+  title: string,
+  tasks: Task[],
+  spaceNames: Record<string, string>,
+  today: string,
+  itemLimit: number
+): DailyDigestSection | null {
+  if (tasks.length === 0) return null;
+
+  const items = tasks.slice(0, itemLimit).map((task) =>
+    buildTaskSectionItem(task, spaceNames, key, today)
+  );
+
+  return {
+    key,
+    title,
+    count: tasks.length,
+    overflow_count: Math.max(0, tasks.length - items.length),
+    items,
+  };
+}
+
+function buildLogSection(
+  logs: DigestLogEntry[],
+  spaceNames: Record<string, string>,
+  itemLimit: number
+): DailyDigestSection | null {
+  if (logs.length === 0) return null;
+
+  const items = logs.slice(0, itemLimit).map((log) => buildLogSectionItem(log, spaceNames));
+  return {
+    key: "logs",
+    title: "昨日进展",
+    count: logs.length,
+    overflow_count: Math.max(0, logs.length - items.length),
+    items,
+  };
+}
+
+function buildTaskSectionItem(
+  task: Task,
+  spaceNames: Record<string, string>,
+  kind: Exclude<DigestSectionKey, "logs">,
+  today: string
+): DailyDigestSectionItem {
+  const spaceName = task.space_id ? spaceNames[task.space_id] : undefined;
+  const metaParts: string[] = [];
+
+  if (spaceName) metaParts.push(spaceName);
+  metaParts.push(`P${task.priority}`);
+
+  if (kind === "overdue") {
+    const overdueDays = getOverdueDays(today, task.due_date);
+    if (task.due_date) {
+      metaParts.push(`截止 ${formatDateLabel(task.due_date)}`);
+    }
+    if (overdueDays > 0) {
+      metaParts.push(`逾期 ${overdueDays} 天`);
+    }
+  } else if (kind === "due_today") {
+    metaParts.push("今日到期");
+  } else if (kind === "completed") {
+    metaParts.push("昨日完成");
+  }
+
+  if (task.status === 0 && task.progress > 0) {
+    metaParts.push(`进度 ${task.progress}%`);
+  }
+
+  return {
+    kind: "task",
+    task_id: task.id,
+    space_id: task.space_id,
+    space_name: spaceName,
+    title: task.title,
+    meta: metaParts.join(" · "),
+    due_date: task.due_date,
+    priority: task.priority,
+    progress: task.progress,
+    completed_at: task.completed_at,
+  };
+}
+
+function buildLogSectionItem(
+  log: DigestLogEntry,
+  spaceNames: Record<string, string>
+): DailyDigestSectionItem {
+  const spaceName = log.space_id ? spaceNames[log.space_id] : undefined;
+  const metaParts = [spaceName, "进展记录"].filter(Boolean) as string[];
+
+  return {
+    kind: "log",
+    task_id: log.task_id,
+    space_id: log.space_id,
+    space_name: spaceName,
+    title: log.task_title,
+    meta: metaParts.join(" · "),
+    excerpt: truncateText(log.content, 120),
+  };
+}
+
+function formatDigestTaskLine(
+  task: Task,
+  spaceNames: Record<string, string>,
+  kind: Exclude<DigestSectionKey, "logs">,
+  today: string
+): string {
+  const spaceName = task.space_id ? spaceNames[task.space_id] : undefined;
+  const suffix: string[] = [];
+
+  if (spaceName) suffix.push(`[${spaceName}]`);
+  suffix.push(`[P${task.priority}]`);
+
+  if (kind === "overdue") {
+    const overdueDays = getOverdueDays(today, task.due_date);
+    if (task.due_date) suffix.push(`截止 ${formatDateLabel(task.due_date)}`);
+    if (overdueDays > 0) suffix.push(`逾期 ${overdueDays} 天`);
+  } else if (kind === "due_today") {
+    suffix.push("今日到期");
+  } else {
+    suffix.push("昨日完成");
+  }
+
+  return `${task.title} ${suffix.join(" · ")}`.trim();
+}
+
+function formatDigestLogLine(
+  log: DigestLogEntry,
+  spaceNames: Record<string, string>
+): string {
+  const spaceName = log.space_id ? spaceNames[log.space_id] : undefined;
+  const prefix = spaceName ? `${log.task_title} [${spaceName}]` : log.task_title;
+  return `${prefix}: ${truncateText(log.content, 80)}`;
+}
+
+function formatDateLabel(dateStr?: string): string {
+  if (!dateStr) return "";
+  return new Date(dateStr).toLocaleDateString("zh-CN");
+}
+
+function getOverdueDays(today: string, dueDate?: string): number {
+  if (!dueDate) return 0;
+  const dueDay = dueDate.slice(0, 10);
+  const diff = Date.parse(`${today}T00:00:00Z`) - Date.parse(`${dueDay}T00:00:00Z`);
+  return diff > 0 ? Math.floor(diff / MS_PER_DAY) : 0;
+}
+
+function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength - 1)}…`;
 }
