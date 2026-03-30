@@ -1,0 +1,53 @@
+app/api/tasks/[id]/route.ts
+  b9183a73178390a1 33
+components/TaskItem.tsx
+  b9183a73178390a1 319
+app/api/parse-task/route.ts
+  b9183a73178390a1 37,69-70,120
+app/api/manifest/route.ts
+  b9183a73178390a1 43,65
+components/TaskDetail.tsx
+  b9183a73178390a1 83-87,103,131-138,348-404
+__tests__/milestone.acceptance.test.ts
+  b9183a73178390a1 1-173
+components/PeopleGantt.tsx
+  b9183a73178390a1 243-249,257-258,276
+lib/parse-utils.ts
+  b9183a73178390a1 46,90
+lib/changelog.ts
+  b9183a73178390a1 10-18
+lib/types.ts
+  b9183a73178390a1 32,59,103
+lib/validations.ts
+  b9183a73178390a1 18
+app/api/tasks/route.ts
+  b9183a73178390a1 158
+lib/db.ts
+  b9183a73178390a1 19,68,357,592-593,612,694,786-789
+CLAUDE.md
+  b9183a73178390a1 286-294
+lib/task-permissions.ts
+  b9183a73178390a1 68
+components/ActionPreview.tsx
+  b9183a73178390a1 160-162
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.22",
+  "base_commit_sha": "3188e5e357ba85cb4c311224da6a339bd782509c",
+  "prompts": {
+    "b9183a73178390a1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9f7d6ce3-c90f-456b-a847-274fd7ec3d39",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "stringzhao <daniel21436@hotmail.com>",
+      "messages": [],
+      "total_additions": 310,
+      "total_deletions": 17,
+      "accepted_lines": 306,
+      "overriden_lines": 0
+    }
+  }
+}
