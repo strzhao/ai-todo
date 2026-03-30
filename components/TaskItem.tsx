@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TaskDetail } from "@/components/TaskDetail";
+import { AssigneePicker } from "@/components/AssigneePicker";
 import { RichText } from "@/components/RichText";
 import { DateTimePicker } from "@/components/DateTimePicker";
 import { formatDateTime, isToday as isTodayFn } from "@/lib/date-utils";
@@ -55,14 +56,12 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
   // Inline editing state
   const [priorityOpen, setPriorityOpen] = useState(false);
   const [tagAdding, setTagAdding] = useState(false);
-  const [assigneeOpen, setAssigneeOpen] = useState(false);
   const [localProgress, setLocalProgress] = useState(task.progress);
   const [tagInput, setTagInput] = useState("");
   const [members, setMembers] = useState<TaskMember[]>([]);
   const [localTags, setLocalTags] = useState(task.tags ?? []);
 
   const priorityRef = useRef<HTMLDivElement>(null);
-  const assigneeRef = useRef<HTMLDivElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
 
   const p = PRIORITY_BADGES[task.priority] ?? PRIORITY_BADGES[2];
@@ -86,17 +85,16 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
 
   // Close popovers on outside click
   useEffect(() => {
-    const anyOpen = moreOpen || priorityOpen || assigneeOpen;
+    const anyOpen = moreOpen || priorityOpen;
     if (!anyOpen) return;
     function handler(e: MouseEvent) {
       const target = e.target as Node;
       if (moreOpen && moreRef.current && !moreRef.current.contains(target)) setMoreOpen(false);
       if (priorityOpen && priorityRef.current && !priorityRef.current.contains(target)) setPriorityOpen(false);
-      if (assigneeOpen && assigneeRef.current && !assigneeRef.current.contains(target)) setAssigneeOpen(false);
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [moreOpen, priorityOpen, assigneeOpen]);
+  }, [moreOpen, priorityOpen]);
 
   // Auto-focus tag input
   useEffect(() => {
@@ -261,7 +259,6 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
   }
 
   async function handleAssigneeSelect(email: string) {
-    setAssigneeOpen(false);
     await patchTask({ assignee_email: email || null });
   }
 
@@ -271,9 +268,6 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
 
   const dueText = task.due_date ? formatDateTime(task.due_date) : null;
   const isDueToday = highlightTodayDue && task.due_date ? isTodayFn(new Date(task.due_date)) : false;
-  const isAssignedToOther = task.assignee_email && task.assignee_email !== currentUserEmail;
-  const assigneeMember = task.assignee_email ? members.find((m) => m.email === task.assignee_email) : undefined;
-  const assigneeLabel = task.assignee_email ? getDisplayLabel(task.assignee_email, assigneeMember) : null;
 
   // Creator info for space tasks (hover display)
   const creatorMember = task.space_id ? members.find((m) => m.user_id === task.user_id) : undefined;
@@ -484,54 +478,15 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
               </div>
             )}
 
-            {/* Assignee — clickable with popover */}
+            {/* Assignee — AssigneePicker */}
             {task.space_id && (
-              <div className="relative" ref={assigneeRef}>
-                {isAssignedToOther || task.assignee_email ? (
-                  <span
-                    className="inline-flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer hover:opacity-70 transition-opacity"
-                    onClick={() => setAssigneeOpen((v) => !v)}
-                    title="点击修改负责人"
-                  >
-                    <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-primary/20 text-primary font-medium text-[9px]">
-                      {(assigneeLabel ?? "?")[0]?.toUpperCase()}
-                    </span>
-                    <span>{assigneeLabel}</span>
-                  </span>
-                ) : (
-                  <span
-                    className="text-xs text-muted-foreground/30 cursor-pointer hover:text-muted-foreground/60 transition-colors"
-                    onClick={() => setAssigneeOpen((v) => !v)}
-                    title="指派负责人"
-                  >
-                    +@
-                  </span>
-                )}
-                {assigneeOpen && (
-                  <div className="absolute left-0 top-full mt-1 z-50 bg-background border border-border rounded-md shadow-lg py-1 min-w-[140px]">
-                    <button
-                      onClick={() => handleAssigneeSelect("")}
-                      className={`w-full text-left px-3 py-1.5 text-xs hover:bg-muted transition-colors ${!task.assignee_email ? "text-primary font-medium" : "text-muted-foreground"}`}
-                    >
-                      未指派
-                    </button>
-                    {members
-                      .filter((m) => m.status === "active")
-                      .map((m) => (
-                        <button
-                          key={m.user_id}
-                          onClick={() => handleAssigneeSelect(m.email)}
-                          className={`w-full flex items-center gap-2 text-left px-3 py-1.5 text-xs hover:bg-muted transition-colors ${task.assignee_email === m.email ? "font-medium text-primary bg-muted/50" : "text-foreground"}`}
-                        >
-                          <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/15 text-primary font-medium text-[10px]">
-                            {getDisplayLabel(m.email, m)[0]?.toUpperCase()}
-                          </span>
-                          {getDisplayLabel(m.email, m)}
-                        </button>
-                      ))}
-                  </div>
-                )}
-              </div>
+              <AssigneePicker
+                members={members}
+                currentEmail={task.assignee_email}
+                onSelect={handleAssigneeSelect}
+                spaceId={task.space_id}
+                variant="inline"
+              />
             )}
 
             {/* Subtask count toggle */}
