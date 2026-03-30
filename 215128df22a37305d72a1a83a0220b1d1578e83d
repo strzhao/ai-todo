@@ -1,0 +1,37 @@
+lib/assignee-utils.ts
+  91d2d9d9d660f955 1-107
+CLAUDE.md
+  91d2d9d9d660f955 201,230
+__tests__/assignee-picker.acceptance.test.ts
+  91d2d9d9d660f955 1-271
+components/TaskDetail.tsx
+  91d2d9d9d660f955 7,394-401
+components/TaskItem.tsx
+  91d2d9d9d660f955 9,480,482-488
+package.json
+  91d2d9d9d660f955 3
+lib/changelog.ts
+  91d2d9d9d660f955 10-18
+components/AssigneePicker.tsx
+  91d2d9d9d660f955 1-343
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.22",
+  "base_commit_sha": "215128df22a37305d72a1a83a0220b1d1578e83d",
+  "prompts": {
+    "91d2d9d9d660f955": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "582c9c8e-5c6f-4903-a1c2-83875a20fe54",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "stringzhao <daniel21436@hotmail.com>",
+      "messages": [],
+      "total_additions": 786,
+      "total_deletions": 138,
+      "accepted_lines": 752,
+      "overriden_lines": 0
+    }
+  }
+}
