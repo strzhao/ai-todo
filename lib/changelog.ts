@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.44.0",
+    date: "2026-03-30",
+    title: "经办人选择器优化",
+    items: [
+      "记住最近选过的经办人，下次打开优先展示",
+      "支持输入文字快速搜索成员",
+      "支持键盘上下箭头选择 + Enter 确认",
+    ],
+  },
+  {
     version: "1.43.0",
     date: "2026-03-29",
     title: "语音笔记",

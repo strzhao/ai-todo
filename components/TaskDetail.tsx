@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { RichText } from "@/components/RichText";
 import { DateTimePicker } from "@/components/DateTimePicker";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AssigneePicker } from "@/components/AssigneePicker";
 import type { Task, TaskLog, TaskMember } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
 import { formatDateTime } from "@/lib/date-utils";
@@ -82,7 +82,6 @@ export function TaskDetail({
 
   // Assignee
   const [members, setMembers] = useState<TaskMember[]>(membersProp ?? []);
-  const [assigneeOpen, setAssigneeOpen] = useState(false);
 
   // Completing / deleting / reopening
   const [completing, setCompleting] = useState(false);
@@ -213,7 +212,6 @@ export function TaskDetail({
   }
 
   async function handleAssigneeSelect(email: string) {
-    setAssigneeOpen(false);
     await patchTask({ assignee_email: email || null });
   }
 
@@ -265,8 +263,6 @@ export function TaskDetail({
   // ─── Derived ───────────────────────────────────────────────────────
   const isStandalone = mode === "standalone";
   const isCompleted = task.status === 2;
-  const assigneeMember = task.assignee_email ? members.find((m) => m.email === task.assignee_email) : undefined;
-  const assigneeLabel = task.assignee_email ? getDisplayLabel(task.assignee_email, assigneeMember) : null;
 
   // ─── Render ────────────────────────────────────────────────────────
   return (
@@ -395,50 +391,14 @@ export function TaskDetail({
         {task.space_id && (
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground w-14 shrink-0">负责人</span>
-            {readonly ? (
-              <span className="text-sm text-foreground">
-                {assigneeLabel ?? "未指派"}
-              </span>
-            ) : (
-              <Popover open={assigneeOpen} onOpenChange={setAssigneeOpen}>
-                <PopoverTrigger asChild>
-                  <button className="text-sm text-foreground hover:text-sage transition-colors flex items-center gap-1.5">
-                    {task.assignee_email ? (
-                      <>
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-sage/15 text-sage text-xs font-medium">
-                          {(assigneeLabel ?? "?")[0]?.toUpperCase()}
-                        </span>
-                        <span>{assigneeLabel}</span>
-                      </>
-                    ) : (
-                      <span className="text-muted-foreground/50">未指派</span>
-                    )}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent align="start" className="w-[180px] p-1">
-                  <button
-                    onClick={() => handleAssigneeSelect("")}
-                    className={`w-full text-left px-3 py-1.5 text-xs rounded hover:bg-muted transition-colors ${!task.assignee_email ? "text-sage font-medium" : "text-muted-foreground"}`}
-                  >
-                    未指派
-                  </button>
-                  {members
-                    .filter((m) => m.status === "active")
-                    .map((m) => (
-                      <button
-                        key={m.user_id}
-                        onClick={() => handleAssigneeSelect(m.email)}
-                        className={`w-full flex items-center gap-2 text-left px-3 py-1.5 text-xs rounded hover:bg-muted transition-colors ${task.assignee_email === m.email ? "font-medium text-sage bg-muted/50" : "text-foreground"}`}
-                      >
-                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-sage/15 text-sage font-medium text-[10px]">
-                          {getDisplayLabel(m.email, m)[0]?.toUpperCase()}
-                        </span>
-                        {getDisplayLabel(m.email, m)}
-                      </button>
-                    ))}
-                </PopoverContent>
-              </Popover>
-            )}
+            <AssigneePicker
+              members={members}
+              currentEmail={task.assignee_email}
+              onSelect={handleAssigneeSelect}
+              spaceId={task.space_id}
+              variant="detail"
+              readonly={readonly}
+            />
           </div>
         )}
 
