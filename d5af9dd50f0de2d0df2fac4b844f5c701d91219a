@@ -1,0 +1,29 @@
+lib/milestone-utils.ts
+  a0d669bc6eada5f0 1-11
+__tests__/task-detail-drawer-ui.test.tsx
+  a0d669bc6eada5f0 1-113
+components/TaskItem.tsx
+  a0d669bc6eada5f0 3,13,92-109,124,531
+components/TaskDetail.tsx
+  a0d669bc6eada5f0 4,12,238-259,304,370-371,373-381,384-385,387-436,438,440-467,714-783,788,790,805
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.23",
+  "base_commit_sha": "d5af9dd50f0de2d0df2fac4b844f5c701d91219a",
+  "prompts": {
+    "a0d669bc6eada5f0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019d3ec6-9428-7f60-87f8-fc4d59e95d22",
+        "model": "gpt-5.4"
+      },
+      "human_author": "stringzhao <daniel21436@hotmail.com>",
+      "messages": [],
+      "total_additions": 336,
+      "total_deletions": 88,
+      "accepted_lines": 336,
+      "overriden_lines": 0
+    }
+  }
+}
