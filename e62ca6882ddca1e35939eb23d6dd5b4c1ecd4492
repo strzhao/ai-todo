@@ -1,0 +1,25 @@
+__tests__/task-detail-drawer-ui.test.tsx
+  719f3742acb36bcc 27-28,56,59-62,83,87-88
+components/TaskDetail.tsx
+  719f3742acb36bcc 4,7-16,42-69,133-150,154-157,161-163,200-210,264-267,273-276,373-375,385-392,414-416,451-475,478-483,485,489,495-497,507-544,547-550,552,573-577,597-601,621-625,651-654,670-671,677-692,705,792-793,812-817,835-836,838,840,848-850,852-854,857,862,871,890-911
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.23",
+  "base_commit_sha": "e62ca6882ddca1e35939eb23d6dd5b4c1ecd4492",
+  "prompts": {
+    "719f3742acb36bcc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019d41b1-b6f1-76a0-9103-24bb9343c73f",
+        "model": "gpt-5.4"
+      },
+      "human_author": "stringzhao <daniel21436@hotmail.com>",
+      "messages": [],
+      "total_additions": 273,
+      "total_deletions": 168,
+      "accepted_lines": 272,
+      "overriden_lines": 0
+    }
+  }
+}
