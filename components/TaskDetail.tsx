@@ -1,10 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { CheckCircle2, Flag, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { Flag } from "lucide-react";
 import { RichText } from "@/components/RichText";
 import { DateTimePicker } from "@/components/DateTimePicker";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { AssigneePicker } from "@/components/AssigneePicker";
 import type { Task, TaskLog, TaskMember } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
@@ -29,10 +39,34 @@ const PRIORITY_OPTIONS: Array<{
   cls: string;
   activeCls: string;
 }> = [
-  { value: 0, label: "P0", name: "紧急", cls: "text-destructive/60 border-destructive/20 hover:bg-destructive/10", activeCls: "bg-destructive/10 text-destructive border-destructive/30 font-medium" },
-  { value: 1, label: "P1", name: "高", cls: "text-warning/60 border-warning/20 hover:bg-warning/10", activeCls: "bg-warning/10 text-warning border-warning/30 font-medium" },
-  { value: 2, label: "P2", name: "普通", cls: "text-charcoal/60 border-border hover:bg-muted", activeCls: "bg-muted text-charcoal border-border font-medium" },
-  { value: 3, label: "P3", name: "低", cls: "text-muted-foreground/60 border-border/50 hover:bg-muted/50", activeCls: "bg-muted/50 text-muted-foreground border-border/50 font-medium" },
+  {
+    value: 0,
+    label: "P0",
+    name: "紧急",
+    cls: "text-destructive/60 border-destructive/20 hover:bg-destructive/10",
+    activeCls: "bg-destructive/10 text-destructive border-destructive/30 font-medium",
+  },
+  {
+    value: 1,
+    label: "P1",
+    name: "高",
+    cls: "text-warning/60 border-warning/20 hover:bg-warning/10",
+    activeCls: "bg-warning/10 text-warning border-warning/30 font-medium",
+  },
+  {
+    value: 2,
+    label: "P2",
+    name: "普通",
+    cls: "text-charcoal/60 border-border hover:bg-muted",
+    activeCls: "bg-muted text-charcoal border-border font-medium",
+  },
+  {
+    value: 3,
+    label: "P3",
+    name: "低",
+    cls: "text-muted-foreground/60 border-border/50 hover:bg-muted/50",
+    activeCls: "bg-muted/50 text-muted-foreground border-border/50 font-medium",
+  },
 ];
 
 function formatRelativeTime(iso: string): string {
@@ -96,20 +130,37 @@ export function TaskDetail({
   const [reopening, setReopening] = useState(false);
 
   // Sync props
-  useEffect(() => { setDescription(task.description ?? ""); }, [task.description]);
-  useEffect(() => { setTitleDraft(task.title); }, [task.title]);
-  useEffect(() => { setLocalPriority(task.priority); }, [task.priority]);
-  useEffect(() => { setLocalTags(task.tags ?? []); }, [task.tags]);
-  useEffect(() => { setLocalProgress(task.progress); }, [task.progress]);
-  useEffect(() => { setLocalMilestone(task.milestone ?? ""); }, [task.milestone]);
+  useEffect(() => {
+    setDescription(task.description ?? "");
+  }, [task.description]);
+  useEffect(() => {
+    setTitleDraft(task.title);
+  }, [task.title]);
+  useEffect(() => {
+    setLocalPriority(task.priority);
+  }, [task.priority]);
+  useEffect(() => {
+    setLocalTags(task.tags ?? []);
+  }, [task.tags]);
+  useEffect(() => {
+    setLocalProgress(task.progress);
+  }, [task.progress]);
+  useEffect(() => {
+    setLocalMilestone(task.milestone ?? "");
+  }, [task.milestone]);
 
   // Fetch members if not passed but space_id exists
   useEffect(() => {
-    if (membersProp) { setMembers(membersProp); return; }
+    if (membersProp) {
+      setMembers(membersProp);
+      return;
+    }
     if (!task.space_id) return;
     fetch(`/api/spaces/${task.space_id}/members`)
       .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setMembers(data); })
+      .then((data) => {
+        if (Array.isArray(data)) setMembers(data);
+      })
       .catch(() => {});
   }, [task.space_id, membersProp]);
 
@@ -146,14 +197,17 @@ export function TaskDetail({
   }, [editingTitle]);
 
   // ─── PATCH helper ──────────────────────────────────────────────────
-  const patchTask = useCallback(async (updates: Record<string, unknown>) => {
-    const res = await fetch(`/api/tasks/${task.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updates),
-    });
-    if (res.ok) onUpdate?.(task.id, updates as Partial<Task>);
-  }, [task.id, onUpdate]);
+  const patchTask = useCallback(
+    async (updates: Record<string, unknown>) => {
+      const res = await fetch(`/api/tasks/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (res.ok) onUpdate?.(task.id, updates as Partial<Task>);
+    },
+    [task.id, onUpdate]
+  );
 
   // ─── Handlers ──────────────────────────────────────────────────────
   async function saveDescription() {
@@ -207,13 +261,19 @@ export function TaskDetail({
     await patchTask({ priority: value });
   }
 
-  async function handleDateChange(field: "due_date" | "start_date" | "end_date", value: string | null) {
+  async function handleDateChange(
+    field: "due_date" | "start_date" | "end_date",
+    value: string | null
+  ) {
     await patchTask({ [field]: value });
   }
 
   async function handleTagAdd() {
     const trimmed = tagInput.trim();
-    if (!trimmed || localTags.includes(trimmed)) { setTagInput(""); return; }
+    if (!trimmed || localTags.includes(trimmed)) {
+      setTagInput("");
+      return;
+    }
     const updated = [...localTags, trimmed];
     setLocalTags(updated);
     setTagInput("");
@@ -306,12 +366,13 @@ export function TaskDetail({
   // ─── Render ────────────────────────────────────────────────────────
   return (
     <div className="p-4 space-y-4">
-
       {/* ── Title (standalone only) ───────────────────────────────── */}
       {isStandalone && (
         <div>
           {readonly || isCompleted ? (
-            <h2 className={`text-lg font-semibold ${isCompleted ? "line-through text-muted-foreground" : "text-foreground"}`}>
+            <h2
+              className={`text-lg font-semibold ${isCompleted ? "line-through text-muted-foreground" : "text-foreground"}`}
+            >
               {task.title}
             </h2>
           ) : editingTitle ? (
@@ -321,8 +382,14 @@ export function TaskDetail({
               onChange={(e) => setTitleDraft(e.target.value)}
               onBlur={saveTitle}
               onKeyDown={(e) => {
-                if (e.key === "Enter") { e.preventDefault(); saveTitle(); }
-                if (e.key === "Escape") { setEditingTitle(false); setTitleDraft(task.title); }
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  saveTitle();
+                }
+                if (e.key === "Escape") {
+                  setEditingTitle(false);
+                  setTitleDraft(task.title);
+                }
               }}
               className="w-full text-lg font-semibold bg-transparent border-b-2 border-sage outline-none pb-0.5 text-foreground"
             />
@@ -340,12 +407,13 @@ export function TaskDetail({
 
       {/* ── Metadata section ──────────────────────────────────────── */}
       <div className="space-y-3">
-
         {/* Priority */}
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground w-14 shrink-0">优先级</span>
           {readonly ? (
-            <span className={`text-xs px-2 py-0.5 rounded border ${PRIORITY_OPTIONS[localPriority].activeCls}`}>
+            <span
+              className={`text-xs px-2 py-0.5 rounded border ${PRIORITY_OPTIONS[localPriority].activeCls}`}
+            >
               {PRIORITY_OPTIONS[localPriority].label} {PRIORITY_OPTIONS[localPriority].name}
             </span>
           ) : (
@@ -380,42 +448,53 @@ export function TaskDetail({
                 <span className="text-muted-foreground/50">无</span>
               )}
             </span>
-          ) : (
-            <div className="flex-1 space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
+          ) : milestoneEditing ? (
+            <div className="flex-1 rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5">
+              <div className="flex items-center gap-2">
+                <Flag className="size-3.5 text-sage" />
+                <input
+                  ref={milestoneInputRef}
+                  value={localMilestone}
+                  onChange={(e) => setLocalMilestone(e.target.value)}
+                  onBlur={() => {
+                    void saveMilestone();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void saveMilestone();
+                    }
+                    if (e.key === "Escape") {
+                      setMilestoneEditing(false);
+                      setLocalMilestone(task.milestone ?? "");
+                    }
+                  }}
+                  maxLength={100}
+                  placeholder="输入里程碑名称"
+                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/40"
+                />
                 <button
                   type="button"
-                  className={`inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors ${
-                    localMilestone
-                      ? "border-sage/25 bg-sage-mist text-sage hover:bg-sage-mist/80"
-                      : "border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/30"
-                  }`}
-                  onClick={() => setMilestoneEditing((v) => !v)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setMilestoneEditing(false);
+                    setLocalMilestone(task.milestone ?? "");
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <Flag className={`size-3.5 ${localMilestone ? "text-sage" : "text-muted-foreground/50"}`} />
-                  <span>{localMilestone || "设为里程碑"}</span>
+                  取消
                 </button>
-                {localMilestone && (
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => { void clearMilestone(); }}
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    title="清除里程碑"
-                  >
-                    清除
-                  </button>
-                )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] text-muted-foreground/70">默认值</span>
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {MILESTONE_PRESETS.map((preset) => (
                   <button
                     key={preset}
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => { void applyMilestonePreset(preset); }}
+                    onClick={() => {
+                      void applyMilestonePreset(preset);
+                    }}
                     className={`rounded-full border px-2 py-1 text-xs transition-colors ${
                       localMilestone === preset
                         ? "border-sage/30 bg-sage-mist text-sage"
@@ -425,46 +504,53 @@ export function TaskDetail({
                     {preset}
                   </button>
                 ))}
-                <button
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => setMilestoneEditing(true)}
-                  className={`rounded-full border px-2 py-1 text-xs transition-colors ${
-                    milestoneEditing
-                      ? "border-sage/30 bg-sage-mist text-sage"
-                      : "border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/30"
-                  }`}
-                >
-                  自定义
-                </button>
+                {task.milestone && (
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      void clearMilestone();
+                    }}
+                    className="rounded-full border border-destructive/20 px-2 py-1 text-xs text-destructive hover:bg-destructive/10 transition-colors"
+                  >
+                    清除
+                  </button>
+                )}
               </div>
 
-              {milestoneEditing && (
-                <div className="rounded-lg border border-sage/20 bg-sage-mist/70 px-3 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <Flag className="size-3.5 text-sage" />
-                    <input
-                      ref={milestoneInputRef}
-                      value={localMilestone}
-                      onChange={(e) => setLocalMilestone(e.target.value)}
-                      onBlur={() => { void saveMilestone(); }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          void saveMilestone();
-                        }
-                        if (e.key === "Escape") {
-                          setMilestoneEditing(false);
-                          setLocalMilestone(task.milestone ?? "");
-                        }
-                      }}
-                      maxLength={100}
-                      placeholder="输入里程碑名称"
-                      className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
-                    />
-                  </div>
-                  <p className="mt-1.5 text-[11px] text-muted-foreground">按 Enter 保存，Esc 取消。</p>
-                </div>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                快捷选择会立即保存；输入后按 Enter 保存。
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 text-sm text-foreground hover:text-sage transition-colors"
+                onClick={() => {
+                  setMilestoneEditing(true);
+                  setLocalMilestone(task.milestone ?? "");
+                }}
+              >
+                <Flag
+                  className={`size-3.5 ${localMilestone ? "text-sage" : "text-muted-foreground/50"}`}
+                />
+                {localMilestone ? (
+                  localMilestone
+                ) : (
+                  <span className="text-muted-foreground/50">设为里程碑</span>
+                )}
+              </button>
+              {localMilestone && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void clearMilestone();
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  清除
+                </button>
               )}
             </div>
           )}
@@ -484,7 +570,11 @@ export function TaskDetail({
               field="due_date"
             >
               <button className="text-sm text-foreground hover:text-sage transition-colors">
-                {task.due_date ? formatDateTime(task.due_date) : <span className="text-muted-foreground/50">未设置</span>}
+                {task.due_date ? (
+                  formatDateTime(task.due_date)
+                ) : (
+                  <span className="text-muted-foreground/50">未设置</span>
+                )}
               </button>
             </DateTimePicker>
           )}
@@ -504,7 +594,11 @@ export function TaskDetail({
               field="start_date"
             >
               <button className="text-sm text-foreground hover:text-sage transition-colors">
-                {task.start_date ? formatDateTime(task.start_date) : <span className="text-muted-foreground/50">未设置</span>}
+                {task.start_date ? (
+                  formatDateTime(task.start_date)
+                ) : (
+                  <span className="text-muted-foreground/50">未设置</span>
+                )}
               </button>
             </DateTimePicker>
           )}
@@ -524,7 +618,11 @@ export function TaskDetail({
               field="end_date"
             >
               <button className="text-sm text-foreground hover:text-sage transition-colors">
-                {task.end_date ? formatDateTime(task.end_date) : <span className="text-muted-foreground/50">未设置</span>}
+                {task.end_date ? (
+                  formatDateTime(task.end_date)
+                ) : (
+                  <span className="text-muted-foreground/50">未设置</span>
+                )}
               </button>
             </DateTimePicker>
           )}
@@ -550,7 +648,10 @@ export function TaskDetail({
           <span className="text-xs text-muted-foreground w-14 shrink-0 mt-0.5">标签</span>
           <div className="flex flex-wrap gap-1.5 items-center">
             {localTags.map((tag) => (
-              <span key={tag} className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded bg-muted text-charcoal">
+              <span
+                key={tag}
+                className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded bg-muted text-charcoal"
+              >
                 #{tag}
                 {!readonly && (
                   <button
@@ -566,17 +667,30 @@ export function TaskDetail({
             {localTags.length === 0 && readonly && (
               <span className="text-sm text-muted-foreground/50">无标签</span>
             )}
-            {!readonly && (
-              tagAdding ? (
+            {!readonly &&
+              (tagAdding ? (
                 <input
                   ref={tagInputRef}
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") { e.preventDefault(); handleTagAdd(); }
-                    if (e.key === "Escape") { setTagAdding(false); setTagInput(""); }
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleTagAdd();
+                    }
+                    if (e.key === "Escape") {
+                      setTagAdding(false);
+                      setTagInput("");
+                    }
                   }}
-                  onBlur={() => { if (!tagInput.trim()) { setTagAdding(false); setTagInput(""); } else { handleTagAdd(); } }}
+                  onBlur={() => {
+                    if (!tagInput.trim()) {
+                      setTagAdding(false);
+                      setTagInput("");
+                    } else {
+                      handleTagAdd();
+                    }
+                  }}
                   placeholder="#标签"
                   className="text-xs bg-transparent border-b border-sage/50 outline-none w-16 py-0.5 placeholder:text-muted-foreground/30"
                 />
@@ -588,8 +702,7 @@ export function TaskDetail({
                 >
                   +#
                 </button>
-              )
-            )}
+              ))}
           </div>
         </div>
 
@@ -676,7 +789,9 @@ export function TaskDetail({
                       <span className="text-xs font-medium">
                         {log.user_email === currentUserEmail ? "你" : logLabel}
                       </span>
-                      <span className="text-xs text-muted-foreground/50">{formatRelativeTime(log.created_at)}</span>
+                      <span className="text-xs text-muted-foreground/50">
+                        {formatRelativeTime(log.created_at)}
+                      </span>
                     </div>
                     <RichText text={log.content} className="text-sm text-foreground/80 mt-0.5" />
                   </div>
@@ -694,7 +809,12 @@ export function TaskDetail({
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); submitComment(); } }}
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                e.preventDefault();
+                submitComment();
+              }
+            }}
             placeholder="添加进展更新...（Cmd+Enter 发送）"
             disabled={submitting}
             rows={2}
@@ -712,43 +832,35 @@ export function TaskDetail({
 
       {/* ── Bottom actions (standalone only) ──────────────────────── */}
       {showStatusActions && (
-        <div className="rounded-xl border border-border/50 bg-muted/20 px-3 py-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="border-t border-border/40 pt-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">任务状态</p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${
+                  className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${
                     isCompleted
                       ? "border-sage/25 bg-sage-mist text-sage"
                       : "border-info/25 bg-info/10 text-info"
                   }`}
                 >
-                  {isCompleted ? <CheckCircle2 className="size-3.5" /> : <Sparkles className="size-3.5" />}
                   {isCompleted ? "已完成" : "进行中"}
                 </span>
-                {!isCompleted && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-sage/20 bg-sage-mist px-2.5 py-1 text-[11px] text-sage">
-                    <Sparkles className="size-3" />
-                    修改会自动保存
-                  </span>
-                )}
+                <span className="text-xs text-muted-foreground">
+                  {isCompleted ? "需要继续推进时，可重新打开。" : "当前修改会自动保存。"}
+                </span>
               </div>
-              <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                {isCompleted
-                  ? "任务已移到“已完成”列表，如需继续推进可以重新打开。"
-                  : "完成后任务会移动到“已完成”列表。当前修改已经自动保存，不需要额外点“确定”。"}
-              </p>
+              {!isCompleted && (
+                <p className="mt-1 text-xs text-muted-foreground">完成后任务会移到“已完成”列表。</p>
+              )}
             </div>
 
-            <div className="shrink-0">
+            <div className="flex flex-wrap gap-2 sm:justify-end">
               {isCompleted ? (
                 <button
                   onClick={handleReopen}
                   disabled={reopening}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-sage/30 bg-background px-3 py-2 text-xs text-sage hover:bg-sage-mist disabled:opacity-50 transition-colors"
+                  className="text-xs px-3 py-1.5 rounded-md bg-sage/10 text-sage border border-sage/30 hover:bg-sage/20 disabled:opacity-50 transition-colors"
                 >
-                  <RotateCcw className="size-3.5" />
                   {reopening ? "重新打开中..." : "重新打开"}
                 </button>
               ) : (
@@ -756,9 +868,8 @@ export function TaskDetail({
                   <AlertDialogTrigger asChild>
                     <button
                       disabled={completing}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-sage/30 bg-background px-3 py-2 text-xs text-sage hover:bg-sage-mist disabled:opacity-50 transition-colors"
+                      className="text-xs px-3 py-1.5 rounded-md bg-sage text-white hover:bg-sage-light disabled:opacity-50 transition-colors"
                     >
-                      <CheckCircle2 className="size-3.5" />
                       {completing ? "处理中..." : "移到已完成"}
                     </button>
                   </AlertDialogTrigger>
@@ -776,34 +887,34 @@ export function TaskDetail({
                   </AlertDialogContent>
                 </AlertDialog>
               )}
+              {!isCompleted && !readonly && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      disabled={deleting}
+                      className="text-xs px-3 py-1.5 rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
+                    >
+                      {deleting ? "删除中..." : "删除"}
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>确认删除</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        确定要删除任务「{task.title}」吗？此操作不可撤销。
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>取消</AlertDialogCancel>
+                      <AlertDialogAction variant="destructive" onClick={handleDelete}>
+                        确认删除
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
           </div>
-
-          {!isCompleted && !readonly && (
-            <div className="mt-3 flex justify-end border-t border-border/40 pt-3">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <button
-                    disabled={deleting}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-2 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
-                  >
-                    <Trash2 className="size-3.5" />
-                    {deleting ? "删除中..." : "删除"}
-                  </button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>确认删除</AlertDialogTitle>
-                    <AlertDialogDescription>确定要删除任务「{task.title}」吗？此操作不可撤销。</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>取消</AlertDialogCancel>
-                    <AlertDialogAction variant="destructive" onClick={handleDelete}>确认删除</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          )}
         </div>
       )}
     </div>

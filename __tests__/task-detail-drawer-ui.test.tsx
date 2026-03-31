@@ -24,7 +24,8 @@ function makeTask(overrides: Partial<Task> = {}): Task {
 }
 
 const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-  const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+  const url =
+    typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
 
   if (url.includes("/logs") && (!init?.method || init.method === "GET")) {
     return Promise.resolve({ ok: true, json: async () => [] } as Response);
@@ -52,15 +53,13 @@ describe("TaskDetail 抽屉交互", () => {
     const user = userEvent.setup();
 
     render(
-      <TaskDetail
-        task={makeTask()}
-        onUpdate={vi.fn()}
-        onComplete={vi.fn()}
-        onDelete={vi.fn()}
-      />
+      <TaskDetail task={makeTask()} onUpdate={vi.fn()} onComplete={vi.fn()} onDelete={vi.fn()} />
     );
 
-    expect(screen.getByText("默认值")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "版本发布" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "设为里程碑" }));
+
     for (const preset of MILESTONE_PRESETS) {
       expect(screen.getByRole("button", { name: preset })).toBeInTheDocument();
     }
@@ -81,17 +80,12 @@ describe("TaskDetail 抽屉交互", () => {
     const user = userEvent.setup();
 
     render(
-      <TaskDetail
-        task={makeTask()}
-        onUpdate={vi.fn()}
-        onComplete={vi.fn()}
-        onDelete={vi.fn()}
-      />
+      <TaskDetail task={makeTask()} onUpdate={vi.fn()} onComplete={vi.fn()} onDelete={vi.fn()} />
     );
 
     expect(screen.queryByRole("button", { name: "标记完成" })).toBeNull();
-    expect(screen.getByText("任务状态")).toBeInTheDocument();
-    expect(screen.getByText("修改会自动保存")).toBeInTheDocument();
+    expect(screen.getByText("当前修改会自动保存。")).toBeInTheDocument();
+    expect(screen.getByText("完成后任务会移到“已完成”列表。")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "移到已完成" }));
 
