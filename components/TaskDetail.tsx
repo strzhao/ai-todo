@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { CheckCircle2, Flag, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { RichText } from "@/components/RichText";
 import { DateTimePicker } from "@/components/DateTimePicker";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -8,6 +9,7 @@ import { AssigneePicker } from "@/components/AssigneePicker";
 import type { Task, TaskLog, TaskMember } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
 import { formatDateTime } from "@/lib/date-utils";
+import { MILESTONE_PRESETS, normalizeMilestoneInput } from "@/lib/milestone-utils";
 
 interface Props {
   task: Task;
@@ -233,6 +235,28 @@ export function TaskDetail({
     await patchTask({ progress: localProgress });
   }
 
+  async function saveMilestone(nextValue = localMilestone) {
+    const normalized = normalizeMilestoneInput(nextValue);
+    setMilestoneEditing(false);
+    setLocalMilestone(normalized ?? "");
+    if (normalized === (task.milestone ?? null)) return;
+    await patchTask({ milestone: normalized });
+  }
+
+  async function applyMilestonePreset(preset: string) {
+    setMilestoneEditing(false);
+    setLocalMilestone(preset);
+    if (preset === task.milestone) return;
+    await patchTask({ milestone: preset });
+  }
+
+  async function clearMilestone() {
+    setMilestoneEditing(false);
+    setLocalMilestone("");
+    if (!task.milestone) return;
+    await patchTask({ milestone: null });
+  }
+
   async function handleComplete() {
     if (completing) return;
     setCompleting(true);
@@ -277,6 +301,7 @@ export function TaskDetail({
   // ─── Derived ───────────────────────────────────────────────────────
   const isStandalone = mode === "standalone";
   const isCompleted = task.status === 2;
+  const showStatusActions = isStandalone && (!readonly || isCompleted);
 
   // ─── Render ────────────────────────────────────────────────────────
   return (
@@ -342,57 +367,104 @@ export function TaskDetail({
         </div>
 
         {/* Milestone */}
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground w-14 shrink-0">里程碑</span>
+        <div className="flex items-start gap-3">
+          <span className="text-xs text-muted-foreground w-14 shrink-0 mt-1">里程碑</span>
           {readonly ? (
-            <span className="text-sm text-foreground">
-              {localMilestone ? <>{"\ud83d\udea9"} {localMilestone}</> : <span className="text-muted-foreground/50">无</span>}
+            <span className="text-sm text-foreground pt-0.5">
+              {localMilestone ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Flag className="size-3.5 text-sage" />
+                  {localMilestone}
+                </span>
+              ) : (
+                <span className="text-muted-foreground/50">无</span>
+              )}
             </span>
-          ) : milestoneEditing ? (
-            <div className="flex items-center gap-1.5 flex-1">
-              <input
-                ref={milestoneInputRef}
-                value={localMilestone}
-                onChange={(e) => setLocalMilestone(e.target.value)}
-                onBlur={() => {
-                  setMilestoneEditing(false);
-                  patchTask({ milestone: localMilestone || null });
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    setMilestoneEditing(false);
-                    patchTask({ milestone: localMilestone || null });
-                  }
-                  if (e.key === "Escape") {
-                    setMilestoneEditing(false);
-                    setLocalMilestone(task.milestone ?? "");
-                  }
-                }}
-                maxLength={100}
-                placeholder="输入里程碑名称"
-                className="flex-1 text-sm bg-transparent border-b-2 border-sage outline-none pb-0.5 placeholder:text-muted-foreground/30"
-              />
-            </div>
           ) : (
-            <div className="flex items-center gap-1.5">
-              <button
-                className="text-sm text-foreground hover:text-sage transition-colors"
-                onClick={() => setMilestoneEditing(true)}
-              >
-                {localMilestone ? <>{"\ud83d\udea9"} {localMilestone}</> : <span className="text-muted-foreground/50">设为里程碑</span>}
-              </button>
-              {localMilestone && (
+            <div className="flex-1 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
-                  onClick={() => {
-                    setLocalMilestone("");
-                    patchTask({ milestone: null });
-                  }}
-                  className="text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors text-xs"
-                  title="清除里程碑"
+                  type="button"
+                  className={`inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors ${
+                    localMilestone
+                      ? "border-sage/25 bg-sage-mist text-sage hover:bg-sage-mist/80"
+                      : "border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                  }`}
+                  onClick={() => setMilestoneEditing((v) => !v)}
                 >
-                  x
+                  <Flag className={`size-3.5 ${localMilestone ? "text-sage" : "text-muted-foreground/50"}`} />
+                  <span>{localMilestone || "设为里程碑"}</span>
                 </button>
+                {localMilestone && (
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { void clearMilestone(); }}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    title="清除里程碑"
+                  >
+                    清除
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground/70">默认值</span>
+                {MILESTONE_PRESETS.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { void applyMilestonePreset(preset); }}
+                    className={`rounded-full border px-2 py-1 text-xs transition-colors ${
+                      localMilestone === preset
+                        ? "border-sage/30 bg-sage-mist text-sage"
+                        : "border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                    }`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setMilestoneEditing(true)}
+                  className={`rounded-full border px-2 py-1 text-xs transition-colors ${
+                    milestoneEditing
+                      ? "border-sage/30 bg-sage-mist text-sage"
+                      : "border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                  }`}
+                >
+                  自定义
+                </button>
+              </div>
+
+              {milestoneEditing && (
+                <div className="rounded-lg border border-sage/20 bg-sage-mist/70 px-3 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <Flag className="size-3.5 text-sage" />
+                    <input
+                      ref={milestoneInputRef}
+                      value={localMilestone}
+                      onChange={(e) => setLocalMilestone(e.target.value)}
+                      onBlur={() => { void saveMilestone(); }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void saveMilestone();
+                        }
+                        if (e.key === "Escape") {
+                          setMilestoneEditing(false);
+                          setLocalMilestone(task.milestone ?? "");
+                        }
+                      }}
+                      maxLength={100}
+                      placeholder="输入里程碑名称"
+                      className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
+                    />
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">按 Enter 保存，Esc 取消。</p>
+                </div>
               )}
             </div>
           )}
@@ -639,31 +711,83 @@ export function TaskDetail({
       )}
 
       {/* ── Bottom actions (standalone only) ──────────────────────── */}
-      {isStandalone && !readonly && (
-        <div className="flex gap-2 pt-2 border-t border-border/40">
-          {isCompleted ? (
-            <button
-              onClick={handleReopen}
-              disabled={reopening}
-              className="text-xs px-3 py-1.5 rounded-md bg-sage/10 text-sage border border-sage/30 hover:bg-sage/20 disabled:opacity-50 transition-colors"
-            >
-              {reopening ? "重新打开中..." : "重新打开"}
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={handleComplete}
-                disabled={completing}
-                className="text-xs px-3 py-1.5 rounded-md bg-sage text-white hover:bg-sage-light disabled:opacity-50 transition-colors"
-              >
-                {completing ? "完成中..." : "标记完成"}
-              </button>
+      {showStatusActions && (
+        <div className="rounded-xl border border-border/50 bg-muted/20 px-3 py-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">任务状态</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${
+                    isCompleted
+                      ? "border-sage/25 bg-sage-mist text-sage"
+                      : "border-info/25 bg-info/10 text-info"
+                  }`}
+                >
+                  {isCompleted ? <CheckCircle2 className="size-3.5" /> : <Sparkles className="size-3.5" />}
+                  {isCompleted ? "已完成" : "进行中"}
+                </span>
+                {!isCompleted && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-sage/20 bg-sage-mist px-2.5 py-1 text-[11px] text-sage">
+                    <Sparkles className="size-3" />
+                    修改会自动保存
+                  </span>
+                )}
+              </div>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                {isCompleted
+                  ? "任务已移到“已完成”列表，如需继续推进可以重新打开。"
+                  : "完成后任务会移动到“已完成”列表。当前修改已经自动保存，不需要额外点“确定”。"}
+              </p>
+            </div>
+
+            <div className="shrink-0">
+              {isCompleted ? (
+                <button
+                  onClick={handleReopen}
+                  disabled={reopening}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-sage/30 bg-background px-3 py-2 text-xs text-sage hover:bg-sage-mist disabled:opacity-50 transition-colors"
+                >
+                  <RotateCcw className="size-3.5" />
+                  {reopening ? "重新打开中..." : "重新打开"}
+                </button>
+              ) : (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      disabled={completing}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-sage/30 bg-background px-3 py-2 text-xs text-sage hover:bg-sage-mist disabled:opacity-50 transition-colors"
+                    >
+                      <CheckCircle2 className="size-3.5" />
+                      {completing ? "处理中..." : "移到已完成"}
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent size="sm">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>将任务移到已完成？</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        当前修改已自动保存。确认后任务会移到「已完成」列表，之后仍可重新打开。
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>继续编辑</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleComplete}>移到已完成</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+          </div>
+
+          {!isCompleted && !readonly && (
+            <div className="mt-3 flex justify-end border-t border-border/40 pt-3">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <button
                     disabled={deleting}
-                    className="text-xs px-3 py-1.5 rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-2 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
                   >
+                    <Trash2 className="size-3.5" />
                     {deleting ? "删除中..." : "删除"}
                   </button>
                 </AlertDialogTrigger>
@@ -678,7 +802,7 @@ export function TaskDetail({
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            </>
+            </div>
           )}
         </div>
       )}

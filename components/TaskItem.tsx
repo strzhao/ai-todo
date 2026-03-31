@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, memo, KeyboardEvent } from "react";
+import { useState, useRef, useEffect, useCallback, memo, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { AssigneePicker } from "@/components/AssigneePicker";
 import { RichText } from "@/components/RichText";
 import { DateTimePicker } from "@/components/DateTimePicker";
 import { formatDateTime, isToday as isTodayFn } from "@/lib/date-utils";
+import { MILESTONE_PRESETS, normalizeMilestoneInput } from "@/lib/milestone-utils";
 import type { Task, TaskMember } from "@/lib/types";
 import type { TaskNode } from "@/lib/task-utils";
 import { getDisplayLabel } from "@/lib/display-utils";
@@ -88,6 +89,24 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
       .catch(() => {});
   }, [task.space_id, membersProp]);
 
+  // ─── PATCH helper ──────────────────────────────────────────────────
+  const patchTask = useCallback(async (updates: Record<string, unknown>) => {
+    const res = await fetch(`/api/tasks/${task.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    if (res.ok) onUpdate?.(task.id, updates as Partial<Task>);
+  }, [task.id, onUpdate]);
+
+  const saveMilestone = useCallback(() => {
+    const newVal = normalizeMilestoneInput(milestoneInput);
+    if (newVal !== (task.milestone ?? null)) {
+      void patchTask({ milestone: newVal });
+    }
+    setMilestoneEditing(false);
+  }, [milestoneInput, task.milestone, patchTask]);
+
   // Close popovers on outside click
   useEffect(() => {
     const anyOpen = moreOpen || priorityOpen || milestoneEditing;
@@ -102,7 +121,7 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [moreOpen, priorityOpen, milestoneEditing]);
+  }, [moreOpen, priorityOpen, milestoneEditing, saveMilestone]);
 
   // Auto-focus tag input
   useEffect(() => {
@@ -114,15 +133,6 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
     if (milestoneEditing && milestoneInputRef.current) milestoneInputRef.current.focus();
   }, [milestoneEditing]);
 
-  function saveMilestone() {
-    const trimmed = milestoneInput.trim();
-    const newVal = trimmed || null;
-    if (newVal !== (task.milestone ?? null)) {
-      patchTask({ milestone: newVal });
-    }
-    setMilestoneEditing(false);
-  }
-
   // Scroll to focused task and auto-expand ancestors when focusedTaskId changes
   useEffect(() => {
     if (focusAncestorIds?.has(task.id)) setExpanded(true);
@@ -133,16 +143,6 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
       rowRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [isFocused]);
-
-  // ─── PATCH helper ──────────────────────────────────────────────────
-  async function patchTask(updates: Record<string, unknown>) {
-    const res = await fetch(`/api/tasks/${task.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updates),
-    });
-    if (res.ok) onUpdate?.(task.id, updates as Partial<Task>);
-  }
 
   // ─── Task actions ──────────────────────────────────────────────────
   async function handleComplete() {
@@ -528,7 +528,7 @@ export const TaskItem = memo(function TaskItem({ task, subtasks, onComplete, onD
                     placeholder="里程碑名称"
                   />
                   <div className="absolute left-0 top-full mt-1 z-50 bg-background border border-border rounded shadow-md text-[11px] w-32">
-                    {["本周目标", "Sprint 目标", "版本发布", "阶段交付"].map((preset) => (
+                    {MILESTONE_PRESETS.map((preset) => (
                       <button
                         key={preset}
                         className="w-full text-left px-2 py-1.5 hover:bg-muted transition-colors"
