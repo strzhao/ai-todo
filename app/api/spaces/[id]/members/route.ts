@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { getTaskMembers } from "@/lib/db";
-import { requireSpaceMember } from "@/lib/spaces";
+import { getAllSpaceMembers, requireSpaceMember } from "@/lib/spaces";
 import { createRouteTimer } from "@/lib/route-timing";
 
 export const preferredRegion = "hkg1";
@@ -18,6 +17,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return rt.json({ error: "Not a space member" }, { status: 403 });
   }
 
-  const members = await rt.track("db_query", async () => getTaskMembers(id));
+  const members = await rt.track("db_query", async () => getAllSpaceMembers(id));
   return rt.json(members);
 }

@@ -1,4 +1,10 @@
-import { getTaskMemberRecord, getTaskById, getOrgMemberRecord } from "./db";
+import {
+  getTaskMemberRecord,
+  getTaskById,
+  getOrgMemberRecord,
+  getTaskMembers,
+  getOrgMembers,
+} from "./db";
 import type { TaskMember } from "./types";
 
 export async function getSpaceMember(spaceId: string, userId: string): Promise<TaskMember | null> {
@@ -54,4 +60,31 @@ export async function requireSpaceAdminOrOwner(
     throw Object.assign(new Error("Requires admin or owner role"), { status: 403 });
   }
   return member;
+}
+
+export async function getAllSpaceMembers(spaceId: string): Promise<TaskMember[]> {
+  const directMembers = await getTaskMembers(spaceId);
+
+  const space = await getTaskById(spaceId);
+  if (!space || !space.org_id) return directMembers;
+
+  const orgMembers = await getOrgMembers(space.org_id);
+  const activeOrgMembers = orgMembers.filter((om) => om.status === "active");
+
+  const directUserIds = new Set(directMembers.map((m) => m.user_id));
+
+  const virtualMembers: TaskMember[] = activeOrgMembers
+    .filter((om) => !directUserIds.has(om.user_id))
+    .map((om) => ({
+      id: `org-virtual-${om.user_id}`,
+      task_id: spaceId,
+      user_id: om.user_id,
+      email: om.email,
+      nickname: om.nickname,
+      role: "member" as const,
+      status: "active" as const,
+      joined_at: om.joined_at,
+    }));
+
+  return [...directMembers, ...virtualMembers];
 }

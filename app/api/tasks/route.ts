@@ -35,7 +35,9 @@ export async function GET(req: NextRequest) {
   let tasks;
   if (wantType === 1) {
     // Notes: optionally scoped to a space, type filter pushed to DB
-    tasks = await rt.track("db_query", async () => getTasks(user.id, spaceId ? { spaceId, type: 1 } : { type: 1 }));
+    tasks = await rt.track("db_query", async () =>
+      getTasks(user.id, spaceId ? { spaceId, type: 1 } : { type: 1 })
+    );
     tasks = tasks.sort(
       (a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
@@ -43,7 +45,9 @@ export async function GET(req: NextRequest) {
     tasks = await rt.track("db_query", async () => getTodayTasks(user.id, spaceId));
     tasks = tasks.filter((t: Task) => (t.type ?? 0) === 0);
   } else if (filter === "assigned") {
-    tasks = await rt.track("db_query", async () => getTasks(user.id, { filter: "assigned", type: 0 }));
+    tasks = await rt.track("db_query", async () =>
+      getTasks(user.id, { filter: "assigned", type: 0 })
+    );
   } else if (filter === "completed") {
     const before = req.nextUrl.searchParams.get("before") ?? undefined;
     const beforeId = req.nextUrl.searchParams.get("before_id") ?? undefined;
@@ -128,14 +132,32 @@ export async function POST(req: NextRequest) {
 
   if (assigneeEmail && body.space_id) {
     const { sql } = await import("@vercel/postgres");
-    const { rows } = await rt.track(
+    const { rows: memberRows } = await rt.track(
       "db_query",
       async () => sql`
       SELECT user_id FROM ai_todo_task_members
       WHERE task_id = ${body.space_id} AND email = ${assigneeEmail} AND status = 'active'
     `
     );
-    if (rows[0]) assigneeId = rows[0].user_id as string;
+    if (memberRows[0]) {
+      assigneeId = memberRows[0].user_id as string;
+    } else {
+      const { rows: spaceRows } = await rt.track(
+        "db_query",
+        async () => sql`SELECT org_id FROM ai_todo_tasks WHERE id = ${body.space_id}`
+      );
+      const orgId = spaceRows[0]?.org_id;
+      if (orgId) {
+        const { rows: orgRows } = await rt.track(
+          "db_query",
+          async () => sql`
+          SELECT user_id FROM ai_todo_org_members
+          WHERE org_id = ${orgId} AND email = ${assigneeEmail} AND status = 'active'
+        `
+        );
+        if (orgRows[0]) assigneeId = orgRows[0].user_id as string;
+      }
+    }
   }
 
   aiFlowLog("tasks.post.resolved-payload", {

@@ -107,12 +107,7 @@ describe("TaskItem 键盘安全", () => {
     const task = makeTask();
 
     const { container } = render(
-      <TaskItem
-        task={task}
-        onUpdate={vi.fn()}
-        onDelete={onDelete}
-        onComplete={vi.fn()}
-      />
+      <TaskItem task={task} onUpdate={vi.fn()} onDelete={onDelete} onComplete={vi.fn()} />
     );
 
     // 聚焦任务行后按 Delete 键
@@ -137,12 +132,7 @@ describe("TaskItem 键盘安全", () => {
     const task = makeTask();
 
     const { container } = render(
-      <TaskItem
-        task={task}
-        onUpdate={vi.fn()}
-        onDelete={onDelete}
-        onComplete={vi.fn()}
-      />
+      <TaskItem task={task} onUpdate={vi.fn()} onDelete={onDelete} onComplete={vi.fn()} />
     );
 
     // 聚焦任务行后按 Backspace 键
@@ -171,17 +161,11 @@ describe("TaskItem 菜单删除确认", () => {
     const { TaskItem } = await import("@/components/TaskItem");
     const task = makeTask();
 
-    render(
-      <TaskItem
-        task={task}
-        onUpdate={vi.fn()}
-        onDelete={vi.fn()}
-        onComplete={vi.fn()}
-      />
-    );
+    render(<TaskItem task={task} onUpdate={vi.fn()} onDelete={vi.fn()} onComplete={vi.fn()} />);
 
     // 打开更多菜单（⋮ 按钮）
-    const moreButton = screen.getByRole("button", { name: /更多|操作|菜单/i }) ||
+    const moreButton =
+      screen.getByRole("button", { name: /更多|操作|菜单/i }) ||
       document.querySelector("[aria-label*='更多']") ||
       document.querySelector("button[data-testid='task-menu']");
 
@@ -205,17 +189,11 @@ describe("TaskItem 菜单删除确认", () => {
     const { TaskItem } = await import("@/components/TaskItem");
     const task = makeTask();
 
-    render(
-      <TaskItem
-        task={task}
-        onUpdate={vi.fn()}
-        onDelete={onDelete}
-        onComplete={vi.fn()}
-      />
-    );
+    render(<TaskItem task={task} onUpdate={vi.fn()} onDelete={onDelete} onComplete={vi.fn()} />);
 
     // 打开菜单 → 点击删除
-    const moreButton = screen.getByRole("button", { name: /更多|操作|菜单/i }) ||
+    const moreButton =
+      screen.getByRole("button", { name: /更多|操作|菜单/i }) ||
       document.querySelector("[aria-label*='更多']") ||
       document.querySelector("button[data-testid='task-menu']");
     if (moreButton) await user.click(moreButton);
@@ -225,7 +203,8 @@ describe("TaskItem 菜单删除确认", () => {
 
     // 等待确认对话框出现，然后点击取消
     await waitFor(async () => {
-      const cancelButton = screen.queryByText(/取消/) || screen.queryByRole("button", { name: /取消|cancel/i });
+      const cancelButton =
+        screen.queryByText(/取消/) || screen.queryByRole("button", { name: /取消|cancel/i });
       expect(cancelButton).not.toBeNull();
       await user.click(cancelButton!);
     });
@@ -244,21 +223,13 @@ describe("TaskItem 菜单删除确认", () => {
     const { TaskItem } = await import("@/components/TaskItem");
     const task = makeTask();
 
-    vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(null, { status: 200 }) as Response
-    );
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 200 }) as Response);
 
-    render(
-      <TaskItem
-        task={task}
-        onUpdate={vi.fn()}
-        onDelete={onDelete}
-        onComplete={vi.fn()}
-      />
-    );
+    render(<TaskItem task={task} onUpdate={vi.fn()} onDelete={onDelete} onComplete={vi.fn()} />);
 
     // 打开菜单 → 点击删除
-    const moreButton = screen.getByRole("button", { name: /更多|操作|菜单/i }) ||
+    const moreButton =
+      screen.getByRole("button", { name: /更多|操作|菜单/i }) ||
       document.querySelector("[aria-label*='更多']") ||
       document.querySelector("button[data-testid='task-menu']");
     if (moreButton) await user.click(moreButton);
@@ -274,13 +245,11 @@ describe("TaskItem 菜单删除确认", () => {
     // 确认后应触发删除（通过 onDelete 回调或 fetch DELETE 请求）
     await waitFor(() => {
       const deleteCalled = onDelete.mock.calls.length > 0;
-      const fetchDeleteCalled = vi.mocked(fetch).mock.calls.some(
-        (call) => {
-          const url = typeof call[0] === "string" ? call[0] : (call[0] as Request).url;
-          const opts = call[1] as RequestInit | undefined;
-          return url.includes("/api/tasks/task-1") && opts?.method === "DELETE";
-        }
-      );
+      const fetchDeleteCalled = vi.mocked(fetch).mock.calls.some((call) => {
+        const url = typeof call[0] === "string" ? call[0] : (call[0] as Request).url;
+        const opts = call[1] as RequestInit | undefined;
+        return url.includes("/api/tasks/task-1") && opts?.method === "DELETE";
+      });
       expect(deleteCalled || fetchDeleteCalled).toBe(true);
     });
   });
@@ -298,18 +267,11 @@ describe("TaskDetail 删除确认", () => {
     const { TaskDetail } = await import("@/components/TaskDetail");
     const task = makeTask();
 
-    render(
-      <TaskDetail
-        task={task}
-        onUpdate={vi.fn()}
-        onDelete={vi.fn()}
-        onComplete={vi.fn()}
-      />
-    );
+    render(<TaskDetail task={task} onUpdate={vi.fn()} onDelete={vi.fn()} onComplete={vi.fn()} />);
 
     // 找到删除按钮并点击
-    const deleteButton = screen.getByRole("button", { name: /删除/ }) ||
-      screen.getByText(/删除任务|删除/);
+    const deleteButton =
+      screen.getByRole("button", { name: /删除/ }) || screen.getByText(/删除任务|删除/);
     await user.click(deleteButton);
 
     // 应弹出确认对话框
@@ -324,23 +286,17 @@ describe("TaskDetail 删除确认", () => {
     const { TaskDetail } = await import("@/components/TaskDetail");
     const task = makeTask();
 
-    render(
-      <TaskDetail
-        task={task}
-        onUpdate={vi.fn()}
-        onDelete={onDelete}
-        onComplete={vi.fn()}
-      />
-    );
+    render(<TaskDetail task={task} onUpdate={vi.fn()} onDelete={onDelete} onComplete={vi.fn()} />);
 
     // 点击删除
-    const deleteButton = screen.getByRole("button", { name: /删除/ }) ||
-      screen.getByText(/删除任务|删除/);
+    const deleteButton =
+      screen.getByRole("button", { name: /删除/ }) || screen.getByText(/删除任务|删除/);
     await user.click(deleteButton);
 
     // 点击取消
     await waitFor(async () => {
-      const cancelButton = screen.queryByText(/取消/) || screen.queryByRole("button", { name: /取消|cancel/i });
+      const cancelButton =
+        screen.queryByText(/取消/) || screen.queryByRole("button", { name: /取消|cancel/i });
       expect(cancelButton).not.toBeNull();
       await user.click(cancelButton!);
     });
@@ -359,22 +315,13 @@ describe("TaskDetail 删除确认", () => {
     const { TaskDetail } = await import("@/components/TaskDetail");
     const task = makeTask();
 
-    vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(null, { status: 200 }) as Response
-    );
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 200 }) as Response);
 
-    render(
-      <TaskDetail
-        task={task}
-        onUpdate={vi.fn()}
-        onDelete={onDelete}
-        onComplete={vi.fn()}
-      />
-    );
+    render(<TaskDetail task={task} onUpdate={vi.fn()} onDelete={onDelete} onComplete={vi.fn()} />);
 
     // 点击删除
-    const deleteButton = screen.getByRole("button", { name: /删除/ }) ||
-      screen.getByText(/删除任务|删除/);
+    const deleteButton =
+      screen.getByRole("button", { name: /删除/ }) || screen.getByText(/删除任务|删除/);
     await user.click(deleteButton);
 
     // 点击确认
@@ -385,13 +332,11 @@ describe("TaskDetail 删除确认", () => {
     // 应执行删除
     await waitFor(() => {
       const deleteCalled = onDelete.mock.calls.length > 0;
-      const fetchDeleteCalled = vi.mocked(fetch).mock.calls.some(
-        (call) => {
-          const url = typeof call[0] === "string" ? call[0] : (call[0] as Request).url;
-          const opts = call[1] as RequestInit | undefined;
-          return url.includes("/api/tasks/task-1") && opts?.method === "DELETE";
-        }
-      );
+      const fetchDeleteCalled = vi.mocked(fetch).mock.calls.some((call) => {
+        const url = typeof call[0] === "string" ? call[0] : (call[0] as Request).url;
+        const opts = call[1] as RequestInit | undefined;
+        return url.includes("/api/tasks/task-1") && opts?.method === "DELETE";
+      });
       expect(deleteCalled || fetchDeleteCalled).toBe(true);
     });
   });
@@ -408,10 +353,28 @@ describe("SpaceSettings 归档确认", () => {
       if (urlStr.includes("/api/spaces/")) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({
-            space: { id: "space-1", title: "测试空间", pinned: true, invite_code: "abc12345", invite_mode: "open", my_user_id: "u1", user_id: "u1", my_role: "owner" },
-            members: [{ user_id: "u1", email: "owner@test.com", role: "owner", status: "active", display_name: "Owner" }],
-          }),
+          json: () =>
+            Promise.resolve({
+              space: {
+                id: "space-1",
+                title: "测试空间",
+                pinned: true,
+                invite_code: "abc12345",
+                invite_mode: "open",
+                my_user_id: "u1",
+                user_id: "u1",
+                my_role: "owner",
+              },
+              members: [
+                {
+                  user_id: "u1",
+                  email: "owner@test.com",
+                  role: "owner",
+                  status: "active",
+                  display_name: "Owner",
+                },
+              ],
+            }),
         } as Response);
       }
       if (urlStr.includes("/api/orgs")) {
@@ -464,13 +427,11 @@ describe("SpaceSettings 归档确认", () => {
     });
 
     // 不应发出归档请求（PATCH）
-    const archiveFetchCalls = vi.mocked(fetch).mock.calls.filter(
-      (call) => {
-        const urlStr = typeof call[0] === "string" ? call[0] : (call[0] as Request).url;
-        const opts = call[1] as RequestInit | undefined;
-        return urlStr.includes("/api/spaces/space-1") && opts?.method === "PATCH";
-      }
-    );
+    const archiveFetchCalls = vi.mocked(fetch).mock.calls.filter((call) => {
+      const urlStr = typeof call[0] === "string" ? call[0] : (call[0] as Request).url;
+      const opts = call[1] as RequestInit | undefined;
+      return urlStr.includes("/api/spaces/space-1") && opts?.method === "PATCH";
+    });
     expect(archiveFetchCalls.length).toBe(0);
   });
 });
@@ -486,13 +447,37 @@ describe("SpaceSettings 移除成员确认", () => {
       if (urlStr.includes("/api/spaces/")) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({
-            space: { id: "space-1", title: "测试空间", pinned: true, invite_code: "abc12345", invite_mode: "open", my_user_id: "u1", user_id: "u1", my_role: "owner" },
-            members: [
-              { user_id: "u1", email: "owner@test.com", role: "owner", status: "active", display_name: "Owner" },
-              { user_id: "u2", email: "member@test.com", role: "member", status: "active", display_name: "测试成员" },
-            ],
-          }),
+          json: () =>
+            Promise.resolve({
+              space: {
+                id: "space-1",
+                title: "测试空间",
+                pinned: true,
+                invite_code: "abc12345",
+                invite_mode: "open",
+                my_user_id: "u1",
+                user_id: "u1",
+                my_role: "owner",
+              },
+              members: [
+                {
+                  id: "m1",
+                  user_id: "u1",
+                  email: "owner@test.com",
+                  role: "owner",
+                  status: "active",
+                  display_name: "Owner",
+                },
+                {
+                  id: "m2",
+                  user_id: "u2",
+                  email: "member@test.com",
+                  role: "member",
+                  status: "active",
+                  display_name: "测试成员",
+                },
+              ],
+            }),
         } as Response);
       }
       if (urlStr.includes("/api/orgs")) {
@@ -544,13 +529,11 @@ describe("SpaceSettings 移除成员确认", () => {
     });
 
     // 不应发出移除成员请求
-    const removeFetchCalls = vi.mocked(fetch).mock.calls.filter(
-      (call) => {
-        const urlStr = typeof call[0] === "string" ? call[0] : (call[0] as Request).url;
-        const opts = call[1] as RequestInit | undefined;
-        return urlStr.includes("/members/") && opts?.method === "DELETE";
-      }
-    );
+    const removeFetchCalls = vi.mocked(fetch).mock.calls.filter((call) => {
+      const urlStr = typeof call[0] === "string" ? call[0] : (call[0] as Request).url;
+      const opts = call[1] as RequestInit | undefined;
+      return urlStr.includes("/members/") && opts?.method === "DELETE";
+    });
     expect(removeFetchCalls.length).toBe(0);
   });
 });

@@ -4,7 +4,17 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import type { Space, TaskMember, SpaceMember, Organization } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
 
@@ -16,7 +26,13 @@ interface SpaceSettingsProps {
   onNameChanged?: (name: string) => void;
 }
 
-export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onNameChanged }: SpaceSettingsProps) {
+export function SpaceSettings({
+  spaceId,
+  onArchived,
+  onDissolved,
+  onLeft,
+  onNameChanged,
+}: SpaceSettingsProps) {
   const [space, setSpace] = useState<Space | null>(null);
   const [members, setMembers] = useState<TaskMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,8 +117,8 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onName
       body: JSON.stringify({ role: newRole }),
     });
     if (res.ok) {
-      const updated = await res.json() as SpaceMember;
-      setMembers((prev) => prev.map((m) => m.user_id === uid ? updated : m));
+      const updated = (await res.json()) as SpaceMember;
+      setMembers((prev) => prev.map((m) => (m.user_id === uid ? updated : m)));
     }
   }
 
@@ -112,8 +128,8 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onName
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "active" }),
     });
-    const updated = await res.json() as SpaceMember;
-    setMembers((prev) => prev.map((m) => m.user_id === uid ? updated : m));
+    const updated = (await res.json()) as SpaceMember;
+    setMembers((prev) => prev.map((m) => (m.user_id === uid ? updated : m)));
   }
 
   async function archiveSpace() {
@@ -162,6 +178,7 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onName
   const canManageMembers = isOwner || isAdmin;
   const pendingMembers = members.filter((m) => m.status === "pending");
   const activeMembers = members.filter((m) => m.status === "active");
+  const manageableMembers = activeMembers.filter((m) => m.id && !m.id.startsWith("org-virtual-"));
   const inviteLink = buildInviteLink(space.invite_code);
 
   return (
@@ -210,7 +227,9 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onName
             >
               <option value="">不关联组织</option>
               {orgs.map((org) => (
-                <option key={org.id} value={org.id}>{org.name}</option>
+                <option key={org.id} value={org.id}>
+                  {org.name}
+                </option>
               ))}
             </select>
             <Button
@@ -230,9 +249,7 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onName
               {savingOrg ? "保存..." : "保存"}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            关联组织后，空间将出现在组织的空间列表中
-          </p>
+          <p className="text-xs text-muted-foreground">关联组织后，空间将出现在组织的空间列表中</p>
         </section>
       )}
 
@@ -247,8 +264,12 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onName
                   <p className="text-sm">{getDisplayLabel(m.email, m)}</p>
                   <p className="text-xs text-muted-foreground">{m.email}</p>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => approveMember(m.user_id)}>同意</Button>
-                <Button size="sm" variant="ghost" onClick={() => removeMember(m.user_id)}>拒绝</Button>
+                <Button size="sm" variant="outline" onClick={() => approveMember(m.user_id)}>
+                  同意
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => removeMember(m.user_id)}>
+                  拒绝
+                </Button>
               </div>
             ))}
           </div>
@@ -259,49 +280,99 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onName
       <section className="space-y-3">
         <h2 className="text-sm font-semibold">成员 ({activeMembers.length})</h2>
         <div className="space-y-1">
-          {activeMembers.map((m) => (
-            <div key={m.user_id} className="flex items-center gap-3 py-2 border-b last:border-0 border-border/40">
+          {manageableMembers.map((m) => (
+            <div
+              key={m.user_id}
+              className="flex items-center gap-3 py-2 border-b last:border-0 border-border/40"
+            >
               <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-medium flex-shrink-0">
                 {getDisplayLabel(m.email, m)[0]?.toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm truncate">{getDisplayLabel(m.email, m)}</p>
-                {(m.display_name || m.nickname) && <p className="text-xs text-muted-foreground">{m.email}</p>}
+                {(m.display_name || m.nickname) && (
+                  <p className="text-xs text-muted-foreground">{m.email}</p>
+                )}
               </div>
               <div className="flex items-center gap-1.5">
                 {m.role === "owner" && (
-                  <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">创建者</span>
+                  <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                    创建者
+                  </span>
                 )}
                 {m.role === "admin" && (
-                  <span className="text-[10px] text-sage bg-sage-mist px-1.5 py-0.5 rounded">管理员</span>
+                  <span className="text-[10px] text-sage bg-sage-mist px-1.5 py-0.5 rounded">
+                    管理员
+                  </span>
                 )}
                 {isOwner && m.role !== "owner" && (
-                  <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => toggleAdmin(m.user_id, m.role)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-xs h-7"
+                    onClick={() => toggleAdmin(m.user_id, m.role)}
+                  >
                     {m.role === "admin" ? "取消管理员" : "设为管理员"}
                   </Button>
                 )}
-                {m.role !== "owner" && ((m.role === "member" && canManageMembers) || (m.role === "admin" && isOwner)) && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button size="sm" variant="ghost" className="text-xs h-7 text-muted-foreground">
-                        移除
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>确认移除</AlertDialogTitle>
-                        <AlertDialogDescription>确定要移除成员「{getDisplayLabel(m.email, m)}」吗？</AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>取消</AlertDialogCancel>
-                        <AlertDialogAction variant="destructive" onClick={() => removeMember(m.user_id)}>确认移除</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
+                {m.role !== "owner" &&
+                  ((m.role === "member" && canManageMembers) ||
+                    (m.role === "admin" && isOwner)) && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-xs h-7 text-muted-foreground"
+                        >
+                          移除
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>确认移除</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            确定要移除成员「{getDisplayLabel(m.email, m)}」吗？
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>取消</AlertDialogCancel>
+                          <AlertDialogAction
+                            variant="destructive"
+                            onClick={() => removeMember(m.user_id)}
+                          >
+                            确认移除
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
               </div>
             </div>
           ))}
+          {activeMembers.length > manageableMembers.length && (
+            <>
+              <div className="text-xs text-muted-foreground mt-3 mb-1">组织成员</div>
+              {activeMembers
+                .filter((m) => m.id?.startsWith("org-virtual-"))
+                .map((m) => (
+                  <div
+                    key={m.user_id}
+                    className="flex items-center gap-3 py-2 border-b last:border-0 border-border/40"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs font-medium flex-shrink-0">
+                      {getDisplayLabel(m.email, m)[0]?.toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm truncate">{getDisplayLabel(m.email, m)}</p>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                      组织成员
+                    </span>
+                  </div>
+                ))}
+            </>
+          )}
         </div>
       </section>
 
@@ -327,7 +398,12 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onName
             退出后将无法查看空间任务，你创建的任务会保留在空间中。
           </p>
           {!leaveConfirm ? (
-            <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setLeaveConfirm(true)}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-destructive border-destructive/30 hover:bg-destructive/10"
+              onClick={() => setLeaveConfirm(true)}
+            >
               退出空间
             </Button>
           ) : (
@@ -335,7 +411,12 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onName
               <Button size="sm" variant="destructive" onClick={leaveSpace} disabled={leaving}>
                 {leaving ? "退出中..." : "确认退出"}
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => setLeaveConfirm(false)} disabled={leaving}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setLeaveConfirm(false)}
+                disabled={leaving}
+              >
                 取消
               </Button>
             </div>
@@ -359,7 +440,9 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onName
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>确认归档</AlertDialogTitle>
-                <AlertDialogDescription>确定要归档此空间吗？归档后空间将从侧边栏移除。</AlertDialogDescription>
+                <AlertDialogDescription>
+                  确定要归档此空间吗？归档后空间将从侧边栏移除。
+                </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>取消</AlertDialogCancel>
@@ -374,9 +457,13 @@ export function SpaceSettings({ spaceId, onArchived, onDissolved, onLeft, onName
       {isOwner && (
         <section className="space-y-3 border-t border-destructive/20 pt-6">
           <h2 className="text-sm font-semibold text-destructive">危险操作</h2>
-          <p className="text-xs text-muted-foreground">解散空间后，所有任务将归还到各成员的个人任务中，无法撤销。</p>
+          <p className="text-xs text-muted-foreground">
+            解散空间后，所有任务将归还到各成员的个人任务中，无法撤销。
+          </p>
           <div className="space-y-2">
-            <label className="text-xs text-muted-foreground">输入空间名称确认：<strong>{space.title}</strong></label>
+            <label className="text-xs text-muted-foreground">
+              输入空间名称确认：<strong>{space.title}</strong>
+            </label>
             <div className="flex gap-2">
               <Input
                 value={dissolveConfirm}

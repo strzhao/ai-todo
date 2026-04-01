@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.46.0",
+    date: "2026-04-01",
+    title: "组织成员自动出现在空间经办人列表",
+    items: [
+      "组织下的空间自动将组织成员 merge 到成员列表，无需手动加入空间即可指派",
+      "经办人选择器、甘特图、@mention 统一受益",
+      "空间设置中组织成员只读展示，区分直接成员与组织继承成员",
+    ],
+  },
+  {
     version: "1.45.0",
     date: "2026-03-30",
     title: "经办人选择器优化",

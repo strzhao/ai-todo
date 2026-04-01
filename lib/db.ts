@@ -408,8 +408,12 @@ export async function getTasks(userId: string, options: GetTasksOptions = {}): P
   const typeClause = hasType ? ` AND (COALESCE(type, 0) = ${Number(type)})` : "";
 
   if (filter === "assigned") {
-    const joinClause = type === 1 ? " LEFT JOIN ai_todo_activated_users creator ON t.user_id = creator.user_id" : "";
-    const selectClause = type === 1 ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname" : "t.*";
+    const joinClause =
+      type === 1 ? " LEFT JOIN ai_todo_activated_users creator ON t.user_id = creator.user_id" : "";
+    const selectClause =
+      type === 1
+        ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname"
+        : "t.*";
     const { rows } = await sql.query(
       `SELECT ${selectClause} FROM ai_todo_tasks t${joinClause}
        WHERE t.assignee_id = $1 AND t.status != 2${typeClause}
@@ -421,8 +425,12 @@ export async function getTasks(userId: string, options: GetTasksOptions = {}): P
 
   if (spaceId) {
     // space_id is denormalized on all tasks within a space — no recursive CTE needed
-    const joinClause = type === 1 ? " LEFT JOIN ai_todo_activated_users creator ON t.user_id = creator.user_id" : "";
-    const selectClause = type === 1 ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname" : "t.*";
+    const joinClause =
+      type === 1 ? " LEFT JOIN ai_todo_activated_users creator ON t.user_id = creator.user_id" : "";
+    const selectClause =
+      type === 1
+        ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname"
+        : "t.*";
     const { rows } = await sql.query(
       `SELECT ${selectClause} FROM ai_todo_tasks t${joinClause}
        WHERE t.space_id = $1 AND t.status != 2${typeClause}
@@ -435,8 +443,12 @@ export async function getTasks(userId: string, options: GetTasksOptions = {}): P
   // No spaceId: use sql template tag when no type filter (preserves original behavior),
   // use sql.query when type filter is needed for string concatenation
   if (hasType) {
-    const joinClause = type === 1 ? " LEFT JOIN ai_todo_activated_users creator ON t.user_id = creator.user_id" : "";
-    const selectClause = type === 1 ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname" : "t.*";
+    const joinClause =
+      type === 1 ? " LEFT JOIN ai_todo_activated_users creator ON t.user_id = creator.user_id" : "";
+    const selectClause =
+      type === 1
+        ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname"
+        : "t.*";
     const { rows } = await sql.query(
       `SELECT ${selectClause} FROM ai_todo_tasks t${joinClause}
        WHERE t.user_id = $1 AND t.space_id IS NULL AND t.status != 2${typeClause}
@@ -501,8 +513,12 @@ export async function getCompletedTasks(
   const typeClause = hasType ? ` AND (COALESCE(type, 0) = ${Number(type)})` : "";
 
   if (spaceId) {
-    const joinClause = type === 1 ? " LEFT JOIN ai_todo_activated_users creator ON t.user_id = creator.user_id" : "";
-    const selectClause = type === 1 ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname" : "t.*";
+    const joinClause =
+      type === 1 ? " LEFT JOIN ai_todo_activated_users creator ON t.user_id = creator.user_id" : "";
+    const selectClause =
+      type === 1
+        ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname"
+        : "t.*";
     const params: unknown[] = [spaceId];
     let cursorSql = "";
     if (hasCursor) {
@@ -522,8 +538,12 @@ export async function getCompletedTasks(
 
   // No spaceId: always use sql.query for cursor support
   if (hasType) {
-    const joinClause = type === 1 ? " LEFT JOIN ai_todo_activated_users creator ON t.user_id = creator.user_id" : "";
-    const selectClause = type === 1 ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname" : "t.*";
+    const joinClause =
+      type === 1 ? " LEFT JOIN ai_todo_activated_users creator ON t.user_id = creator.user_id" : "";
+    const selectClause =
+      type === 1
+        ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname"
+        : "t.*";
     const params: unknown[] = [userId];
     let cursorSql = "";
     if (hasCursor) {
@@ -772,10 +792,29 @@ export async function updateTask(
            LIMIT 1`,
           [task.space_id, normalizedEmail]
         );
-        if (!memberRows[0]) {
+        if (memberRows[0]) {
+          assigneeId = memberRows[0].user_id as string;
+        } else {
+          const { rows: spaceRows } = await sql.query(
+            `SELECT org_id FROM ai_todo_tasks WHERE id = $1`,
+            [task.space_id]
+          );
+          const orgId = spaceRows[0]?.org_id as string | null;
+          if (orgId) {
+            const { rows: orgMemberRows } = await sql.query(
+              `SELECT user_id FROM ai_todo_org_members
+               WHERE org_id = $1 AND status = 'active' AND LOWER(email) = LOWER($2)
+               LIMIT 1`,
+              [orgId, normalizedEmail]
+            );
+            if (orgMemberRows[0]) {
+              assigneeId = orgMemberRows[0].user_id as string;
+            }
+          }
+        }
+        if (!assigneeId) {
           throw new TaskValidationError("Assignee must be an active space member");
         }
-        assigneeId = memberRows[0].user_id as string;
       }
       fields.push(`assignee_email = $${idx++}`);
       values.push(normalizedEmail);
@@ -801,7 +840,7 @@ export async function updateTask(
   }
   if (patch.milestone !== undefined) {
     fields.push(`milestone = $${idx++}`);
-    values.push(patch.milestone || null);  // 空字符串也清除
+    values.push(patch.milestone || null); // 空字符串也清除
   }
   if (patch.parent_id !== undefined) {
     const nextParentId = patch.parent_id || null;
@@ -1180,7 +1219,7 @@ export async function getDescendantTasks(parentId: string): Promise<Task[]> {
  */
 export async function getDescendantTasksForSummary(
   parentId: string,
-  recentDays: number = 7,
+  recentDays: number = 7
 ): Promise<Task[]> {
   const { rows } = await sql.query(
     `SELECT * FROM ai_todo_tasks
@@ -1321,7 +1360,8 @@ export async function getPersonalSummaryCache(
   if (!rows[0]) return null;
   const generatedAtStr = rows[0].generated_at as string;
   const generatedTime = new Date(generatedAtStr).getTime();
-  if (Number.isNaN(generatedTime) || Date.now() - generatedTime > PERSONAL_SUMMARY_CACHE_TTL_MS) return null;
+  if (Number.isNaN(generatedTime) || Date.now() - generatedTime > PERSONAL_SUMMARY_CACHE_TTL_MS)
+    return null;
   return {
     content: rows[0].content as string,
     generated_at: generatedAtStr,
