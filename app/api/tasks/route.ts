@@ -53,8 +53,22 @@ export async function GET(req: NextRequest) {
     const beforeId = req.nextUrl.searchParams.get("before_id") ?? undefined;
     const limitParam = req.nextUrl.searchParams.get("limit");
     const limit = Math.min(limitParam ? parseInt(limitParam, 10) || 20 : 20, 50);
+    const dateFrom = req.nextUrl.searchParams.get("date_from") ?? undefined;
+    const dateTo = req.nextUrl.searchParams.get("date_to") ?? undefined;
+    const hasDateRange = !!(dateFrom && dateTo);
+    if (
+      hasDateRange &&
+      (!/^\d{4}-\d{2}-\d{2}$/.test(dateFrom!) || !/^\d{4}-\d{2}-\d{2}$/.test(dateTo!))
+    ) {
+      return rt.json({ error: "date_from/date_to must be YYYY-MM-DD" }, { status: 400 });
+    }
     const { tasks: completedTasks, hasMore } = await rt.track("db_query", async () =>
-      getCompletedTasks(user.id, spaceId, 0, { limit, before, beforeId })
+      getCompletedTasks(
+        user.id,
+        spaceId,
+        0,
+        hasDateRange ? { dateFrom, dateTo } : { limit, before, beforeId }
+      )
     );
     return rt.json(completedTasks, {
       headers: {

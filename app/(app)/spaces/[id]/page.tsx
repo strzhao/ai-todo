@@ -11,16 +11,20 @@ import { DailySummary } from "@/components/DailySummary";
 import { SpaceSettings } from "@/components/SpaceSettings";
 import { SpaceNotes } from "@/components/SpaceNotes";
 import { Button } from "@/components/ui/button";
-import { useTasks, useCompletedTasks, mutateTasks } from "@/lib/use-tasks";
+import { useTasks, useCompletedTasks, useGanttCompletedTasks, mutateTasks } from "@/lib/use-tasks";
 
 const GanttLoading = () => (
   <div className="py-12 text-center text-sm text-muted-foreground animate-pulse">加载甘特图...</div>
 );
-const PeopleGantt = dynamic(() => import("@/components/PeopleGantt").then(m => ({ default: m.PeopleGantt })), { ssr: false, loading: GanttLoading });
+const PeopleGantt = dynamic(
+  () => import("@/components/PeopleGantt").then((m) => ({ default: m.PeopleGantt })),
+  { ssr: false, loading: GanttLoading }
+);
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { ParsedAction, Task, Space, SpaceMember, ActionResult } from "@/lib/types";
 import { getDisplayLabel } from "@/lib/display-utils";
 import { useIsDesktop } from "@/lib/use-media-query";
+import { getWeekStartMonday, addDays } from "@/lib/gantt-utils";
 
 // Build parent→children map once, then traverse O(n) instead of O(n²)
 function buildChildMap(tasks: Task[]): Map<string, Task[]> {
@@ -56,26 +60,65 @@ export default function SpacePage({ params }: SpacePageProps) {
   const [spaceId, setSpaceId] = useState<string>("");
   const [space, setSpace] = useState<Space | null>(null);
   const [members, setMembers] = useState<SpaceMember[]>([]);
-  const { data: rawTasks, isLoading: tasksLoading, mutate: mutateCurrent } = useTasks(spaceId || undefined);
-  const { data: rawCompleted, isLoading: completedLoading, mutate: mutateSpaceCompleted, hasMore: hasMoreCompleted, loadMore: loadMoreCompleted, isLoadingMore: isLoadingMoreCompleted } = useCompletedTasks(spaceId || undefined);
+  const {
+    data: rawTasks,
+    isLoading: tasksLoading,
+    mutate: mutateCurrent,
+  } = useTasks(spaceId || undefined);
+  const {
+    data: rawCompleted,
+    isLoading: completedLoading,
+    mutate: mutateSpaceCompleted,
+    hasMore: hasMoreCompleted,
+    loadMore: loadMoreCompleted,
+    isLoadingMore: isLoadingMoreCompleted,
+  } = useCompletedTasks(spaceId || undefined);
   const [inputText, setInputText] = useState("");
-  const [preview, setPreview] = useState<{ actions: ParsedAction[]; raw: string; traceId?: string } | null>(null);
+  const [preview, setPreview] = useState<{
+    actions: ParsedAction[];
+    raw: string;
+    traceId?: string;
+  } | null>(null);
   const [spaceLoading, setSpaceLoading] = useState(true);
   const [filterMember, setFilterMember] = useState<string>("all");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [ganttSelectedTask, setGanttSelectedTask] = useState<Task | null>(null);
-  const [spacePreview, setSpacePreview] = useState<{ title: string; invite_mode: string; member_count: number } | null>(null);
+  const [spacePreview, setSpacePreview] = useState<{
+    title: string;
+    invite_mode: string;
+    member_count: number;
+  } | null>(null);
   const [isPending, setIsPending] = useState(false);
-  const [joinStatus, setJoinStatus] = useState<"idle" | "joining" | "joined" | "pending" | "error">("idle");
+  const [joinStatus, setJoinStatus] = useState<"idle" | "joining" | "joined" | "pending" | "error">(
+    "idle"
+  );
   const [fetchError, setFetchError] = useState(false);
+
+  // Gantt date range state — tracks current week shown in PeopleGantt
+  const [ganttDateRange, setGanttDateRange] = useState<{ from: string; to: string }>(() => {
+    const ws = getWeekStartMonday(new Date(), 0);
+    const toISO = (d: Date) => d.toISOString().slice(0, 10);
+    return { from: toISO(ws), to: toISO(addDays(ws, 7)) };
+  });
+  const { data: ganttCompleted } = useGanttCompletedTasks(
+    spaceId || undefined,
+    ganttDateRange.from,
+    ganttDateRange.to
+  );
 
   const router = useRouter();
   const searchParams = useSearchParams();
   const focusedTaskId = searchParams.get("focus");
   const isDesktop = useIsDesktop();
+  const handleGanttWeekChange = useCallback((from: string, to: string) => {
+    setGanttDateRange({ from, to });
+  }, []);
 
   const tasks = useMemo(() => rawTasks ?? [], [rawTasks]);
-  const completedTasks = useMemo(() => (rawCompleted && Array.isArray(rawCompleted)) ? rawCompleted : [], [rawCompleted]);
+  const completedTasks = useMemo(
+    () => (rawCompleted && Array.isArray(rawCompleted) ? rawCompleted : []),
+    [rawCompleted]
+  );
   const loading = spaceLoading || (tasksLoading && tasks.length === 0);
 
   const [tab, setTab] = useState<"list" | "gantt" | "summary" | "notes">(() => {
@@ -86,14 +129,17 @@ export default function SpacePage({ params }: SpacePageProps) {
     return "list";
   });
 
-  const switchTab = useCallback((newTab: "list" | "gantt" | "summary" | "notes") => {
-    setTab(newTab);
-    const params = new URLSearchParams(searchParams.toString());
-    if (newTab === "list") params.delete("tab");
-    else params.set("tab", newTab);
-    const qs = params.toString();
-    router.replace(`/spaces/${spaceId}${qs ? `?${qs}` : ""}`, { scroll: false });
-  }, [searchParams, spaceId, router]);
+  const switchTab = useCallback(
+    (newTab: "list" | "gantt" | "summary" | "notes") => {
+      setTab(newTab);
+      const params = new URLSearchParams(searchParams.toString());
+      if (newTab === "list") params.delete("tab");
+      else params.set("tab", newTab);
+      const qs = params.toString();
+      router.replace(`/spaces/${spaceId}${qs ? `?${qs}` : ""}`, { scroll: false });
+    },
+    [searchParams, spaceId, router]
+  );
 
   // Resolve params and fetch space info (not tasks — those come from SWR)
   useEffect(() => {
@@ -149,10 +195,7 @@ export default function SpacePage({ params }: SpacePageProps) {
   }
 
   function handleComplete(id: string) {
-    mutateCurrent(
-      (prev) => prev?.filter((t) => t.id !== id),
-      { revalidate: true }
-    );
+    mutateCurrent((prev) => prev?.filter((t) => t.id !== id), { revalidate: true });
     const done = rawTasks?.find((t) => t.id === id);
     if (done) {
       mutateSpaceCompleted(
@@ -164,19 +207,13 @@ export default function SpacePage({ params }: SpacePageProps) {
   }
 
   function handleDelete(id: string) {
-    mutateCurrent(
-      (prev) => prev?.filter((t) => t.id !== id),
-      { revalidate: true }
-    );
+    mutateCurrent((prev) => prev?.filter((t) => t.id !== id), { revalidate: true });
     window.dispatchEvent(new Event("tasks-changed"));
   }
 
   function handleReopen(id: string) {
     const reopened = rawCompleted?.find((t) => t.id === id);
-    mutateSpaceCompleted(
-      (prev) => prev?.filter((t) => t.id !== id),
-      { revalidate: true }
-    );
+    mutateSpaceCompleted((prev) => prev?.filter((t) => t.id !== id), { revalidate: true });
     if (reopened) {
       mutateCurrent(
         (prev) => [...(prev ?? []), { ...reopened, status: 0 as const, completed_at: undefined }],
@@ -187,26 +224,32 @@ export default function SpacePage({ params }: SpacePageProps) {
   }
 
   function handleUpdate(id: string, updates: Partial<Task>) {
-    mutateCurrent(
-      (prev) => prev?.map((t) => t.id === id ? { ...t, ...updates } : t),
-      { revalidate: true }
-    );
+    mutateCurrent((prev) => prev?.map((t) => (t.id === id ? { ...t, ...updates } : t)), {
+      revalidate: true,
+    });
   }
 
-  const handleGanttTaskClick = useCallback((id: string) => {
-    const task = tasks.find(t => t.id === id) ?? completedTasks.find(t => t.id === id);
-    if (task) setGanttSelectedTask(task);
-  }, [tasks, completedTasks]);
+  const handleGanttTaskClick = useCallback(
+    (id: string) => {
+      const task = tasks.find((t) => t.id === id) ?? completedTasks.find((t) => t.id === id);
+      if (task) setGanttSelectedTask(task);
+    },
+    [tasks, completedTasks]
+  );
 
   const activeMembers = useMemo(() => members.filter((m) => m.status === "active"), [members]);
-  const filteredTasks = useMemo(() =>
-    filterMember === "all"
-      ? tasks
-      : tasks.filter((t) => t.assignee_id === filterMember || t.user_id === filterMember),
+  const filteredTasks = useMemo(
+    () =>
+      filterMember === "all"
+        ? tasks
+        : tasks.filter((t) => t.assignee_id === filterMember || t.user_id === filterMember),
     [tasks, filterMember]
   );
 
-  const focusedTask = useMemo(() => focusedTaskId ? tasks.find((t) => t.id === focusedTaskId) ?? null : null, [tasks, focusedTaskId]);
+  const focusedTask = useMemo(
+    () => (focusedTaskId ? (tasks.find((t) => t.id === focusedTaskId) ?? null) : null),
+    [tasks, focusedTaskId]
+  );
 
   // Ancestor IDs for auto-expanding tree path to focused task (desktop)
   const focusAncestorIds = useMemo(() => {
@@ -223,34 +266,46 @@ export default function SpacePage({ params }: SpacePageProps) {
   }, [focusedTaskId, tasks]);
 
   // Current focus layer (for AI parse + action resolution): only direct children, unfinished
-  const focusLayerTasks = useMemo(() =>
-    focusedTaskId
-      ? tasks.filter((t) => t.parent_id === focusedTaskId)
-      : tasks.filter((t) => !t.parent_id),
+  const focusLayerTasks = useMemo(
+    () =>
+      focusedTaskId
+        ? tasks.filter((t) => t.parent_id === focusedTaskId)
+        : tasks.filter((t) => !t.parent_id),
     [tasks, focusedTaskId]
   );
 
   // Add current container node (space root or focused parent) for expressions like "在 X 下新增..."
-  const aiContextTasks = useMemo<Task[]>(() =>
-    focusedTaskId
-      ? (focusedTask ? [focusedTask, ...focusLayerTasks] : focusLayerTasks)
-      : (space ? [space, ...focusLayerTasks] : focusLayerTasks),
+  const aiContextTasks = useMemo<Task[]>(
+    () =>
+      focusedTaskId
+        ? focusedTask
+          ? [focusedTask, ...focusLayerTasks]
+          : focusLayerTasks
+        : space
+          ? [space, ...focusLayerTasks]
+          : focusLayerTasks,
     [focusedTaskId, focusedTask, focusLayerTasks, space]
   );
 
   // Drill-down: each level only shows direct children, not all descendants
-  const displayTasks = useMemo(() =>
-    focusedTaskId
-      ? filteredTasks.filter(t => t.parent_id === focusedTaskId)
-      : filteredTasks.filter(t => t.parent_id === spaceId || (t.space_id === spaceId && !t.parent_id)),
+  const displayTasks = useMemo(
+    () =>
+      focusedTaskId
+        ? filteredTasks.filter((t) => t.parent_id === focusedTaskId)
+        : filteredTasks.filter(
+            (t) => t.parent_id === spaceId || (t.space_id === spaceId && !t.parent_id)
+          ),
     [filteredTasks, focusedTaskId, spaceId]
   );
 
   // Completed tasks scoped to current level only
-  const focusedCompletedTasks = useMemo(() =>
-    focusedTaskId
-      ? completedTasks.filter(t => t.parent_id === focusedTaskId)
-      : completedTasks.filter(t => t.parent_id === spaceId || (t.space_id === spaceId && !t.parent_id)),
+  const focusedCompletedTasks = useMemo(
+    () =>
+      focusedTaskId
+        ? completedTasks.filter((t) => t.parent_id === focusedTaskId)
+        : completedTasks.filter(
+            (t) => t.parent_id === spaceId || (t.space_id === spaceId && !t.parent_id)
+          ),
     [completedTasks, focusedTaskId, spaceId]
   );
 
@@ -259,25 +314,39 @@ export default function SpacePage({ params }: SpacePageProps) {
   const completedChildMap = useMemo(() => buildChildMap(completedTasks), [completedTasks]);
 
   // Progress stats use all descendants for accurate overall completion rate
-  const { allDescendants, allCompletedDescendants, completedCount, totalCount, progressPct } = useMemo(() => {
-    const desc = focusedTaskId ? getDescendantsFromMap(filteredChildMap, focusedTaskId) : filteredTasks;
-    const compDesc = focusedTaskId ? getDescendantsFromMap(completedChildMap, focusedTaskId) : completedTasks;
-    const cc = compDesc.length;
-    const tc = desc.length + cc;
-    return {
-      allDescendants: desc,
-      allCompletedDescendants: compDesc,
-      completedCount: cc,
-      totalCount: tc,
-      progressPct: tc > 0 ? Math.round((cc / tc) * 100) : 0,
-    };
-  }, [focusedTaskId, filteredChildMap, completedChildMap, filteredTasks, completedTasks]);
+  const { allDescendants, allCompletedDescendants, completedCount, totalCount, progressPct } =
+    useMemo(() => {
+      const desc = focusedTaskId
+        ? getDescendantsFromMap(filteredChildMap, focusedTaskId)
+        : filteredTasks;
+      const compDesc = focusedTaskId
+        ? getDescendantsFromMap(completedChildMap, focusedTaskId)
+        : completedTasks;
+      const cc = compDesc.length;
+      const tc = desc.length + cc;
+      return {
+        allDescendants: desc,
+        allCompletedDescendants: compDesc,
+        completedCount: cc,
+        totalCount: tc,
+        progressPct: tc > 0 ? Math.round((cc / tc) * 100) : 0,
+      };
+    }, [focusedTaskId, filteredChildMap, completedChildMap, filteredTasks, completedTasks]);
 
   const ganttTasks = useMemo(() => {
-    return focusedTaskId
-      ? [...allDescendants, ...allCompletedDescendants]
-      : [...tasks, ...completedTasks];
-  }, [focusedTaskId, allDescendants, allCompletedDescendants, tasks, completedTasks]);
+    if (focusedTaskId) {
+      return [...allDescendants, ...allCompletedDescendants];
+    }
+    const ganttCompletedList = ganttCompleted ?? completedTasks;
+    return [...tasks, ...ganttCompletedList];
+  }, [
+    focusedTaskId,
+    allDescendants,
+    allCompletedDescendants,
+    tasks,
+    completedTasks,
+    ganttCompleted,
+  ]);
 
   // Child count map for drill-down: tells TaskItem how many children each task has
   const childCountMap = useMemo(() => {
@@ -306,7 +375,7 @@ export default function SpacePage({ params }: SpacePageProps) {
             setJoinStatus("error");
             return;
           }
-          const data = await res.json() as { space_id: string; status: string };
+          const data = (await res.json()) as { space_id: string; status: string };
           if (data.status === "active") {
             setJoinStatus("joined");
             setTimeout(() => window.location.reload(), 1500);
@@ -333,19 +402,19 @@ export default function SpacePage({ params }: SpacePageProps) {
                 </p>
               </div>
 
-              {(isPending || joinStatus === "pending") ? (
+              {isPending || joinStatus === "pending" ? (
                 <div className="text-center space-y-2">
                   <p className="text-sm font-medium">申请已提交</p>
                   <p className="text-xs text-muted-foreground">等待管理员审批后即可访问空间</p>
                 </div>
               ) : joinStatus === "joined" ? (
-                <div className="text-center text-sm text-sage">
-                  加入成功！正在刷新...
-                </div>
+                <div className="text-center text-sm text-sage">加入成功！正在刷新...</div>
               ) : joinStatus === "error" ? (
                 <div className="text-center space-y-2">
                   <p className="text-xs text-destructive">加入失败，请重试</p>
-                  <Button variant="outline" size="sm" onClick={() => setJoinStatus("idle")}>重试</Button>
+                  <Button variant="outline" size="sm" onClick={() => setJoinStatus("idle")}>
+                    重试
+                  </Button>
                 </div>
               ) : (
                 <>
@@ -354,8 +423,16 @@ export default function SpacePage({ params }: SpacePageProps) {
                       此空间需要管理员审批才能加入
                     </p>
                   )}
-                  <Button className="w-full" onClick={handleJoin} disabled={joinStatus === "joining"}>
-                    {joinStatus === "joining" ? "加入中..." : spacePreview.invite_mode === "approval" ? "申请加入" : "加入空间"}
+                  <Button
+                    className="w-full"
+                    onClick={handleJoin}
+                    disabled={joinStatus === "joining"}
+                  >
+                    {joinStatus === "joining"
+                      ? "加入中..."
+                      : spacePreview.invite_mode === "approval"
+                        ? "申请加入"
+                        : "加入空间"}
                   </Button>
                 </>
               )}
@@ -417,7 +494,10 @@ export default function SpacePage({ params }: SpacePageProps) {
         ) : (
           <h1 className="text-xl font-semibold">{space.title}</h1>
         )}
-        <button onClick={() => setSettingsOpen(true)} className="text-xs text-muted-foreground hover:text-foreground shrink-0 ml-2">
+        <button
+          onClick={() => setSettingsOpen(true)}
+          className="text-xs text-muted-foreground hover:text-foreground shrink-0 ml-2"
+        >
           设置
         </button>
       </div>
@@ -426,10 +506,15 @@ export default function SpacePage({ params }: SpacePageProps) {
         <div className="mb-4">
           <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
             <span>任务进度</span>
-            <span>{completedCount}/{totalCount} 已完成（{progressPct}%）</span>
+            <span>
+              {completedCount}/{totalCount} 已完成（{progressPct}%）
+            </span>
           </div>
           <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-            <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${progressPct}%` }} />
+            <div
+              className="h-full bg-primary rounded-full transition-all"
+              style={{ width: `${progressPct}%` }}
+            />
           </div>
         </div>
       )}
@@ -513,17 +598,31 @@ export default function SpacePage({ params }: SpacePageProps) {
           )}
 
           <TaskList
-            tasks={focusedTaskId ? displayTasks : (isDesktop ? filteredTasks : displayTasks)}
-            completedTasks={focusedTaskId ? focusedCompletedTasks : (isDesktop ? completedTasks : focusedCompletedTasks)}
+            tasks={focusedTaskId ? displayTasks : isDesktop ? filteredTasks : displayTasks}
+            completedTasks={
+              focusedTaskId
+                ? focusedCompletedTasks
+                : isDesktop
+                  ? completedTasks
+                  : focusedCompletedTasks
+            }
             loading={false}
             onComplete={handleComplete}
             onDelete={handleDelete}
             onUpdate={handleUpdate}
             onReopen={handleReopen}
             emptyText={focusedTaskId ? "该任务暂无子任务" : "空间内暂无任务"}
-            emptySubtext={focusedTaskId ? "通过 AI 输入框为该任务添加子任务" : "输入一句话创建空间任务，支持 @成员 指派"}
+            emptySubtext={
+              focusedTaskId
+                ? "通过 AI 输入框为该任务添加子任务"
+                : "输入一句话创建空间任务，支持 @成员 指派"
+            }
             members={members}
-            onDrillDown={focusedTaskId || !isDesktop ? (taskId) => router.push(`/spaces/${spaceId}?focus=${taskId}`) : undefined}
+            onDrillDown={
+              focusedTaskId || !isDesktop
+                ? (taskId) => router.push(`/spaces/${spaceId}?focus=${taskId}`)
+                : undefined
+            }
             childCountMap={focusedTaskId || !isDesktop ? childCountMap : undefined}
             hasMoreCompleted={hasMoreCompleted}
             onLoadMore={loadMoreCompleted}
@@ -534,7 +633,12 @@ export default function SpacePage({ params }: SpacePageProps) {
 
       {tab === "gantt" && (
         <>
-          <PeopleGantt tasks={ganttTasks} members={members} onTaskClick={handleGanttTaskClick} />
+          <PeopleGantt
+            tasks={ganttTasks}
+            members={members}
+            onTaskClick={handleGanttTaskClick}
+            onWeekChange={handleGanttWeekChange}
+          />
         </>
       )}
 
@@ -548,11 +652,14 @@ export default function SpacePage({ params }: SpacePageProps) {
         />
       )}
 
-      {tab === "notes" && (
-        <SpaceNotes spaceId={spaceId} />
-      )}
+      {tab === "notes" && <SpaceNotes spaceId={spaceId} />}
 
-      <Sheet open={!!ganttSelectedTask} onOpenChange={(open) => { if (!open) setGanttSelectedTask(null); }}>
+      <Sheet
+        open={!!ganttSelectedTask}
+        onOpenChange={(open) => {
+          if (!open) setGanttSelectedTask(null);
+        }}
+      >
         <SheetContent>
           <SheetHeader className="sr-only">
             <SheetTitle>{ganttSelectedTask?.title ?? "任务详情"}</SheetTitle>
@@ -566,7 +673,9 @@ export default function SpacePage({ params }: SpacePageProps) {
                 readonly={ganttSelectedTask.status === 2}
                 onUpdate={(id, updates) => {
                   handleUpdate(id, updates);
-                  setGanttSelectedTask(prev => prev?.id === id ? { ...prev, ...updates } : prev);
+                  setGanttSelectedTask((prev) =>
+                    prev?.id === id ? { ...prev, ...updates } : prev
+                  );
                 }}
                 onComplete={(id) => {
                   handleComplete(id);
@@ -617,7 +726,7 @@ export default function SpacePage({ params }: SpacePageProps) {
               router.refresh();
             }}
             onNameChanged={(newName) => {
-              setSpace((prev) => prev ? { ...prev, title: newName } : prev);
+              setSpace((prev) => (prev ? { ...prev, title: newName } : prev));
               window.dispatchEvent(new Event("tasks-changed"));
             }}
           />

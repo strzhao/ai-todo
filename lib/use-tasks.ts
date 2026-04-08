@@ -78,9 +78,7 @@ export function useCompletedTasks(spaceId?: string) {
 
 /** 获取笔记 */
 export function useNotes(spaceId?: string) {
-  const key = spaceId
-    ? `/api/tasks?type=1&space_id=${spaceId}`
-    : "/api/tasks?type=1";
+  const key = spaceId ? `/api/tasks?type=1&space_id=${spaceId}` : "/api/tasks?type=1";
   return useSWR<Task[]>(key, fetcher, SWR_CONFIG);
 }
 
@@ -93,4 +91,13 @@ export function useSpaceTasks(spaceId: string | null) {
 /** 统一的 mutate 工具：让所有以 /api/tasks 开头的 key 重新验证 */
 export function mutateTasks() {
   mutate((key) => typeof key === "string" && key.startsWith("/api/tasks"));
+}
+
+/** 甘特图专属已完成任务数据源（日期范围过滤，无分页限制） */
+export function useGanttCompletedTasks(spaceId?: string, dateFrom?: string, dateTo?: string) {
+  const key =
+    spaceId && dateFrom && dateTo
+      ? `/api/tasks?space_id=${spaceId}&filter=completed&date_from=${dateFrom}&date_to=${dateTo}`
+      : null;
+  return useSWR<Task[]>(key, fetcher, SWR_CONFIG);
 }

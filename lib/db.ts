@@ -504,13 +504,14 @@ export async function getCompletedTasks(
   userId: string,
   spaceId?: string,
   type?: number,
-  opts?: { limit?: number; before?: string; beforeId?: string }
+  opts?: { limit?: number; before?: string; beforeId?: string; dateFrom?: string; dateTo?: string }
 ): Promise<{ tasks: Task[]; hasMore: boolean }> {
   const limit = opts?.limit ?? 20;
   const fetchLimit = limit + 1;
   const hasCursor = opts?.before && opts?.beforeId;
   const hasType = type !== undefined;
   const typeClause = hasType ? ` AND (COALESCE(type, 0) = ${Number(type)})` : "";
+  const hasDateRange = !!(opts?.dateFrom && opts?.dateTo);
 
   if (spaceId) {
     const joinClause =
@@ -519,6 +520,30 @@ export async function getCompletedTasks(
       type === 1
         ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname"
         : "t.*";
+
+    // Date range mode: filter by task date overlap, no pagination
+    if (hasDateRange) {
+      const params: unknown[] = [spaceId, opts!.dateFrom, opts!.dateTo];
+      const dateRangeSql = `
+        AND (
+          (t.start_date IS NOT NULL AND COALESCE(t.end_date, t.due_date) IS NOT NULL
+           AND t.start_date::date < $3::date AND COALESCE(t.end_date, t.due_date)::date >= $2::date)
+          OR
+          (t.start_date IS NOT NULL AND t.end_date IS NULL AND t.due_date IS NULL
+           AND t.start_date::date >= $2::date AND t.start_date::date < $3::date)
+          OR
+          (t.start_date IS NULL AND t.due_date IS NOT NULL
+           AND t.due_date::date >= $2::date AND t.due_date::date < $3::date)
+        )`;
+      const { rows } = await sql.query(
+        `SELECT ${selectClause} FROM ai_todo_tasks t${joinClause}
+         WHERE t.space_id = $1 AND t.status = 2${typeClause}${dateRangeSql}
+         ORDER BY t.completed_at DESC, t.id DESC`,
+        params
+      );
+      return { tasks: rows.map(rowToTask), hasMore: false };
+    }
+
     const params: unknown[] = [spaceId];
     let cursorSql = "";
     if (hasCursor) {
@@ -544,6 +569,30 @@ export async function getCompletedTasks(
       type === 1
         ? "t.*, creator.email AS creator_email, creator.nickname AS creator_nickname"
         : "t.*";
+
+    // Date range mode (no spaceId): filter by task date overlap, no pagination
+    if (hasDateRange) {
+      const params: unknown[] = [userId, opts!.dateFrom, opts!.dateTo];
+      const dateRangeSql = `
+        AND (
+          (t.start_date IS NOT NULL AND COALESCE(t.end_date, t.due_date) IS NOT NULL
+           AND t.start_date::date < $3::date AND COALESCE(t.end_date, t.due_date)::date >= $2::date)
+          OR
+          (t.start_date IS NOT NULL AND t.end_date IS NULL AND t.due_date IS NULL
+           AND t.start_date::date >= $2::date AND t.start_date::date < $3::date)
+          OR
+          (t.start_date IS NULL AND t.due_date IS NOT NULL
+           AND t.due_date::date >= $2::date AND t.due_date::date < $3::date)
+        )`;
+      const { rows } = await sql.query(
+        `SELECT ${selectClause} FROM ai_todo_tasks t${joinClause}
+         WHERE t.user_id = $1 AND t.space_id IS NULL AND t.status = 2${typeClause}${dateRangeSql}
+         ORDER BY t.completed_at DESC, t.id DESC`,
+        params
+      );
+      return { tasks: rows.map(rowToTask), hasMore: false };
+    }
+
     const params: unknown[] = [userId];
     let cursorSql = "";
     if (hasCursor) {
@@ -559,6 +608,29 @@ export async function getCompletedTasks(
     );
     const hasMore = rows.length > limit;
     return { tasks: rows.slice(0, limit).map(rowToTask), hasMore };
+  }
+
+  // Default branch (no type, no spaceId): date range support
+  if (hasDateRange) {
+    const params: unknown[] = [userId, opts!.dateFrom, opts!.dateTo];
+    const dateRangeSql = `
+      AND (
+        (start_date IS NOT NULL AND COALESCE(end_date, due_date) IS NOT NULL
+         AND start_date::date < $3::date AND COALESCE(end_date, due_date)::date >= $2::date)
+        OR
+        (start_date IS NOT NULL AND end_date IS NULL AND due_date IS NULL
+         AND start_date::date >= $2::date AND start_date::date < $3::date)
+        OR
+        (start_date IS NULL AND due_date IS NOT NULL
+         AND due_date::date >= $2::date AND due_date::date < $3::date)
+      )`;
+    const { rows } = await sql.query(
+      `SELECT * FROM ai_todo_tasks
+       WHERE user_id = $1 AND space_id IS NULL AND status = 2${dateRangeSql}
+       ORDER BY completed_at DESC, id DESC`,
+      params
+    );
+    return { tasks: rows.map(rowToTask), hasMore: false };
   }
 
   const params: unknown[] = [userId];

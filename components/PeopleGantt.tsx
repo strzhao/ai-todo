@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, memo } from "react";
+import { useState, useMemo, memo, useEffect } from "react";
 import type { Task, SpaceMember } from "@/lib/types";
 import {
   addDays,
@@ -18,6 +18,7 @@ interface Props {
   tasks: Task[];
   members: SpaceMember[];
   onTaskClick?: (id: string) => void;
+  onWeekChange?: (dateFrom: string, dateTo: string) => void;
 }
 
 const PRIORITY_LEFT_BORDER: Record<number, string> = {
@@ -34,22 +35,41 @@ const PRIORITY_LABELS: Record<number, string> = {
 
 const WEEKDAY_NAMES = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 
-export const PeopleGantt = memo(function PeopleGantt({ tasks, members, onTaskClick }: Props) {
+export const PeopleGantt = memo(function PeopleGantt({
+  tasks,
+  members,
+  onTaskClick,
+  onWeekChange,
+}: Props) {
   const [weekOffset, setWeekOffset] = useState(0);
 
   const today = new Date();
   const weekStart = useMemo(() => getWeekStartMonday(today, weekOffset), [weekOffset]);
-  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
+  const days = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
+    [weekStart]
+  );
 
-  const scheduled = useMemo(() => tasks.filter(
-    (t) => t.start_date || t.end_date || t.due_date,
-  ), [tasks]);
+  // Notify parent when week changes (including initial mount)
+  useEffect(() => {
+    if (!onWeekChange) return;
+    const toISODate = (d: Date) => d.toISOString().slice(0, 10);
+    onWeekChange(toISODate(weekStart), toISODate(addDays(weekStart, 7)));
+  }, [weekStart, onWeekChange]);
+
+  const scheduled = useMemo(
+    () => tasks.filter((t) => t.start_date || t.end_date || t.due_date),
+    [tasks]
+  );
 
   // Pre-compute week range timestamps once for fast interval overlap check
-  const weekRangeMs = useMemo(() => ({
-    start: weekStart.getTime(),
-    end: addDays(weekStart, 7).getTime(),
-  }), [weekStart]);
+  const weekRangeMs = useMemo(
+    () => ({
+      start: weekStart.getTime(),
+      end: addDays(weekStart, 7).getTime(),
+    }),
+    [weekStart]
+  );
 
   // Filter to week + group by member in one pass
   const groups = useMemo(() => {
@@ -58,7 +78,7 @@ export const PeopleGantt = memo(function PeopleGantt({ tasks, members, onTaskCli
       .map((g) => {
         // Use range check instead of 7x taskCoversDay per task
         const weekTasks = g.tasks.filter((t) =>
-          taskCoversRange(t, weekRangeMs.start, weekRangeMs.end),
+          taskCoversRange(t, weekRangeMs.start, weekRangeMs.end)
         );
         return { ...g, weekTasks };
       })
@@ -77,9 +97,7 @@ export const PeopleGantt = memo(function PeopleGantt({ tasks, members, onTaskCli
   if (groups.length === 0) {
     return (
       <div className="py-12 text-center text-sm text-muted-foreground">
-        {scheduled.length === 0
-          ? "暂无排期任务"
-          : "本周暂无排期任务，试试切换到其他周"}
+        {scheduled.length === 0 ? "暂无排期任务" : "本周暂无排期任务，试试切换到其他周"}
       </div>
     );
   }
@@ -136,9 +154,7 @@ export const PeopleGantt = memo(function PeopleGantt({ tasks, members, onTaskCli
                   ${!isToday && isWeekend(day) ? "bg-muted/20" : ""}`}
               >
                 <div>{WEEKDAY_NAMES[day.getDay()]}</div>
-                <div className={isToday ? "text-sage" : ""}>
-                  {formatAxisDate(day)}
-                </div>
+                <div className={isToday ? "text-sage" : ""}>{formatAxisDate(day)}</div>
               </div>
             );
           })}
@@ -178,7 +194,13 @@ interface MemberRowProps {
   onTaskClick?: (id: string) => void;
 }
 
-const MemberRow = memo(function MemberRow({ group, bars, days, today, onTaskClick }: MemberRowProps) {
+const MemberRow = memo(function MemberRow({
+  group,
+  bars,
+  days,
+  today,
+  onTaskClick,
+}: MemberRowProps) {
   const maxRow = bars.reduce((max, b) => Math.max(max, b.row), -1);
   const containerHeight = Math.max(52, (maxRow + 1) * (BAR_HEIGHT + BAR_GAP) + BAR_PAD_TOP * 2);
 
@@ -193,9 +215,7 @@ const MemberRow = memo(function MemberRow({ group, bars, days, today, onTaskClic
           <div className="text-[12px] font-medium text-foreground leading-tight truncate">
             {group.label}
           </div>
-          <div className="text-[10px] text-muted-foreground">
-            {group.weekTasks.length} 项
-          </div>
+          <div className="text-[10px] text-muted-foreground">{group.weekTasks.length} 项</div>
         </div>
       </div>
 
@@ -219,11 +239,7 @@ const MemberRow = memo(function MemberRow({ group, bars, days, today, onTaskClic
         {/* Layer 2: 任务横条 */}
         <div className="absolute inset-0" style={{ pointerEvents: "none" }}>
           {bars.map((bar) => (
-            <TaskBarEl
-              key={bar.task.id}
-              bar={bar}
-              onClick={() => onTaskClick?.(bar.task.id)}
-            />
+            <TaskBarEl key={bar.task.id} bar={bar} onClick={() => onTaskClick?.(bar.task.id)} />
           ))}
         </div>
       </div>
@@ -244,9 +260,7 @@ function TaskBarEl({ bar, onClick }: { bar: TaskBar; onClick: () => void }) {
   const borderClass = isMilestone
     ? "border-l-sage"
     : (PRIORITY_LEFT_BORDER[bar.task.priority] ?? PRIORITY_LEFT_BORDER[2]);
-  const bgClass = isMilestone
-    ? "bg-sage/15 hover:bg-sage/25"
-    : "bg-muted/40 hover:bg-muted/70";
+  const bgClass = isMilestone ? "bg-sage/15 hover:bg-sage/25" : "bg-muted/40 hover:bg-muted/70";
 
   const left = `calc(${(bar.startCol / 7) * 100}% + ${BAR_INSET}px)`;
   const width = `calc(${(bar.spanCols / 7) * 100}% - ${BAR_INSET * 2}px)`;
@@ -268,12 +282,11 @@ function TaskBarEl({ bar, onClick }: { bar: TaskBar; onClick: () => void }) {
     >
       <span
         className={`text-[11px] leading-tight truncate ${
-          isCompleted
-            ? "line-through text-muted-foreground"
-            : "text-foreground"
+          isCompleted ? "line-through text-muted-foreground" : "text-foreground"
         }`}
       >
-        {isMilestone && "\ud83d\udea9"}{bar.task.title}
+        {isMilestone && "\ud83d\udea9"}
+        {bar.task.title}
       </span>
       {!isCompleted && bar.task.priority <= 1 && (
         <span
