@@ -1,0 +1,25 @@
+proxy.ts
+  5caa82a89dc02d40 20,98,106-110
+__tests__/proxy-bearer-session.acceptance.test.ts
+  5caa82a89dc02d40 1-380
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.6",
+  "base_commit_sha": "096e0b0fbf500e5faa4fc61dbbc3100ca43acee7",
+  "prompts": {
+    "5caa82a89dc02d40": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0cfb17a7-9361-4fb7-87c7-afcb1c1354d3",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "stringzhao",
+      "messages": [],
+      "total_additions": 387,
+      "total_deletions": 1,
+      "accepted_lines": 387,
+      "overriden_lines": 0
+    }
+  }
+}
