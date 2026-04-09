@@ -17,10 +17,25 @@ import {
   readAuthStateCookie,
   readGatewaySessionFromRequest,
   verifyAuthStateCookieValue,
+  verifyGatewaySessionCookieValue,
 } from "@/lib/auth-gateway-session";
 
-const protectedPaths = ["/", "/all", "/spaces", "/join", "/auth/cli", "/activate", "/notifications"];
-const protectedApiPaths = ["/api/tasks", "/api/parse-task", "/api/spaces", "/api/transcribe", "/api/notifications"];
+const protectedPaths = [
+  "/",
+  "/all",
+  "/spaces",
+  "/join",
+  "/auth/cli",
+  "/activate",
+  "/notifications",
+];
+const protectedApiPaths = [
+  "/api/tasks",
+  "/api/parse-task",
+  "/api/spaces",
+  "/api/transcribe",
+  "/api/notifications",
+];
 
 function isRscPrefetchRequest(req: NextRequest): boolean {
   if (req.nextUrl.searchParams.has("_rsc")) return true;
@@ -30,17 +45,18 @@ function isRscPrefetchRequest(req: NextRequest): boolean {
   const accept = req.headers.get("accept") ?? "";
   if (accept.includes("text/x-component")) return true;
 
-  const purpose = (req.headers.get("purpose") ?? req.headers.get("sec-purpose") ?? "").toLowerCase();
+  const purpose = (
+    req.headers.get("purpose") ??
+    req.headers.get("sec-purpose") ??
+    ""
+  ).toLowerCase();
   return purpose.includes("prefetch");
 }
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (
-    process.env.AUTH_DEV_BYPASS === "true" &&
-    process.env.NODE_ENV !== "production"
-  ) {
+  if (process.env.AUTH_DEV_BYPASS === "true" && process.env.NODE_ENV !== "production") {
     return NextResponse.next();
   }
 
@@ -62,8 +78,7 @@ export async function proxy(req: NextRequest) {
       }
     }
 
-    const code =
-      authorized === "1" ? "state_mismatch" : "authorization_not_completed";
+    const code = authorized === "1" ? "state_mismatch" : "authorization_not_completed";
     const errorUrl = new URL(CALLBACK_PATH, req.url);
     errorUrl.searchParams.set("error", code);
     const res = NextResponse.redirect(errorUrl);
@@ -80,7 +95,7 @@ export async function proxy(req: NextRequest) {
 
   if (!isProtectedPage && !isProtectedApi) return NextResponse.next();
 
-  // Path 1: Bearer token (CLI / API clients) — JWT verification
+  // Path 1: Bearer token (CLI / API clients) — JWT verification, then session_token fallback
   const authHeader = req.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
@@ -88,6 +103,11 @@ export async function proxy(req: NextRequest) {
     if (user) {
       return NextResponse.next();
     }
+    const session = verifyGatewaySessionCookieValue(token);
+    if (session) {
+      return NextResponse.next();
+    }
+    console.warn("[auth] bearer_token_invalid", { path: pathname });
   }
 
   // Path 2: Gateway session cookie (browser)
@@ -104,10 +124,7 @@ export async function proxy(req: NextRequest) {
     if (user) {
       console.log("[auth] silent_reauth_success", { email: user.email, path: pathname });
       const response = NextResponse.next();
-      applyGatewaySessionCookie(
-        response,
-        createGatewaySessionCookieValue(user.id, user.email)
-      );
+      applyGatewaySessionCookie(response, createGatewaySessionCookieValue(user.id, user.email));
       return response;
     }
     console.warn("[auth] silent_reauth_failed", { path: pathname });
