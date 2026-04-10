@@ -1,15 +1,17 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { NextRequest } from "next/server";
-import { readGatewaySessionFromRequest, verifyGatewaySessionCookieValue } from "@/lib/auth-gateway-session";
+import {
+  readGatewaySessionFromRequest,
+  verifyGatewaySessionCookieValue,
+} from "@/lib/auth-gateway-session";
+import { verifySpaceApiToken } from "@/lib/db";
 
 interface AuthUser {
   id: string;
   email: string;
 }
 
-const DEV_BYPASS =
-  process.env.AUTH_DEV_BYPASS === "true" &&
-  process.env.NODE_ENV !== "production";
+const DEV_BYPASS = process.env.AUTH_DEV_BYPASS === "true" && process.env.NODE_ENV !== "production";
 
 const DEV_USER: AuthUser = {
   id: process.env.AUTH_DEV_USER_ID ?? "dev-user-local",
@@ -70,4 +72,16 @@ export async function getUserFromCookie(cookieValue: string): Promise<AuthUser |
   } catch {
     return null;
   }
+}
+
+export async function getSpaceFromApiToken(
+  request: Request
+): Promise<{ spaceId: string; tokenId: string } | null> {
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) return null;
+  const token = authHeader.slice(7);
+  if (!token.startsWith("ait_")) return null;
+  const result = await verifySpaceApiToken(token);
+  if (!result) return null;
+  return { spaceId: result.spaceId, tokenId: result.tokenId };
 }

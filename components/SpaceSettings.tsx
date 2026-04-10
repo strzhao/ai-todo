@@ -49,6 +49,21 @@ export function SpaceSettings({
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
   const [savingOrg, setSavingOrg] = useState(false);
 
+  // API tokens state
+  interface ApiToken {
+    id: string;
+    prefix: string;
+    label: string;
+    created_at: string;
+    last_used_at: string | null;
+  }
+  const [apiTokens, setApiTokens] = useState<ApiToken[]>([]);
+  const [tokensLoaded, setTokensLoaded] = useState(false);
+  const [newTokenLabel, setNewTokenLabel] = useState("");
+  const [creatingToken, setCreatingToken] = useState(false);
+  const [newlyCreatedToken, setNewlyCreatedToken] = useState<string | null>(null);
+  const [tokenCopied, setTokenCopied] = useState(false);
+
   useEffect(() => {
     fetch(`/api/spaces/${spaceId}`)
       .then((r) => r.json())
@@ -175,7 +190,67 @@ export function SpaceSettings({
 
   const isOwner = space.my_role === "owner";
   const isAdmin = space.my_role === "admin";
+  const isOwnerOrAdmin = isOwner || isAdmin;
   const canManageMembers = isOwner || isAdmin;
+
+  function formatRelativeTime(dateStr: string | null): string {
+    if (!dateStr) return "从未";
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return "刚刚";
+    if (minutes < 60) return `${minutes}分钟前`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h前`;
+    const days = Math.floor(hours / 24);
+    return `${days}天前`;
+  }
+
+  async function fetchApiTokens() {
+    const res = await fetch(`/api/spaces/${spaceId}/tokens`);
+    if (res.ok) {
+      const data = await res.json();
+      setApiTokens(data.tokens ?? []);
+    }
+    setTokensLoaded(true);
+  }
+
+  async function createApiToken() {
+    if (creatingToken) return;
+    setCreatingToken(true);
+    try {
+      const res = await fetch(`/api/spaces/${spaceId}/tokens`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label: newTokenLabel.trim() }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNewlyCreatedToken(data.token);
+        setTokenCopied(false);
+        setNewTokenLabel("");
+        await fetchApiTokens();
+      }
+    } finally {
+      setCreatingToken(false);
+    }
+  }
+
+  async function deleteApiToken(tokenId: string) {
+    await fetch(`/api/spaces/${spaceId}/tokens`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token_id: tokenId }),
+    });
+    setApiTokens((prev) => prev.filter((t) => t.id !== tokenId));
+  }
+
+  function copyNewToken() {
+    if (!newlyCreatedToken) return;
+    navigator.clipboard.writeText(newlyCreatedToken).then(() => {
+      setTokenCopied(true);
+      setTimeout(() => setTokenCopied(false), 2000);
+    });
+  }
   const pendingMembers = members.filter((m) => m.status === "pending");
   const activeMembers = members.filter((m) => m.status === "active");
   const manageableMembers = activeMembers.filter((m) => m.id && !m.id.startsWith("org-virtual-"));
@@ -387,6 +462,141 @@ export function SpaceSettings({
             <span>自定义总结模版和数据源</span>
             <span className="text-muted-foreground/50">›</span>
           </Link>
+        </section>
+      )}
+
+      {/* API Integration */}
+      {isOwnerOrAdmin && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold">API 集成</h2>
+
+          {/* Token list */}
+          {!tokensLoaded ? (
+            <button
+              type="button"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              onClick={fetchApiTokens}
+            >
+              加载 API Tokens
+            </button>
+          ) : (
+            <div className="space-y-2">
+              {apiTokens.length === 0 ? (
+                <p className="text-xs text-muted-foreground">暂无 Token</p>
+              ) : (
+                <div className="space-y-1">
+                  {apiTokens.map((t) => (
+                    <div
+                      key={t.id}
+                      className="flex items-center gap-3 py-2 border-b last:border-0 border-border/40"
+                    >
+                      <code className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex-shrink-0">
+                        {t.prefix}••••
+                      </code>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs truncate">
+                          {t.label || <span className="text-muted-foreground italic">无标签</span>}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          创建于 {new Date(t.created_at).toLocaleDateString("zh-CN")} · 最后使用:{" "}
+                          {formatRelativeTime(t.last_used_at)}
+                        </p>
+                      </div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-xs h-7 text-muted-foreground hover:text-destructive flex-shrink-0"
+                          >
+                            删除
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>确认删除 Token</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              确定要删除 Token「{t.prefix}••••{t.label ? ` (${t.label})` : ""}
+                              」吗？删除后将立即失效，无法恢复。
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>取消</AlertDialogCancel>
+                            <AlertDialogAction
+                              variant="destructive"
+                              onClick={() => deleteApiToken(t.id)}
+                            >
+                              确认删除
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Create new token */}
+              <div className="pt-2 space-y-2">
+                <label className="text-xs text-muted-foreground">创建新 Token</label>
+                <div className="flex gap-2">
+                  <Input
+                    value={newTokenLabel}
+                    onChange={(e) => setNewTokenLabel(e.target.value)}
+                    placeholder="标签（如：monitoring、ci-bot）"
+                    className="text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") createApiToken();
+                    }}
+                  />
+                  <Button size="sm" onClick={createApiToken} disabled={creatingToken}>
+                    {creatingToken ? "创建中..." : "创建"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Newly created token display */}
+              {newlyCreatedToken && (
+                <div className="mt-3 p-3 rounded-md border border-amber-500/30 bg-amber-50/10 space-y-2">
+                  <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                    ⚠️ 请立即复制此 Token，关闭后将无法再次查看：
+                  </p>
+                  <div className="flex gap-2">
+                    <code className="flex-1 text-xs font-mono bg-muted px-2 py-1.5 rounded truncate">
+                      {newlyCreatedToken}
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={copyNewToken}
+                      className="flex-shrink-0"
+                    >
+                      {tokenCopied ? "已复制" : "复制"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-muted-foreground flex-shrink-0"
+                      onClick={() => setNewlyCreatedToken(null)}
+                    >
+                      关闭
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* API usage example */}
+          <div className="pt-2 space-y-1.5">
+            <p className="text-xs text-muted-foreground">API 调用示例</p>
+            <pre className="text-[11px] font-mono bg-muted rounded p-3 overflow-x-auto text-muted-foreground leading-relaxed">
+              {`curl -X POST https://ai-todo.stringzhao.life/api/spaces/${spaceId}/notes \\
+  -H "Authorization: Bearer YOUR_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"title": "笔记内容", "tags": ["tag1"]}'`}
+            </pre>
+          </div>
         </section>
       )}
 

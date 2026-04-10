@@ -5,7 +5,7 @@ export interface Task {
   description?: string;
   due_date?: string; // ISO 8601
   start_date?: string; // ISO 8601 计划开始时间
-  end_date?: string;   // ISO 8601 计划结束时间
+  end_date?: string; // ISO 8601 计划结束时间
   priority: 0 | 1 | 2 | 3; // 0=P0紧急 1=P1高 2=P2普通 3=P3低
   status: 0 | 2; // 0=待办 2=已完成
   tags: string[];
@@ -108,7 +108,7 @@ export interface ParsedAction {
   // For create
   tasks?: ParsedTask[];
   // For update/complete/delete/add_log/move
-  target_id?: string;    // AI 从 tasks 上下文匹配到的 UUID（优先）
+  target_id?: string; // AI 从 tasks 上下文匹配到的 UUID（优先）
   target_title?: string; // 显示/客户端 fuzzy match 兜底
   // For update
   changes?: ParsedActionChanges;
@@ -122,10 +122,10 @@ export interface ParsedAction {
 export interface ActionResult {
   created?: Task[];
   updated?: Task[];
-  completed?: string[];  // task IDs
-  deleted?: string[];    // task IDs
+  completed?: string[]; // task IDs
+  deleted?: string[]; // task IDs
   logged?: Array<{ taskId: string }>;
-  reopened?: string[];   // task IDs
+  reopened?: string[]; // task IDs
   errors?: Array<{ action: string; taskTitle: string; error: string }>;
 }
 
@@ -199,16 +199,16 @@ export interface SummaryDataSource {
   url: string;
   headers?: Record<string, string>;
   body_template?: string;
-  response_extract?: string;  // 简易点分路径如 "data.items"
-  inject_as: string;          // prompt 模板变量名
-  timeout_ms?: number;        // 默认 10000
+  response_extract?: string; // 简易点分路径如 "data.items"
+  inject_as: string; // prompt 模板变量名
+  timeout_ms?: number; // 默认 10000
 }
 
 export interface PromptTemplate {
-  id: string;           // UUID，内置为 "default"
-  name: string;         // 如 "项目日报"、"风险分析"
-  system_prompt: string | null;  // null = 用 DEFAULT_SYSTEM_PROMPT
-  data_template: string | null;  // null = 用 DEFAULT_DATA_TEMPLATE
+  id: string; // UUID，内置为 "default"
+  name: string; // 如 "项目日报"、"风险分析"
+  system_prompt: string | null; // null = 用 DEFAULT_SYSTEM_PROMPT
+  data_template: string | null; // null = 用 DEFAULT_DATA_TEMPLATE
   is_builtin?: boolean; // true = 内置模板，不可删除
 }
 
@@ -251,6 +251,26 @@ export interface OrgMember {
   role: "owner" | "admin" | "member";
   status: "active" | "pending";
   joined_at: string;
+}
+
+// ─── Space API Tokens ───────────────────────────────────────────────────────────
+
+export interface SpaceApiToken {
+  id: string;
+  spaceId: string;
+  prefix: string;
+  label: string;
+  createdBy: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+export interface SpaceApiTokenCreateResult {
+  id: string;
+  token: string; // plaintext, one-time
+  prefix: string;
+  label: string;
+  createdAt: string;
 }
 
 export type SummaryConfigActionType =

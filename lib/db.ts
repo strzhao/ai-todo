@@ -1,5 +1,15 @@
 import { sql } from "@vercel/postgres";
-import type { Task, ParsedTask, TaskMember, TaskLog, Organization, OrgMember } from "./types";
+import { createHash, randomBytes } from "crypto";
+import type {
+  Task,
+  ParsedTask,
+  TaskMember,
+  TaskLog,
+  Organization,
+  OrgMember,
+  SpaceApiToken,
+  SpaceApiTokenCreateResult,
+} from "./types";
 import {
   getTaskRoles,
   getDisallowedFields,
@@ -16,7 +26,7 @@ export class TaskValidationError extends Error {
   }
 }
 
-const DB_SCHEMA_VERSION = 6; // bump when adding new tables/columns
+const DB_SCHEMA_VERSION = 7; // bump when adding new tables/columns
 let _dbSchemaVersion = 0;
 let _dbInitPromise: Promise<void> | null = null;
 
@@ -287,6 +297,22 @@ async function _doInitDb() {
   await sql`CREATE INDEX IF NOT EXISTS idx_personal_summary_cache_user_date ON ai_todo_personal_summary_cache(user_id, summary_date)`;
 
   // Seed already executed on 2026-03-07: all existing users auto-activated.
+
+  // 19. Space API tokens table
+  await sql`
+    CREATE TABLE IF NOT EXISTS ai_todo_space_api_tokens (
+      id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      space_id   UUID NOT NULL REFERENCES ai_todo_tasks(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL,
+      label      TEXT NOT NULL DEFAULT '',
+      prefix     TEXT NOT NULL DEFAULT '',
+      created_by TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_used_at TIMESTAMPTZ
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_space_api_tokens_hash  ON ai_todo_space_api_tokens (token_hash)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_space_api_tokens_space ON ai_todo_space_api_tokens (space_id)`;
 }
 
 export async function migrateDb() {
@@ -1760,4 +1786,81 @@ export async function getOrgSpaces(orgId: string, userId?: string): Promise<Task
     userId ? [orgId, userId] : [orgId]
   );
   return rows.map(rowToTask);
+}
+
+// ─── Space API Tokens ────────────────────────────────────────────────────────
+
+function hashToken(raw: string): string {
+  return createHash("sha256").update(raw).digest("hex");
+}
+
+export async function createSpaceApiToken(
+  spaceId: string,
+  createdBy: string,
+  label: string
+): Promise<SpaceApiTokenCreateResult> {
+  const raw = "ait_" + randomBytes(32).toString("base64url");
+  const prefix = raw.slice(0, 12); // "ait_" + first 8 chars
+  const tokenHash = hashToken(raw);
+
+  const { rows } = await sql.query(
+    `INSERT INTO ai_todo_space_api_tokens (space_id, token_hash, label, prefix, created_by)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id, label, prefix, created_at`,
+    [spaceId, tokenHash, label, prefix, createdBy]
+  );
+
+  const row = rows[0];
+  return {
+    id: row.id as string,
+    token: raw,
+    prefix: row.prefix as string,
+    label: row.label as string,
+    createdAt: (row.created_at as Date).toISOString(),
+  };
+}
+
+export async function listSpaceApiTokens(
+  spaceId: string
+): Promise<Omit<SpaceApiToken, "spaceId" | "createdBy">[]> {
+  const { rows } = await sql.query(
+    `SELECT id, prefix, label, created_at, last_used_at
+     FROM ai_todo_space_api_tokens
+     WHERE space_id = $1
+     ORDER BY created_at DESC`,
+    [spaceId]
+  );
+  return rows.map((row) => ({
+    id: row.id as string,
+    prefix: row.prefix as string,
+    label: row.label as string,
+    createdAt: (row.created_at as Date).toISOString(),
+    lastUsedAt: row.last_used_at ? (row.last_used_at as Date).toISOString() : null,
+  }));
+}
+
+export async function deleteSpaceApiToken(tokenId: string, spaceId: string): Promise<void> {
+  await sql.query(`DELETE FROM ai_todo_space_api_tokens WHERE id = $1 AND space_id = $2`, [
+    tokenId,
+    spaceId,
+  ]);
+}
+
+export async function verifySpaceApiToken(
+  rawToken: string
+): Promise<{ tokenId: string; spaceId: string; label: string } | null> {
+  const tokenHash = hashToken(rawToken);
+  const { rows } = await sql.query(
+    `UPDATE ai_todo_space_api_tokens
+     SET last_used_at = NOW()
+     WHERE token_hash = $1
+     RETURNING id, space_id, label`,
+    [tokenHash]
+  );
+  if (!rows[0]) return null;
+  return {
+    tokenId: rows[0].id as string,
+    spaceId: rows[0].space_id as string,
+    label: rows[0].label as string,
+  };
 }
