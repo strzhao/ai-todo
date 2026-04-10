@@ -1,0 +1,35 @@
+components/SpaceSettings.tsx
+  83f49f85641d6ce8 52-66,193,195-253,468-500,503-602
+lib/types.ts
+  83f49f85641d6ce8 256-275
+app/api/spaces/[id]/tokens/route.ts
+  83f49f85641d6ce8 1-2,4-75
+app/api/manifest/route.ts
+  83f49f85641d6ce8 567-572,574-598,600-614
+lib/auth.ts
+  83f49f85641d6ce8 7,76-87
+app/api/spaces/[id]/notes/route.ts
+  83f49f85641d6ce8 1-63
+lib/db.ts
+  83f49f85641d6ce8 2-10,12,29,300-315,1790-1844,1846-1866
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "950396b3aa9d619656648747558fa5c4ed5d5652",
+  "prompts": {
+    "83f49f85641d6ce8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "17f95111-960c-43eb-ba09-ed5d0824616d",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "stringzhao",
+      "messages": [],
+      "total_additions": 517,
+      "total_deletions": 2,
+      "accepted_lines": 527,
+      "overriden_lines": 7
+    }
+  }
+}
