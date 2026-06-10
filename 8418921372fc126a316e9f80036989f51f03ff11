@@ -1,0 +1,55 @@
+app/api/spaces/[id]/members/[uid]/route.ts
+  d56d9ad3655bf30a 3-10,25,49-72
+components/SpaceSettings.tsx
+  d56d9ad3655bf30a 444-458
+__tests__/api/spaces/members-role.acceptance.test.ts
+  d56d9ad3655bf30a 1-450
+lib/db.ts
+  d56d9ad3655bf30a 417,1205
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "8418921372fc126a316e9f80036989f51f03ff11",
+  "prompts": {
+    "d56d9ad3655bf30a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "52062a50-4321-4cde-ac38-e4b4a1a78f14",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "stringzhao",
+      "messages": [],
+      "total_additions": 817,
+      "total_deletions": 325,
+      "accepted_lines": 500,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "__tests__/api/spaces/members-role.acceptance.test.ts": {
+          "additions": 681,
+          "deletions": 231,
+          "accepted_lines": 450
+        },
+        "lib/db.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "__tests__/api/spaces/debug-members.test.ts": {
+          "additions": 83,
+          "deletions": 83
+        },
+        "components/SpaceSettings.tsx": {
+          "additions": 15,
+          "deletions": 3,
+          "accepted_lines": 15
+        },
+        "app/api/spaces/[id]/members/[uid]/route.ts": {
+          "additions": 36,
+          "deletions": 6,
+          "accepted_lines": 33
+        }
+      }
+    }
+  }
+}
