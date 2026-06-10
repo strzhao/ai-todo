@@ -414,7 +414,7 @@ function rowToMember(row: Record<string, unknown>): TaskMember {
     email: row.email as string,
     display_name: (row.display_name as string) || undefined,
     nickname: (row.nickname as string) || undefined,
-    role: row.role as "owner" | "member",
+    role: row.role as "owner" | "admin" | "member",
     status: row.status as "active" | "pending",
     joined_at: (row.joined_at as Date).toISOString(),
   };
@@ -1202,7 +1202,7 @@ export async function addTaskMember(
   taskId: string,
   userId: string,
   email: string,
-  role: "owner" | "member" = "member",
+  role: "owner" | "admin" | "member" = "member",
   status: "active" | "pending" = "active"
 ): Promise<TaskMember> {
   const { rows } = await sql.query(

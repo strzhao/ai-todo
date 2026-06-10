@@ -1,6 +1,13 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { updateTaskMember, removeTaskMember, getTaskMemberRecord, getTaskById } from "@/lib/db";
+import {
+  updateTaskMember,
+  removeTaskMember,
+  getTaskMemberRecord,
+  getTaskById,
+  addTaskMember,
+} from "@/lib/db";
+import { getSpaceMember } from "@/lib/spaces";
 import { createRouteTimer } from "@/lib/route-timing";
 import { fireNotification } from "@/lib/notifications";
 
@@ -15,7 +22,7 @@ export async function PATCH(
   if (!user) return rt.json({ error: "Unauthorized" }, { status: 401 });
   const { id, uid } = await params;
 
-  const body = await req.json() as { status?: string; display_name?: string; role?: string };
+  const body = (await req.json()) as { status?: string; display_name?: string; role?: string };
 
   const isSelf = uid === user.id;
   const updatingOthers = !isSelf || body.status !== undefined || body.role !== undefined;
@@ -39,7 +46,30 @@ export async function PATCH(
   }
 
   const memberBefore = await rt.track("db_query", async () => getTaskMemberRecord(id, uid));
-  const member = await rt.track("db_query", async () => updateTaskMember(id, uid, body));
+  let member = memberBefore
+    ? await rt.track("db_query", async () => updateTaskMember(id, uid, body))
+    : null;
+
+  if (!member) {
+    const virtualMember = await rt.track("db_query", async () => getSpaceMember(id, uid));
+    if (virtualMember && virtualMember.id.startsWith("org-virtual-") && body.role) {
+      member = await rt.track("db_query", async () =>
+        addTaskMember(
+          id,
+          uid,
+          virtualMember.email,
+          body.role as "owner" | "admin" | "member",
+          "active"
+        )
+      );
+      if (body.display_name !== undefined) {
+        member = await rt.track("db_query", async () =>
+          updateTaskMember(id, uid, { display_name: body.display_name })
+        );
+      }
+    }
+  }
+
   if (!member) return rt.json({ error: "Not found" }, { status: 404 });
 
   // Notify member when approved (pending → active)

@@ -441,9 +441,21 @@ export function SpaceSettings({
                     <div className="flex-1 min-w-0">
                       <p className="text-sm truncate">{getDisplayLabel(m.email, m)}</p>
                     </div>
-                    <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                      组织成员
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {isOwner && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-xs h-7"
+                          onClick={() => toggleAdmin(m.user_id, "member")}
+                        >
+                          设为管理员
+                        </Button>
+                      )}
+                      <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                        组织成员
+                      </span>
+                    </div>
                   </div>
                 ))}
             </>
