@@ -1,0 +1,68 @@
+lib/changelog.ts
+  1567833d6d4747e4 10-18
+__tests__/api/spaces/admin-space-guard.acceptance.test.ts
+  1567833d6d4747e4 1-120
+CLAUDE.md
+  1567833d6d4747e4 321-322,325-326,328-329,332
+__tests__/milestone.acceptance.test.ts
+  1567833d6d4747e4 143,145
+lib/task-permissions.ts
+  1567833d6d4747e4 26-27,29-33,35-40,119-121
+__tests__/task-permissions.acceptance.test.ts
+  1567833d6d4747e4 88,90-94,96-101,103-108,110-115,117-122,124,132-136,138-143,145-150,152-157,159-164,166-171,173,197-198,215-217,261-264
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "1caa0a52e03a4f84777f495134236a81b99d6db5",
+  "prompts": {
+    "1567833d6d4747e4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cbdb21db-b061-4963-b23f-83ff49c907ad",
+        "model": "glm-5.2"
+      },
+      "human_author": "stringzhao",
+      "messages": [],
+      "total_additions": 217,
+      "total_deletions": 42,
+      "accepted_lines": 231,
+      "overriden_lines": 11,
+      "per_file_stats": {
+        "__tests__/api/spaces/admin-space-guard.acceptance.test.ts": {
+          "additions": 121,
+          "deletions": 1,
+          "accepted_lines": 120
+        },
+        "__tests__/task-permissions.acceptance.test.ts": {
+          "additions": 21,
+          "deletions": 22,
+          "accepted_lines": 76,
+          "overriden_lines": 11
+        },
+        "lib/changelog.ts": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "lib/task-permissions.ts": {
+          "additions": 16,
+          "deletions": 12,
+          "accepted_lines": 16
+        },
+        "CLAUDE.md": {
+          "additions": 7,
+          "deletions": 5,
+          "accepted_lines": 7
+        },
+        "__tests__/milestone.acceptance.test.ts": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "verify-perm.mjs": {
+          "additions": 40
+        }
+      }
+    }
+  }
+}
