@@ -1,0 +1,36 @@
+.autopilot/index.md
+  1567833d6d4747e4 4
+.autopilot/patterns.md
+  1567833d6d4747e4 17-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "c87a85d21b627e3b34fb4f3a835ed414aafb26a4",
+  "prompts": {
+    "1567833d6d4747e4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cbdb21db-b061-4963-b23f-83ff49c907ad",
+        "model": "glm-5.2"
+      },
+      "human_author": "stringzhao",
+      "messages": [],
+      "total_additions": 30,
+      "total_deletions": 0,
+      "accepted_lines": 29,
+      "overriden_lines": 1,
+      "per_file_stats": {
+        ".autopilot/index.md": {
+          "additions": 2,
+          "accepted_lines": 1,
+          "overriden_lines": 1
+        },
+        ".autopilot/patterns.md": {
+          "additions": 28,
+          "accepted_lines": 28
+        }
+      }
+    }
+  }
+}
