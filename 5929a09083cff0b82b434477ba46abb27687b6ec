@@ -1,0 +1,29 @@
+.gitignore
+  56c7c3875197aa7e 43-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "5929a09083cff0b82b434477ba46abb27687b6ec",
+  "prompts": {
+    "56c7c3875197aa7e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "636123e6-5cf4-4e25-9d06-f436ba901d3d",
+        "model": "deepseek-v4-pro"
+      },
+      "human_author": "stringzhao",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 0,
+      "accepted_lines": 3,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        ".gitignore": {
+          "additions": 3,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
