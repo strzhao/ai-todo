@@ -318,16 +318,18 @@ public/
 
 空间任务基于角色的操作权限（`lib/task-permissions.ts`），个人任务仅 creator 可操作：
 
+> **Admin 角色语义（方案 B）**：space_admin 对齐 space_owner 的任务级权限，拥有除"转让空间/解散空间"外的全部 owner 任务权限。空间层面的转让/解散走 `requireSpaceOwner`（`lib/spaces.ts`），仅 owner 可操作，admin 仍被拒。
+
 | 操作                  | 创建者 | 经办人 | Owner | Admin | Member |
 | --------------------- | ------ | ------ | ----- | ----- | ------ |
-| 改标题/优先级/类型    | ✅     | -      | ✅    | -     | -      |
-| 改描述/日期/标签/进度 | ✅     | ✅     | ✅    | -     | -      |
+| 改标题/优先级/类型    | ✅     | -      | ✅    | ✅    | -      |
+| 改描述/日期/标签/进度 | ✅     | ✅     | ✅    | ✅    | -      |
 | 改经办人              | ✅     | -      | ✅    | ✅    | -      |
-| 完成/重开             | ✅     | ✅     | ✅    | -     | -      |
-| 移动/删除             | ✅     | -      | ✅    | -     | -      |
+| 完成/重开             | ✅     | ✅     | ✅    | ✅    | -      |
+| 移动/删除             | ✅     | -      | ✅    | ✅    | -      |
 | 添加日志              | ✅     | ✅     | ✅    | ✅    | ✅     |
 
-权限校验发生在 `db.ts` 的 `updateTask/deleteTask/completeTask/reopenTask` 中，违规抛 `TaskPermissionError`，API route 返回 403。
+权限校验发生在 `db.ts` 的 `updateTask/deleteTask/completeTask/reopenTask` 中，违规抛 `TaskPermissionError`，API route 返回 403。空间转让/解散校验在 `lib/spaces.ts` 的 `requireSpaceOwner`，admin 不放行。
 
 ## 色彩体系
 

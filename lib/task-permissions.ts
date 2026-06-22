@@ -1,10 +1,19 @@
 export type TaskRole = "creator" | "assignee" | "space_owner" | "space_admin" | "space_member";
 
 export type TaskOperation =
-  | "update_title" | "update_description" | "update_priority"
-  | "update_dates" | "update_tags" | "update_assignee"
-  | "update_progress" | "update_type" | "move"
-  | "complete" | "reopen" | "delete" | "add_log";
+  | "update_title"
+  | "update_description"
+  | "update_priority"
+  | "update_dates"
+  | "update_tags"
+  | "update_assignee"
+  | "update_progress"
+  | "update_type"
+  | "move"
+  | "complete"
+  | "reopen"
+  | "delete"
+  | "add_log";
 
 export class TaskPermissionError extends Error {
   constructor(message: string) {
@@ -14,19 +23,21 @@ export class TaskPermissionError extends Error {
 }
 
 // 权限矩阵（数据驱动）
+// 方案 B：space_admin 对齐 space_owner 的任务级权限（除空间转让/解散外）。
+// 空间层面的转让/解散走 requireSpaceOwner（lib/spaces.ts），仅校验 owner，与任务矩阵解耦。
 const PERMISSION_MATRIX: Record<TaskOperation, TaskRole[]> = {
-  update_title: ["creator", "space_owner"],
-  update_description: ["creator", "assignee", "space_owner"],
-  update_priority: ["creator", "space_owner"],
-  update_dates: ["creator", "assignee", "space_owner"],
-  update_tags: ["creator", "assignee", "space_owner"],
+  update_title: ["creator", "space_owner", "space_admin"],
+  update_description: ["creator", "assignee", "space_owner", "space_admin"],
+  update_priority: ["creator", "space_owner", "space_admin"],
+  update_dates: ["creator", "assignee", "space_owner", "space_admin"],
+  update_tags: ["creator", "assignee", "space_owner", "space_admin"],
   update_assignee: ["creator", "space_owner", "space_admin"],
-  update_progress: ["creator", "assignee", "space_owner"],
-  update_type: ["creator", "space_owner"],
-  move: ["creator", "space_owner"],
-  complete: ["creator", "assignee", "space_owner"],
-  reopen: ["creator", "assignee", "space_owner"],
-  delete: ["creator", "space_owner"],
+  update_progress: ["creator", "assignee", "space_owner", "space_admin"],
+  update_type: ["creator", "space_owner", "space_admin"],
+  move: ["creator", "space_owner", "space_admin"],
+  complete: ["creator", "assignee", "space_owner", "space_admin"],
+  reopen: ["creator", "assignee", "space_owner", "space_admin"],
+  delete: ["creator", "space_owner", "space_admin"],
   add_log: ["creator", "assignee", "space_owner", "space_admin", "space_member"],
 };
 
@@ -34,7 +45,7 @@ const PERMISSION_MATRIX: Record<TaskOperation, TaskRole[]> = {
 export function getTaskRoles(
   task: { user_id: string; assignee_id?: string; space_id?: string },
   userId: string,
-  memberRole?: string  // from ai_todo_task_members.role
+  memberRole?: string // from ai_todo_task_members.role
 ): TaskRole[] {
   const roles: TaskRole[] = [];
   if (task.user_id === userId) roles.push("creator");
@@ -105,7 +116,9 @@ export function buildPermissionErrorMessage(disallowedFields: string[]): string 
     if (op) ops.add(op);
   }
   const labels = [...ops].map((op) => OPERATION_LABELS[op]);
-  return `无权${labels.join("、")}，只有任务创建者或空间所有者可以操作`;
+  // 按操作动态拼接允许的角色（方案 B 后 admin 对齐 owner，提示需准确）
+  const hints = [...ops].map((op) => getPermissionHint(op));
+  return `无权${labels.join("、")}，只有${[...new Set(hints)].join("、")}可以操作`;
 }
 
 export function buildOperationErrorMessage(operation: TaskOperation): string {

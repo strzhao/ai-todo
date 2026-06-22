@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.47.0",
+    date: "2026-06-22",
+    title: "空间管理员对齐 owner 任务权限",
+    items: [
+      "空间 admin 角色现在可以完成/重开/删除/移动任务，以及修改标题、描述、优先级、日期、标签、进度、类型等全部任务字段",
+      "权限对齐 space_owner（除空间转让/解散外），解决空间管理员无法关闭任务的问题",
+      "空间转让与解散仍仅限 owner，admin 不放行",
+    ],
+  },
+  {
     version: "1.46.0",
     date: "2026-04-01",
     title: "组织成员自动出现在空间经办人列表",

@@ -37,10 +37,7 @@ describe("milestone 类型验证", () => {
 
 describe("parseItem — milestone 字段提取", () => {
   it("正常提取 milestone 字段", () => {
-    const result = parseItem(
-      { title: "发布 v1.0", milestone: "v1.0 发布" },
-      "fallback"
-    );
+    const result = parseItem({ title: "发布 v1.0", milestone: "v1.0 发布" }, "fallback");
     expect(result.milestone).toBe("v1.0 发布");
   });
 
@@ -56,27 +53,18 @@ describe("parseItem — milestone 字段提取", () => {
 
   it("milestone 超过 100 字符时截断到 100 字符", () => {
     const longMilestone = "A".repeat(150);
-    const result = parseItem(
-      { title: "任务", milestone: longMilestone },
-      "fallback"
-    );
+    const result = parseItem({ title: "任务", milestone: longMilestone }, "fallback");
     expect(result.milestone).toBe("A".repeat(100));
   });
 
   it("milestone 恰好 100 字符时保留", () => {
     const exactMilestone = "B".repeat(100);
-    const result = parseItem(
-      { title: "任务", milestone: exactMilestone },
-      "fallback"
-    );
+    const result = parseItem({ title: "任务", milestone: exactMilestone }, "fallback");
     expect(result.milestone).toBe(exactMilestone);
   });
 
   it("milestone 为非字符串类型时忽略", () => {
-    const result = parseItem(
-      { title: "任务", milestone: 123 },
-      "fallback"
-    );
+    const result = parseItem({ title: "任务", milestone: 123 }, "fallback");
     expect(result.milestone).toBeUndefined();
   });
 });
@@ -119,10 +107,7 @@ describe("parseActions — milestone 变更", () => {
       actions: [
         {
           type: "create",
-          tasks: [
-            { title: "里程碑任务", milestone: "Q1 交付" },
-            { title: "普通任务" },
-          ],
+          tasks: [{ title: "里程碑任务", milestone: "Q1 交付" }, { title: "普通任务" }],
         },
       ],
     };
@@ -155,9 +140,9 @@ describe("milestone 权限", () => {
     expect(disallowed).toContain("milestone");
   });
 
-  it("space_admin 不能修改 milestone（与 title 相同权限）", () => {
+  it("space_admin 可修改 milestone（方案 B：与 title 相同权限，对齐 owner）", () => {
     const disallowed = getDisallowedFields(["space_admin"], ["milestone"]);
-    expect(disallowed).toContain("milestone");
+    expect(disallowed).toEqual([]);
   });
 
   it("milestone 和 title 权限一致", () => {

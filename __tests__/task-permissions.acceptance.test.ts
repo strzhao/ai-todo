@@ -85,21 +85,99 @@ describe("getTaskRoles", () => {
 // ── checkTaskPermission：完整权限矩阵 ──────────────────────────────────────────
 
 describe("checkTaskPermission — 完整矩阵", () => {
-  // 设计文档定义的权限矩阵
+  // 设计文档定义的权限矩阵（方案 B：admin 对齐 owner 任务权限）
   const matrix: Record<TaskOperation, Record<TaskRole, boolean>> = {
-    update_title:       { creator: true,  assignee: false, space_owner: true,  space_admin: false, space_member: false },
-    update_description: { creator: true,  assignee: true,  space_owner: true,  space_admin: false, space_member: false },
-    update_priority:    { creator: true,  assignee: false, space_owner: true,  space_admin: false, space_member: false },
-    update_dates:       { creator: true,  assignee: true,  space_owner: true,  space_admin: false, space_member: false },
-    update_tags:        { creator: true,  assignee: true,  space_owner: true,  space_admin: false, space_member: false },
-    update_assignee:    { creator: true,  assignee: false, space_owner: true,  space_admin: true,  space_member: false },
-    update_progress:    { creator: true,  assignee: true,  space_owner: true,  space_admin: false, space_member: false },
-    update_type:        { creator: true,  assignee: false, space_owner: true,  space_admin: false, space_member: false },
-    move:               { creator: true,  assignee: false, space_owner: true,  space_admin: false, space_member: false },
-    complete:           { creator: true,  assignee: true,  space_owner: true,  space_admin: false, space_member: false },
-    reopen:             { creator: true,  assignee: true,  space_owner: true,  space_admin: false, space_member: false },
-    delete:             { creator: true,  assignee: false, space_owner: true,  space_admin: false, space_member: false },
-    add_log:            { creator: true,  assignee: true,  space_owner: true,  space_admin: true,  space_member: true  },
+    update_title: {
+      creator: true,
+      assignee: false,
+      space_owner: true,
+      space_admin: true,
+      space_member: false,
+    },
+    update_description: {
+      creator: true,
+      assignee: true,
+      space_owner: true,
+      space_admin: true,
+      space_member: false,
+    },
+    update_priority: {
+      creator: true,
+      assignee: false,
+      space_owner: true,
+      space_admin: true,
+      space_member: false,
+    },
+    update_dates: {
+      creator: true,
+      assignee: true,
+      space_owner: true,
+      space_admin: true,
+      space_member: false,
+    },
+    update_tags: {
+      creator: true,
+      assignee: true,
+      space_owner: true,
+      space_admin: true,
+      space_member: false,
+    },
+    update_assignee: {
+      creator: true,
+      assignee: false,
+      space_owner: true,
+      space_admin: true,
+      space_member: false,
+    },
+    update_progress: {
+      creator: true,
+      assignee: true,
+      space_owner: true,
+      space_admin: true,
+      space_member: false,
+    },
+    update_type: {
+      creator: true,
+      assignee: false,
+      space_owner: true,
+      space_admin: true,
+      space_member: false,
+    },
+    move: {
+      creator: true,
+      assignee: false,
+      space_owner: true,
+      space_admin: true,
+      space_member: false,
+    },
+    complete: {
+      creator: true,
+      assignee: true,
+      space_owner: true,
+      space_admin: true,
+      space_member: false,
+    },
+    reopen: {
+      creator: true,
+      assignee: true,
+      space_owner: true,
+      space_admin: true,
+      space_member: false,
+    },
+    delete: {
+      creator: true,
+      assignee: false,
+      space_owner: true,
+      space_admin: true,
+      space_member: false,
+    },
+    add_log: {
+      creator: true,
+      assignee: true,
+      space_owner: true,
+      space_admin: true,
+      space_member: true,
+    },
   };
 
   const operations = Object.keys(matrix) as TaskOperation[];
@@ -116,21 +194,27 @@ describe("checkTaskPermission — 完整矩阵", () => {
 });
 
 describe("checkTaskPermission — 边界场景", () => {
-  it("admin 只能改经办人和添加日志", () => {
-    const adminOnlyOps: TaskOperation[] = ["update_assignee", "add_log"];
+  it("admin 对齐 owner：能做所有任务操作（方案 B）", () => {
+    // 方案 B：space_admin 拥有除空间转让/解散外的全部 owner 任务权限
     const allOps: TaskOperation[] = [
-      "update_title", "update_description", "update_priority",
-      "update_dates", "update_tags", "update_assignee",
-      "update_progress", "update_type", "move",
-      "complete", "reopen", "delete", "add_log",
+      "update_title",
+      "update_description",
+      "update_priority",
+      "update_dates",
+      "update_tags",
+      "update_assignee",
+      "update_progress",
+      "update_type",
+      "move",
+      "complete",
+      "reopen",
+      "delete",
+      "add_log",
     ];
     for (const op of allOps) {
-      const result = checkTaskPermission(["space_admin"], op);
-      if (adminOnlyOps.includes(op)) {
-        expect(result).toBe(true);
-      } else {
-        expect(result).toBe(false);
-      }
+      // admin 对每个任务操作都应被允许，且与 owner 结果一致
+      expect(checkTaskPermission(["space_admin"], op)).toBe(true);
+      expect(checkTaskPermission(["space_owner"], op)).toBe(true);
     }
   });
 
@@ -142,10 +226,19 @@ describe("checkTaskPermission — 边界场景", () => {
 
   it("普通 member 只能添加日志", () => {
     const allOps: TaskOperation[] = [
-      "update_title", "update_description", "update_priority",
-      "update_dates", "update_tags", "update_assignee",
-      "update_progress", "update_type", "move",
-      "complete", "reopen", "delete", "add_log",
+      "update_title",
+      "update_description",
+      "update_priority",
+      "update_dates",
+      "update_tags",
+      "update_assignee",
+      "update_progress",
+      "update_type",
+      "move",
+      "complete",
+      "reopen",
+      "delete",
+      "add_log",
     ];
     for (const op of allOps) {
       const result = checkTaskPermission(["space_member"], op);
@@ -165,8 +258,10 @@ describe("checkTaskPermission — 边界场景", () => {
   it("多角色叠加扩展权限", () => {
     // assignee 不能删除，但 creator 可以 → assignee+creator 应该可以
     expect(checkTaskPermission(["assignee", "creator"], "delete")).toBe(true);
-    // space_admin 不能完成，但 assignee 可以
-    expect(checkTaskPermission(["space_admin", "assignee"], "complete")).toBe(true);
+    // space_member 不能完成，但叠加 space_admin 可以
+    expect(checkTaskPermission(["space_member", "space_admin"], "complete")).toBe(true);
+    // space_member 单独不能完成
+    expect(checkTaskPermission(["space_member"], "complete")).toBe(false);
   });
 });
 
@@ -174,7 +269,17 @@ describe("checkTaskPermission — 边界场景", () => {
 
 describe("getDisallowedFields", () => {
   it("创建者修改任意字段 → 空数组", () => {
-    const allFields = ["title", "description", "priority", "due_date", "tags", "assignee_email", "progress", "type", "parent_id"];
+    const allFields = [
+      "title",
+      "description",
+      "priority",
+      "due_date",
+      "tags",
+      "assignee_email",
+      "progress",
+      "type",
+      "parent_id",
+    ];
     expect(getDisallowedFields(["creator"], allFields)).toEqual([]);
   });
 
@@ -218,7 +323,19 @@ describe("getDisallowedFields", () => {
   });
 
   it("空间 owner 修改所有字段 → 空数组", () => {
-    const allFields = ["title", "description", "priority", "due_date", "start_date", "end_date", "tags", "assignee_email", "progress", "type", "parent_id"];
+    const allFields = [
+      "title",
+      "description",
+      "priority",
+      "due_date",
+      "start_date",
+      "end_date",
+      "tags",
+      "assignee_email",
+      "progress",
+      "type",
+      "parent_id",
+    ];
     expect(getDisallowedFields(["space_owner"], allFields)).toEqual([]);
   });
 
