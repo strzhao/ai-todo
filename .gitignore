@@ -40,6 +40,9 @@ yarn-error.log*
 # claude code
 .claude/
 
+# autopilot
+.autopilot/runtime/
+
 # vercel
 .vercel
 
