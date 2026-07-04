@@ -42,3 +42,33 @@ proxy.ts（中间件层）和 getUserFromRequest（路由层）各自独立做 B
 - 用真实 DB 查询 `ai_todo_task_members`（直接成员）和 `ai_todo_org_members`（组织成员）两张表的 role
 - 复现 `getTaskForUser` 的 `_member_role` SQL，确认 COALESCE 命中哪条路径
 - 用户口中的"管理员"可能是空间 admin、组织 admin 或 owner，三者权限不同，以数据为准
+
+## 跨服务调用统一走 BFF cookie 透传
+
+<!-- tags: bff, cookie, cross-service, service-key, feedback, invitation -->
+
+ai-todo 调用 user.stringzhao.life（base-account）的 API（反馈、邀请码等）时，前端不直连，统一走服务端 BFF 代理：本域登录校验 + serviceKey 注入 + 浏览器 cookie 透传 + 4xx 透传/5xx 502 兜底。这隐藏了 serviceKey、绕开 CORS、固定区域、统一错误格式。
+
+**教训**：cookie 透传依赖上游 cookie 的 domain 配置（跨子域生效）；serviceKey 由环境变量注入，默认值需与上游注册一致（不是任意命名）。
+
+**检查清单**：
+
+- 新增跨 user.stringzhao.life 调用 → 复用 `app/api/invitation/codes/route.ts` / `app/api/feedback/route.ts` + `lib/feedback.ts` 模式
+- 透传 cookie：`fetch(AUTH_ISSUER/api/..., { headers: { cookie: req.headers.get("cookie") ?? "" } })`
+- serviceKey 注入：`process.env.<X>_SERVICE_KEY ?? "svc-ai-todo"`（base-account `ensureUniqueServiceKey` 强制 `svc-` 前缀，serviceKey = `svc-{hostname 第一段}`，如 ai-todo.stringzhao.life → svc-ai-todo）（核对锚点：2026-07-04 base-account `apps/auth-service/src/server/auth/service-registry.ts`）
+- 错误处理：上游 4xx 透传状态码 + 错误体映射（上游 `{error:<code>,message:<text>}` → BFF `{error:<message/fallback>,code:<code>}`）；5xx/超时统一 502 兜底，不泄露上游内部细节
+
+## 契约文档与实际偏差时蓝队读上游源码验证
+
+<!-- tags: contract, verification, upstream, base-account, red-team -->
+
+接入外部服务时，设计文档记录的契约（HTTP 状态码、错误响应格式）可能与上游实际行为不符。蓝队实现时若能访问上游源码，应先读源码验证契约，发现偏差走 contract-change-request 更新设计文档，而不是悄悄按设计文档实现——红队基于设计文档写测试，契约偏差会导致红蓝测试不一致。
+
+**教训**：autopilot 红蓝对抗中，契约是设计文档与实际行为的共识；设计文档错误时，红队测试会忠实地编码错误，蓝队读源码修正实现 → 红蓝冲突 → auto-fix。正确处理是更正设计文档契约 + 同步红队测试的契约性断言（状态码期望值、字段名），而非放宽逻辑断言。
+
+**检查清单**：
+
+- 蓝队读上游源码发现契约偏差 → 触发 contract-change-request（contract-protocol.md §6），回 design 更新契约规约，而非悄悄改实现
+- 设计文档的「成功状态码」与「错误响应字段名」是高发偏差点（如 200 vs 201、`{error,message}` vs `{error,code}`）
+- 纯函数返回形状（字段名）若设计文档未规定，红蓝各自假设会冲突 → 设计文档应补充明确，或蓝队调整对齐红队（铁律：不改红队契约断言）
+- Evidence: 反馈接入设计写"成功 200 + `{error:text,code:code}`"，实际 base-account 返回 201 + `{error:code,message:text}`；蓝队读 `apps/auth-service/src/app/api/feedback/route.ts` 修正，红队基于旧契约失败，auto-fix 改蓝队对齐（核对锚点：2026-07-04 base-account 源码）
