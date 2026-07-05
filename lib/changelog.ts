@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.48.0",
+    date: "2026-07-04",
+    title: "接入统一数据分析（PV/UV + 登录转化）",
+    items: [
+      "接入自托管 Umami + @stringzhao/analytics-sdk，根布局注入 <Analytics/> 自动采集全站 PV/UV",
+      "登录成功路径（/api/auth/session/finalize）埋点 login_success 转化事件",
+      "未配置 env 时组件渲染 null、服务端埋点不抛错，应用正常运行（容错契约）",
+    ],
+  },
+  {
     version: "1.47.0",
     date: "2026-06-22",
     title: "空间管理员对齐 owner 任务权限",

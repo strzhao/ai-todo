@@ -128,6 +128,10 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY=...                    # Web Push VAPID 公钥
 VAPID_PRIVATE_KEY=...                              # Web Push VAPID 私钥
 API_PROXY_URL=http://43.143.124.222:18082          # 本地 API 代理（frp 隧道）
 API_PROXY_TOKEN=...                                # 代理认证 token
+NEXT_PUBLIC_UMAMI_HOST=...                         # Umami 根域名（浏览器端注入脚本）
+NEXT_PUBLIC_UMAMI_WEBSITE_ID=...                   # Umami Website ID（客户端 PV/UV）
+UMAMI_HOST=...                                     # Umami 含 /api/send 路径（服务端 trackServerEvent）
+UMAMI_WEBSITE_ID=...                               # Umami Website ID（服务端埋点）
 ```
 
 > **注意**: Vercel 上设置环境变量时用 `printf '%s'` 而非 `echo`，避免尾部换行导致 JWT 校验失败。

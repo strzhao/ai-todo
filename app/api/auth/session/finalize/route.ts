@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { trackServerEvent } from "@stringzhao/analytics-sdk";
 import { getUserFromCookie } from "@/lib/auth";
 import {
   applyGatewaySessionCookie,
@@ -68,8 +69,8 @@ export async function POST(request: Request): Promise<Response> {
     return noStore(
       NextResponse.json(
         { ok: false, error: "missing_access_token", message: "missing_access_token_cookie" },
-        { status: 401 },
-      ),
+        { status: 401 }
+      )
     );
   }
 
@@ -77,11 +78,14 @@ export async function POST(request: Request): Promise<Response> {
   if (!user) {
     console.warn("[finalize] invalid access_token, could not resolve user");
     return noStore(
-      NextResponse.json({ ok: false, error: "invalid_access_token" }, { status: 401 }),
+      NextResponse.json({ ok: false, error: "invalid_access_token" }, { status: 401 })
     );
   }
 
   console.log("[finalize] resolved user:", user.email);
+
+  // 登录成功转化埋点：trackServerEvent 容错（永不 reject），即便 Umami 不可达也不阻塞登录
+  await trackServerEvent("login_success", { source: "oauth_callback" });
 
   const response = NextResponse.json(
     {
@@ -89,7 +93,7 @@ export async function POST(request: Request): Promise<Response> {
       next: authState.next,
       user: { id: user.id, email: user.email },
     },
-    { status: 200 },
+    { status: 200 }
   );
   clearAuthStateCookie(response);
   applyGatewaySessionCookie(response, createGatewaySessionCookieValue(user.id, user.email));
