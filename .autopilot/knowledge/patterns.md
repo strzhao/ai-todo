@@ -72,3 +72,17 @@ ai-todo 调用 user.stringzhao.life（base-account）的 API（反馈、邀请�
 - 设计文档的「成功状态码」与「错误响应字段名」是高发偏差点（如 200 vs 201、`{error,message}` vs `{error,code}`）
 - 纯函数返回形状（字段名）若设计文档未规定，红蓝各自假设会冲突 → 设计文档应补充明确，或蓝队调整对齐红队（铁律：不改红队契约断言）
 - Evidence: 反馈接入设计写"成功 200 + `{error:text,code:code}`"，实际 base-account 返回 201 + `{error:code,message:text}`；蓝队读 `apps/auth-service/src/app/api/feedback/route.ts` 修正，红队基于旧契约失败，auto-fix 改蓝队对齐（核对锚点：2026-07-04 base-account 源码）
+
+## Playwright 验证服务端外部 HTTP 上报
+
+<!-- tags: playwright, e2e, analytics, trackServerEvent, umami, server-side -->
+
+服务端代码（如 `trackServerEvent` 委托 `@umami/node`）从 Node 进程直接 POST 外部端点（Umami `/api/send`），不经过浏览器。Playwright `page.on("response")` 只截获浏览器发的请求，监听不到服务端上报，e2e 会误判"未上报"。
+
+**教训**：接入 analytics 时 e2e 监听 umami `/api/send`，PV（浏览器发）能捕获，但 `login_success`（服务端发）超时失败。根因不是实现 bug，是测试观测点错位。
+
+**检查清单**：
+
+- 服务端上报用**临时 route 端 fetch 同一外部端点取 status** 返回（SDK 容错吞响应，故单独 fetch），Playwright 访问 route 断言返回 status（200 = 接受）；浏览器上报（PV / script.js 加载）仍用 `page.on("response")` 监听
+- 临时 route 命名**不能以 `_` 开头**（Next.js App Router 把 `_foo` 目录当私有目录，不注册路由，curl 返回 404）；用 `analytics-verify-test` 等普通名，验证完即删
+- 真实数据落库的最强证据是**外部端点返回 200**（Umami 校验 `website_id` 存在才接受），无需登录后台截图；本地用 mock Umami 闭环验证接入代码 + 配真实 website_id 跑 Playwright 验证落库

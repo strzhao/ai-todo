@@ -5,3 +5,5 @@
 - [权限诊断先验证 \_member_role](patterns.md) — 诊断"管理员无权操作"先查直接成员 vs 组织虚拟成员两条路径，以 DB 真实数据为准
 - [BFF cookie 透传](patterns.md) — 跨 user.stringzhao.life 调用统一走服务端代理（cookie 透传 + serviceKey 注入 + 4xx 透传/5xx 502），serviceKey 强制 svc- 前缀
 - [契约偏差读上游源码验证](patterns.md) — 设计文档契约可能与上游实际不符（200/201、错误格式），蓝队读源码验证 + contract-change-request，否则红蓝冲突
+- [changelog 版本号体系](decisions.md) — changelog 1.x 产品版本 vs package.json 0.x 工程版本解耦，新条目必须单调递增避免误触红点
+- [Playwright 服务端上报验证](patterns.md) — 服务端 trackServerEvent 不经浏览器，用临时 route fetch status 验证；route 勿以 \_ 开头
