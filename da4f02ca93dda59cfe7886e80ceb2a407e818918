@@ -1,0 +1,1730 @@
+apps/web/app/api/spaces/[id]/tokens/route.ts
+  504239503d4f85ab 1-75
+apps/web/__tests__/task-detail-drawer-ui.test.tsx
+  504239503d4f85ab 1-107
+apps/web/components/PersonalDailySummary.tsx
+  504239503d4f85ab 1-302
+apps/web/__tests__/use-voice-input.acceptance.test.ts
+  504239503d4f85ab 1-192
+package.json
+  504239503d4f85ab 2,5-8,10-20,23-24,26-27
+apps/web/app/join/org/[code]/page.tsx
+  504239503d4f85ab 1-138
+apps/web/components/AccountContent.tsx
+  504239503d4f85ab 1-400
+apps/web/__tests__/voice-note-creation.acceptance.test.ts
+  504239503d4f85ab 1-195
+apps/web/proxy.ts
+  504239503d4f85ab 1-157
+apps/web/__tests__/AssigneeBadge.test.tsx
+  504239503d4f85ab 1-37
+apps/web/lib/note-utils.ts
+  504239503d4f85ab 1-41
+apps/web/components/NotificationItem.tsx
+  504239503d4f85ab 1-98
+apps/web/__tests__/changelog.test.ts
+  504239503d4f85ab 1-26
+apps/web/app/api/orgs/[id]/members/[uid]/route.ts
+  504239503d4f85ab 1-108
+apps/web/__tests__/completed-tasks-pagination.acceptance.test.ts
+  504239503d4f85ab 1-343
+apps/web/components/TaskDetail.tsx
+  504239503d4f85ab 1-922
+apps/web/lib/types.ts
+  504239503d4f85ab 1-309
+apps/web/app/api/auth/session/finalize/route.ts
+  504239503d4f85ab 1-101
+apps/web/app/api/spaces/[id]/members/[uid]/route.ts
+  504239503d4f85ab 1-137
+vercel.json
+  504239503d4f85ab 8-11
+apps/web/package.json
+  504239503d4f85ab 1-73
+apps/web/app/api/url-meta/route.ts
+  504239503d4f85ab 1-171
+apps/web/__tests__/task-detail.acceptance.test.ts
+  504239503d4f85ab 1-190
+eslint.config.mjs
+  504239503d4f85ab 7-13,34
+apps/web/scripts/vercel-rt-report.mjs
+  504239503d4f85ab 1-331
+apps/web/lib/parse-utils.ts
+  504239503d4f85ab 1-138
+apps/web/components/ConfigActionPreview.tsx
+  504239503d4f85ab 1-488
+apps/web/playwright.perf.config.ts
+  504239503d4f85ab 1-33
+apps/web/__tests__/analytics-static-contracts.acceptance.test.ts
+  504239503d4f85ab 1-149
+apps/web/app/readme/page.tsx
+  504239503d4f85ab 1-390
+apps/web/__tests__/NotificationItem.test.tsx
+  504239503d4f85ab 1-133
+apps/web/__tests__/proxy-bearer-session.acceptance.test.ts
+  504239503d4f85ab 1-380
+apps/web/app/(app)/changelog/page.tsx
+  504239503d4f85ab 1-9
+apps/web/app/api/tasks/[id]/logs/route.ts
+  504239503d4f85ab 1-68
+apps/web/lib/validations.ts
+  504239503d4f85ab 1-31
+apps/web/__tests__/summary-utils.test.ts
+  504239503d4f85ab 1-299
+apps/web/__tests__/task-utils.test.ts
+  504239503d4f85ab 1-152
+apps/web/app/activate/page.tsx
+  504239503d4f85ab 1-101
+apps/web/lib/ai-flow-log.ts
+  504239503d4f85ab 1-105
+apps/web/__tests__/route-timing.test.ts
+  504239503d4f85ab 1-19
+apps/web/lib/use-push.ts
+  504239503d4f85ab 1-100
+apps/web/e2e/smoke.spec.ts
+  504239503d4f85ab 1-7
+apps/web/lib/email.ts
+  504239503d4f85ab 1-72
+apps/web/lib/auth-config.ts
+  504239503d4f85ab 1-41
+apps/web/app/(app)/orgs/new/page.tsx
+  504239503d4f85ab 1-90
+apps/web/app/api/orgs/[id]/spaces/route.ts
+  504239503d4f85ab 1-25
+apps/web/__tests__/api/spaces/members-role.acceptance.test.ts
+  504239503d4f85ab 1-450
+apps/web/lib/gantt-utils.ts
+  504239503d4f85ab 1-207
+apps/web/app/api/push/vapid/route.ts
+  504239503d4f85ab 1-11
+apps/web/app/api/spaces/join/[code]/route.ts
+  504239503d4f85ab 1-68
+apps/web/components/ActionPreview.tsx
+  504239503d4f85ab 1-644
+apps/web/public/globe.svg
+  504239503d4f85ab 1
+apps/web/__tests__/db-space-queries.test.ts
+  504239503d4f85ab 1-131
+apps/web/lib/url-meta-cache.ts
+  504239503d4f85ab 1-25
+apps/web/app/api/spaces/[id]/route.ts
+  504239503d4f85ab 1-119
+apps/web/components/ChangelogContent.tsx
+  504239503d4f85ab 1-35
+apps/web/__tests__/helpers/fixtures.ts
+  504239503d4f85ab 1-42
+apps/web/app/api/me/summary/route.ts
+  504239503d4f85ab 1-179
+apps/web/__tests__/helpers/make-request.ts
+  504239503d4f85ab 1-39
+apps/web/__tests__/analytics-finalize-and-fault-tolerance.acceptance.test.ts
+  504239503d4f85ab 1-193
+apps/web/app/(app)/layout.tsx
+  504239503d4f85ab 1-42
+apps/web/app/api/manifest/route.ts
+  504239503d4f85ab 1-622
+apps/web/__tests__/api/tasks-id-route.acceptance.test.ts
+  504239503d4f85ab 1-257
+apps/web/__tests__/org-manifest.acceptance.test.ts
+  504239503d4f85ab 1-139
+apps/web/__tests__/org-types.acceptance.test.ts
+  504239503d4f85ab 1-169
+apps/web/components.json
+  504239503d4f85ab 1-23
+apps/web/lib/date-utils.ts
+  504239503d4f85ab 1-142
+apps/web/__tests__/computeTaskBars.acceptance.test.ts
+  504239503d4f85ab 1-294
+apps/web/public/sw.js
+  504239503d4f85ab 1-65
+apps/web/__tests__/space-join-guide.acceptance.test.ts
+  504239503d4f85ab 1-413
+apps/web/app/api/spaces/[id]/notes/route.ts
+  504239503d4f85ab 1-63
+apps/web/components/ui/sheet.tsx
+  504239503d4f85ab 1-73
+apps/web/app/api/cron/daily-digest/route.ts
+  504239503d4f85ab 1-157
+apps/web/app/api/transcribe/route.ts
+  504239503d4f85ab 1-81
+apps/web/lib/use-sidebar-resize.ts
+  504239503d4f85ab 1-81
+apps/web/app/(app)/spaces/[id]/summary-settings/page.tsx
+  504239503d4f85ab 1-77
+apps/web/__tests__/EmptyState.test.tsx
+  504239503d4f85ab 1-49
+apps/web/__tests__/space-create-org.acceptance.test.ts
+  504239503d4f85ab 1-72
+apps/web/lib/assignee-utils.ts
+  504239503d4f85ab 1-98
+apps/web/lib/use-media-query.ts
+  504239503d4f85ab 1-25
+apps/web/components/TaskItem.tsx
+  504239503d4f85ab 1-820
+apps/web/public/vercel.svg
+  504239503d4f85ab 1
+apps/web/app/auth/callback/page.tsx
+  504239503d4f85ab 1-117
+apps/web/app/(app)/account/page.tsx
+  504239503d4f85ab 1-20
+apps/web/components/VoiceButton.tsx
+  504239503d4f85ab 1-59
+apps/web/__tests__/gantt-utils.test.ts
+  504239503d4f85ab 1-381
+apps/web/app/api/notes/shared/[code]/route.ts
+  504239503d4f85ab 1-20
+apps/web/lib/changelog.ts
+  504239503d4f85ab 1-370
+apps/web/__tests__/note-display.acceptance.test.tsx
+  504239503d4f85ab 1-366
+apps/web/app/(app)/spaces/[id]/page.tsx
+  504239503d4f85ab 1-737
+apps/web/lib/daily-digest.ts
+  504239503d4f85ab 1-586
+apps/web/public/window.svg
+  504239503d4f85ab 1
+apps/web/public/file.svg
+  504239503d4f85ab 1
+apps/web/app/api/notifications/unread-count/route.ts
+  504239503d4f85ab 1-18
+apps/web/app/shared/[code]/page.tsx
+  504239503d4f85ab 1-103
+apps/web/__tests__/invitation-codes-pagination.acceptance.test.ts
+  504239503d4f85ab 1-422
+apps/web/knip.config.ts
+  504239503d4f85ab 1-18
+apps/web/lib/llm-client.ts
+  504239503d4f85ab 1-183
+apps/web/components/ui/textarea.tsx
+  504239503d4f85ab 1-18
+apps/web/vitest.config.ts
+  504239503d4f85ab 1-32
+apps/web/app/api/spaces/[id]/members/route.ts
+  504239503d4f85ab 1-22
+apps/web/app/api/tasks/tree/route.ts
+  504239503d4f85ab 1-64
+apps/web/__tests__/notification-drawer.acceptance.test.tsx
+  504239503d4f85ab 1-435
+apps/web/lib/notifications.ts
+  504239503d4f85ab 1-230
+apps/web/app/api/invitation/codes/generate/route.ts
+  504239503d4f85ab 1-26
+apps/web/app/api/spaces/[id]/summary-config/route.ts
+  504239503d4f85ab 1-197
+apps/web/e2e/performance.spec.ts
+  504239503d4f85ab 1-82
+apps/web/app/(app)/orgs/[id]/page.tsx
+  504239503d4f85ab 1-419
+apps/web/lib/utils.ts
+  504239503d4f85ab 3-4,6
+apps/web/app/(app)/page.tsx
+  504239503d4f85ab 1-227
+apps/web/components/AssigneeBadge.tsx
+  504239503d4f85ab 1-24
+CLAUDE.md
+  504239503d4f85ab 141-142,144,194,225,257,263-264
+apps/web/app/(app)/notes/page.tsx
+  504239503d4f85ab 1-225
+apps/web/app/(app)/orgs/page.tsx
+  504239503d4f85ab 1-83
+apps/web/playwright.config.ts
+  504239503d4f85ab 1-26
+apps/web/__tests__/TaskSkeleton.test.tsx
+  504239503d4f85ab 1-36
+apps/web/lib/use-notifications.ts
+  504239503d4f85ab 1-27
+apps/web/app/(app)/notifications/page.tsx
+  504239503d4f85ab 1-9
+apps/web/components/readme-tabs.tsx
+  504239503d4f85ab 1-40
+apps/web/__tests__/date-utils.test.ts
+  504239503d4f85ab 1-170
+apps/web/lib/task-utils.ts
+  504239503d4f85ab 1-16
+apps/web/__tests__/setup-dom.ts
+  504239503d4f85ab 1
+apps/web/lib/summary-utils.ts
+  504239503d4f85ab 1-311
+apps/web/lib/email-templates.ts
+  504239503d4f85ab 1-117
+apps/web/__tests__/performance-cache.acceptance.test.ts
+  504239503d4f85ab 1-85
+apps/web/components/AssigneePicker.tsx
+  504239503d4f85ab 1-317
+apps/web/app/(app)/loading.tsx
+  504239503d4f85ab 1-9
+apps/web/lib/server-auth.ts
+  504239503d4f85ab 1-30
+apps/web/app/api/orgs/[id]/spaces/[spaceId]/join/route.ts
+  504239503d4f85ab 1-53
+apps/web/__tests__/cli-session-token.acceptance.test.ts
+  504239503d4f85ab 1-363
+apps/web/__tests__/assignee-picker.acceptance.test.ts
+  504239503d4f85ab 1-33,35,37,39-271
+apps/web/__tests__/DailyDigestNotificationDetail.test.tsx
+  504239503d4f85ab 1-112
+apps/web/__tests__/NoteCard.test.tsx
+  504239503d4f85ab 1-113
+apps/web/app/api/account/profile/route.ts
+  504239503d4f85ab 1-37
+apps/web/__tests__/summary-settings.acceptance.test.ts
+  504239503d4f85ab 1-356
+apps/web/components/ui/separator.tsx
+  504239503d4f85ab 1-28
+apps/web/__tests__/personal-daily-summary.acceptance.test.ts
+  504239503d4f85ab 1-646
+apps/web/app/api/notifications/route.ts
+  504239503d4f85ab 1-43
+apps/web/__tests__/linked-spaces-summary.acceptance.test.ts
+  504239503d4f85ab 1-189
+apps/web/__tests__/summary-utils.acceptance.test.ts
+  504239503d4f85ab 1-360
+apps/web/app/api/invitation/codes/route.ts
+  504239503d4f85ab 1-63
+apps/web/__tests__/acceptance/t001-monorepo-migration.acceptance.test.ts
+  504239503d4f85ab 1-271
+apps/web/components/NoteCard.tsx
+  504239503d4f85ab 1-257
+apps/web/__tests__/org-space-access.acceptance.test.ts
+  504239503d4f85ab 1-229
+apps/web/__tests__/api/tasks-route.acceptance.test.ts
+  504239503d4f85ab 1-217
+apps/web/components/SpaceSettings.tsx
+  504239503d4f85ab 1-709
+apps/web/lib/notification-types.ts
+  504239503d4f85ab 1-7,9-14,16-23,25-30,32-37,39-44,46-51,53-58,60-65,67-74,76-81,83-88,90-97,99-103
+apps/web/app/auth/cli/page.tsx
+  504239503d4f85ab 1-91
+apps/web/lib/auth-gateway-session.ts
+  504239503d4f85ab 1-218
+apps/web/scripts/db-migrate.mjs
+  504239503d4f85ab 1-106
+apps/web/app/(app)/spaces/page.tsx
+  504239503d4f85ab 1-83
+.gitignore
+  504239503d4f85ab 4,14-17,20-21,24
+apps/web/postcss.config.mjs
+  504239503d4f85ab 1-7
+apps/web/__tests__/analytics-version-and-changelog.acceptance.test.ts
+  504239503d4f85ab 1-81
+apps/web/lib/task-permissions.ts
+  504239503d4f85ab 1-136
+apps/web/components/TaskList.tsx
+  504239503d4f85ab 1-275
+apps/web/__tests__/utils.test.ts
+  504239503d4f85ab 1-25
+apps/web/components/DailySummary.tsx
+  504239503d4f85ab 1-357
+apps/web/app/api/spaces/route.ts
+  504239503d4f85ab 1-52
+apps/web/app/auth/logged-out/page.tsx
+  504239503d4f85ab 1-24
+apps/web/__tests__/note-share.acceptance.test.ts
+  504239503d4f85ab 1-410
+apps/web/components/PWAInstallBanner.tsx
+  504239503d4f85ab 1-242
+apps/web/components/SummarySettings.tsx
+  504239503d4f85ab 1-745
+apps/web/components/TaskSkeleton.tsx
+  504239503d4f85ab 1-24
+apps/web/__tests__/org-notification-types.acceptance.test.ts
+  504239503d4f85ab 1-110
+apps/web/__tests__/notification-utils.test.ts
+  504239503d4f85ab 1-24
+apps/web/__tests__/spaces/members-merge.acceptance.test.ts
+  504239503d4f85ab 1-353
+apps/web/lib/route-timing.ts
+  504239503d4f85ab 1-102
+apps/web/__tests__/auth-config.test.ts
+  504239503d4f85ab 1-73
+apps/web/app/(app)/spaces/new/page.tsx
+  504239503d4f85ab 1-152
+apps/web/components/PeopleGantt.tsx
+  504239503d4f85ab 1-302
+apps/web/app/api/parse-task/route.ts
+  504239503d4f85ab 1-262
+apps/web/app/api/orgs/[id]/route.ts
+  504239503d4f85ab 1-74
+apps/web/app/api/auth/cli-token/route.ts
+  504239503d4f85ab 1-24
+apps/web/components/ui/input.tsx
+  504239503d4f85ab 1-21
+apps/web/app/api/spaces/[id]/summary-config/parse/route.ts
+  504239503d4f85ab 1-170
+apps/web/app/api/summarize-voice/route.ts
+  504239503d4f85ab 1-61
+apps/web/__tests__/api/spaces/admin-space-guard.acceptance.test.ts
+  504239503d4f85ab 1-120
+apps/web/lib/orgs.ts
+  504239503d4f85ab 1-34
+apps/web/__tests__/api/summarize-voice.acceptance.test.ts
+  504239503d4f85ab 1-173
+apps/web/__tests__/daily-digest.test.ts
+  504239503d4f85ab 1-180
+apps/web/__tests__/task-permissions.acceptance.test.ts
+  504239503d4f85ab 1-358
+apps/web/__tests__/display-utils.test.ts
+  504239503d4f85ab 1-26
+apps/web/.size-limit.json
+  504239503d4f85ab 1-14
+apps/web/components/MultiTaskPreview.tsx
+  504239503d4f85ab 1-452
+apps/web/components/DateTimePicker.tsx
+  504239503d4f85ab 1-335
+.github/workflows/ci.yml
+  504239503d4f85ab 23,36
+apps/web/lib/use-voice-note.ts
+  504239503d4f85ab 1-61
+apps/web/app/api/auth/logout/route.ts
+  504239503d4f85ab 1-8
+apps/web/lib/display-utils.ts
+  504239503d4f85ab 1-10
+apps/web/components/NLInput.tsx
+  504239503d4f85ab 1-327
+apps/web/components/ParsePreviewCard.tsx
+  504239503d4f85ab 1-172
+apps/web/components/PushPromptBanner.tsx
+  504239503d4f85ab 1-81
+apps/web/lib/use-voice-input.ts
+  504239503d4f85ab 1-379
+apps/web/components/SpaceNav.tsx
+  504239503d4f85ab 1-509
+apps/web/public/next.svg
+  504239503d4f85ab 1
+apps/web/__tests__/gantt-completed-tasks.acceptance.test.ts
+  504239503d4f85ab 1-642
+apps/web/lib/personal-summary.ts
+  504239503d4f85ab 1-8
+apps/web/__tests__/ai-flow-log.test.ts
+  504239503d4f85ab 1-96
+apps/web/components/ui/popover.tsx
+  504239503d4f85ab 1-36
+apps/web/lib/push.ts
+  504239503d4f85ab 1-61
+apps/web/app/api/tasks/[id]/summary/route.ts
+  504239503d4f85ab 1-560
+apps/web/lib/spaces.ts
+  504239503d4f85ab 1-90
+apps/web/lib/milestone-utils.ts
+  504239503d4f85ab 1-6
+apps/web/app/globals.css
+  504239503d4f85ab 1-391
+apps/web/__tests__/reopen-task.acceptance.test.ts
+  504239503d4f85ab 1-275
+apps/web/components/SpaceNotes.tsx
+  504239503d4f85ab 1-234
+apps/web/app/api/spaces/[id]/join/route.ts
+  504239503d4f85ab 1-48
+apps/web/components/RichText.tsx
+  504239503d4f85ab 1-110
+apps/web/components/NotificationSettings.tsx
+  504239503d4f85ab 1-287
+apps/web/__tests__/milestone.acceptance.test.ts
+  504239503d4f85ab 1-158
+apps/web/app/api/notifications/prefs/route.ts
+  504239503d4f85ab 1-31
+apps/web/lib/use-pwa-install.ts
+  504239503d4f85ab 1-90
+apps/web/components/NotificationList.tsx
+  504239503d4f85ab 1-238
+apps/web/public/offline.html
+  504239503d4f85ab 1-54
+apps/web/__tests__/pwa-install.test.ts
+  504239503d4f85ab 1-110
+apps/web/__tests__/dangerous-operations.acceptance.test.tsx
+  504239503d4f85ab 1-539
+apps/web/tsconfig.json
+  504239503d4f85ab 1-34
+apps/web/app/api/orgs/[id]/members/route.ts
+  504239503d4f85ab 1-25
+apps/web/components/ui/card.tsx
+  504239503d4f85ab 1-75
+apps/web/components/ServiceWorkerRegistrar.tsx
+  504239503d4f85ab 1-12
+apps/web/__tests__/daily-digest-cron-route.acceptance.test.ts
+  504239503d4f85ab 1-145
+apps/web/public/manifest.json
+  504239503d4f85ab 1-19
+apps/web/app/api/invitation/redeem/route.ts
+  504239503d4f85ab 1-55
+apps/web/components/EmptyState.tsx
+  504239503d4f85ab 1-25
+apps/web/__tests__/summary-template-management.acceptance.test.ts
+  504239503d4f85ab 1-480
+apps/web/app/api/orgs/join/[code]/route.ts
+  504239503d4f85ab 1-73
+apps/web/app/api/tasks/[id]/route.ts
+  504239503d4f85ab 1-259
+apps/web/lib/use-tasks.ts
+  504239503d4f85ab 1-103
+apps/web/app/(app)/all/page.tsx
+  504239503d4f85ab 1-5
+apps/web/app/layout.tsx
+  504239503d4f85ab 1-47
+apps/web/components/ui/badge.tsx
+  504239503d4f85ab 1-46
+apps/web/next.config.ts
+  504239503d4f85ab 1-17
+apps/web/__tests__/helpers/mock-db.ts
+  504239503d4f85ab 1-44
+apps/web/__tests__/space-nav-assignee.acceptance.test.ts
+  504239503d4f85ab 1-157
+apps/web/lib/notification-utils.ts
+  504239503d4f85ab 1-10
+apps/web/__tests__/PushPromptBanner.test.tsx
+  504239503d4f85ab 1-117
+apps/web/lib/db.ts
+  504239503d4f85ab 1-1866
+apps/web/app/api/auth/switch-account/route.ts
+  504239503d4f85ab 1-24
+apps/web/__tests__/parse-utils.test.ts
+  504239503d4f85ab 1-386
+apps/web/lib/auth.ts
+  504239503d4f85ab 1-87
+apps/web/app/api/tasks/route.ts
+  504239503d4f85ab 1-259
+apps/web/app/api/push/subscribe/route.ts
+  504239503d4f85ab 1-46
+apps/web/types/speech-recognition.d.ts
+  504239503d4f85ab 1-29
+apps/web/.env.example
+  504239503d4f85ab 1-39
+apps/web/app/join/[invite_code]/page.tsx
+  504239503d4f85ab 1-149
+apps/web/components/ui/button.tsx
+  504239503d4f85ab 1-61
+apps/web/components/ui/alert-dialog.tsx
+  504239503d4f85ab 1-179
+apps/web/__tests__/api/notifications-unread-count.acceptance.test.ts
+  504239503d4f85ab 1-87
+apps/web/__tests__/auth-gateway-session.test.ts
+  504239503d4f85ab 1-90
+apps/web/__tests__/helpers/mock-auth.ts
+  504239503d4f85ab 1-13
+apps/web/components/DailyDigestNotificationDetail.tsx
+  504239503d4f85ab 1-128
+apps/web/app/api/orgs/route.ts
+  504239503d4f85ab 1-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "da4f02ca93dda59cfe7886e80ceb2a407e818918",
+  "prompts": {
+    "504239503d4f85ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "06c8e569-1019-4177-a115-df5123713485",
+        "model": "glm-5.2-aliyun"
+      },
+      "human_author": "赵桂雄",
+      "messages": [],
+      "total_additions": 44466,
+      "total_deletions": 2132,
+      "accepted_lines": 42172,
+      "overriden_lines": 16,
+      "per_file_stats": {
+        ".autopilot/project/tasks/002-shared-packages-extraction.md": {
+          "additions": 68,
+          "accepted_lines": 68
+        },
+        "apps/web/__tests__/space-join-guide.acceptance.test.ts": {
+          "additions": 416,
+          "deletions": 3,
+          "accepted_lines": 413
+        },
+        "apps/web/components/DateTimePicker.tsx": {
+          "additions": 365,
+          "deletions": 30,
+          "accepted_lines": 335
+        },
+        "apps/web/__tests__/pwa-install.test.ts": {
+          "additions": 112,
+          "deletions": 2,
+          "accepted_lines": 110
+        },
+        "apps/web/__tests__/org-manifest.acceptance.test.ts": {
+          "additions": 152,
+          "deletions": 13,
+          "accepted_lines": 139
+        },
+        "apps/web/lib/notification-types.ts": {
+          "additions": 129,
+          "deletions": 104,
+          "accepted_lines": 90,
+          "overriden_lines": 13
+        },
+        "apps/web/components/TaskDetail.tsx": {
+          "additions": 922,
+          "accepted_lines": 922
+        },
+        "apps/web/app/api/tasks/tree/route.ts": {
+          "additions": 64,
+          "accepted_lines": 64
+        },
+        "apps/web/__tests__/DailyDigestNotificationDetail.test.tsx": {
+          "additions": 112,
+          "accepted_lines": 112
+        },
+        "apps/web/lib/validations.ts": {
+          "additions": 31,
+          "accepted_lines": 31
+        },
+        "apps/web/app/activate/page.tsx": {
+          "additions": 110,
+          "deletions": 9,
+          "accepted_lines": 101
+        },
+        "apps/web/app/auth/callback/page.tsx": {
+          "additions": 124,
+          "deletions": 7,
+          "accepted_lines": 117
+        },
+        "apps/web/__tests__/notification-drawer.acceptance.test.tsx": {
+          "additions": 492,
+          "deletions": 57,
+          "accepted_lines": 435
+        },
+        "apps/web/components/ChangelogContent.tsx": {
+          "additions": 35,
+          "accepted_lines": 35
+        },
+        "apps/web/app/(app)/orgs/new/page.tsx": {
+          "additions": 94,
+          "deletions": 4,
+          "accepted_lines": 90
+        },
+        "apps/web/app/api/orgs/[id]/spaces/route.ts": {
+          "additions": 25,
+          "accepted_lines": 25
+        },
+        "apps/web/lib/daily-digest.ts": {
+          "additions": 611,
+          "deletions": 25,
+          "accepted_lines": 586
+        },
+        "apps/web/components/ui/input.tsx": {
+          "additions": 25,
+          "deletions": 4,
+          "accepted_lines": 21
+        },
+        "apps/web/app/api/orgs/[id]/members/route.ts": {
+          "additions": 25,
+          "accepted_lines": 25
+        },
+        "apps/web/__tests__/PushPromptBanner.test.tsx": {
+          "additions": 117,
+          "accepted_lines": 117
+        },
+        "apps/web/lib/notification-utils.ts": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "apps/web/app/api/manifest/route.ts": {
+          "additions": 622,
+          "accepted_lines": 622
+        },
+        "apps/web/types/speech-recognition.d.ts": {
+          "additions": 29,
+          "accepted_lines": 29
+        },
+        "apps/web/app/api/transcribe/route.ts": {
+          "additions": 105,
+          "deletions": 24,
+          "accepted_lines": 81
+        },
+        "apps/web/playwright.config.ts": {
+          "additions": 26,
+          "accepted_lines": 26
+        },
+        "apps/web/app/api/parse-task/route.ts": {
+          "additions": 274,
+          "deletions": 12,
+          "accepted_lines": 262
+        },
+        "apps/web/lib/ai-flow-log.ts": {
+          "additions": 105,
+          "accepted_lines": 105
+        },
+        "apps/web/app/(app)/changelog/page.tsx": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "apps/web/__tests__/performance-cache.acceptance.test.ts": {
+          "additions": 85,
+          "accepted_lines": 85
+        },
+        "apps/web/components/SummarySettings.tsx": {
+          "additions": 794,
+          "deletions": 49,
+          "accepted_lines": 745
+        },
+        "apps/web/__tests__/daily-digest-cron-route.acceptance.test.ts": {
+          "additions": 145,
+          "accepted_lines": 145
+        },
+        "apps/web/public/file.svg": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "apps/web/__tests__/helpers/mock-db.ts": {
+          "additions": 51,
+          "deletions": 3,
+          "accepted_lines": 44
+        },
+        "apps/web/app/api/orgs/route.ts": {
+          "additions": 43,
+          "deletions": 5,
+          "accepted_lines": 38
+        },
+        "apps/web/app/api/spaces/[id]/members/route.ts": {
+          "additions": 22,
+          "accepted_lines": 22
+        },
+        ".autopilot/project/design.md": {
+          "additions": 105,
+          "accepted_lines": 105
+        },
+        "apps/web/__tests__/summary-settings.acceptance.test.ts": {
+          "additions": 365,
+          "deletions": 9,
+          "accepted_lines": 356
+        },
+        "apps/web/__tests__/api/summarize-voice.acceptance.test.ts": {
+          "additions": 181,
+          "deletions": 8,
+          "accepted_lines": 173
+        },
+        "apps/web/components/SpaceNotes.tsx": {
+          "additions": 243,
+          "deletions": 9,
+          "accepted_lines": 234
+        },
+        "apps/web/app/layout.tsx": {
+          "additions": 47,
+          "accepted_lines": 47
+        },
+        "apps/web/__tests__/notification-utils.test.ts": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "apps/web/__tests__/analytics-static-contracts.acceptance.test.ts": {
+          "additions": 149,
+          "accepted_lines": 149
+        },
+        "apps/web/app/api/orgs/[id]/route.ts": {
+          "additions": 75,
+          "deletions": 1,
+          "accepted_lines": 74
+        },
+        "apps/web/__tests__/db-space-queries.test.ts": {
+          "additions": 131,
+          "accepted_lines": 131
+        },
+        "apps/web/__tests__/summary-utils.test.ts": {
+          "additions": 300,
+          "deletions": 1,
+          "accepted_lines": 299
+        },
+        "apps/web/components/ui/textarea.tsx": {
+          "additions": 22,
+          "deletions": 4,
+          "accepted_lines": 18
+        },
+        "apps/web/__tests__/daily-digest.test.ts": {
+          "additions": 187,
+          "deletions": 7,
+          "accepted_lines": 180
+        },
+        "apps/web/lib/display-utils.ts": {
+          "additions": 11,
+          "deletions": 1,
+          "accepted_lines": 10
+        },
+        "apps/web/__tests__/date-utils.test.ts": {
+          "additions": 170,
+          "accepted_lines": 170
+        },
+        "apps/web/__tests__/computeTaskBars.acceptance.test.ts": {
+          "additions": 294,
+          "accepted_lines": 294
+        },
+        "apps/web/app/api/spaces/[id]/notes/route.ts": {
+          "additions": 63,
+          "accepted_lines": 63
+        },
+        "apps/web/lib/route-timing.ts": {
+          "additions": 102,
+          "accepted_lines": 102
+        },
+        "apps/web/app/auth/logged-out/page.tsx": {
+          "additions": 25,
+          "deletions": 1,
+          "accepted_lines": 24
+        },
+        "apps/web/__tests__/acceptance/t001-monorepo-migration.acceptance.test.ts": {
+          "additions": 271,
+          "accepted_lines": 271
+        },
+        "apps/web/app/api/invitation/codes/route.ts": {
+          "additions": 71,
+          "deletions": 8,
+          "accepted_lines": 63
+        },
+        "apps/web/app/globals.css": {
+          "additions": 391,
+          "accepted_lines": 391
+        },
+        "apps/web/lib/orgs.ts": {
+          "additions": 35,
+          "deletions": 1,
+          "accepted_lines": 34
+        },
+        "apps/web/__tests__/space-nav-assignee.acceptance.test.ts": {
+          "additions": 173,
+          "deletions": 16,
+          "accepted_lines": 157
+        },
+        "apps/web/__tests__/api/spaces/members-role.acceptance.test.ts": {
+          "additions": 450,
+          "accepted_lines": 450
+        },
+        "apps/web/__tests__/TaskSkeleton.test.tsx": {
+          "additions": 36,
+          "accepted_lines": 36
+        },
+        "apps/web/scripts/db-migrate.mjs": {
+          "additions": 107,
+          "deletions": 1,
+          "accepted_lines": 106
+        },
+        "apps/web/app/api/tasks/[id]/logs/route.ts": {
+          "additions": 70,
+          "deletions": 2,
+          "accepted_lines": 68
+        },
+        "apps/web/components/ui/sheet.tsx": {
+          "additions": 82,
+          "deletions": 9,
+          "accepted_lines": 73
+        },
+        "apps/web/components/ConfigActionPreview.tsx": {
+          "additions": 515,
+          "deletions": 27,
+          "accepted_lines": 488
+        },
+        "apps/web/public/offline.html": {
+          "additions": 54,
+          "accepted_lines": 54
+        },
+        "apps/web/__tests__/assignee-picker.acceptance.test.ts": {
+          "additions": 276,
+          "deletions": 5,
+          "accepted_lines": 268
+        },
+        "apps/web/__tests__/NoteCard.test.tsx": {
+          "additions": 114,
+          "deletions": 1,
+          "accepted_lines": 113
+        },
+        "apps/web/__tests__/EmptyState.test.tsx": {
+          "additions": 49,
+          "accepted_lines": 49
+        },
+        "apps/web/components/NotificationList.tsx": {
+          "additions": 239,
+          "deletions": 1,
+          "accepted_lines": 238
+        },
+        "apps/web/__tests__/note-share.acceptance.test.ts": {
+          "additions": 425,
+          "deletions": 15,
+          "accepted_lines": 410
+        },
+        "apps/web/__tests__/note-display.acceptance.test.tsx": {
+          "additions": 398,
+          "deletions": 2,
+          "accepted_lines": 366
+        },
+        "apps/web/app/readme/page.tsx": {
+          "additions": 408,
+          "deletions": 18,
+          "accepted_lines": 390
+        },
+        "apps/web/__tests__/utils.test.ts": {
+          "additions": 25,
+          "accepted_lines": 25
+        },
+        "apps/web/__tests__/dangerous-operations.acceptance.test.tsx": {
+          "additions": 539,
+          "accepted_lines": 539
+        },
+        "apps/web/components/PersonalDailySummary.tsx": {
+          "additions": 319,
+          "deletions": 17,
+          "accepted_lines": 302
+        },
+        "apps/web/lib/use-push.ts": {
+          "additions": 101,
+          "deletions": 1,
+          "accepted_lines": 100
+        },
+        "apps/web/components/ParsePreviewCard.tsx": {
+          "additions": 184,
+          "deletions": 12,
+          "accepted_lines": 172
+        },
+        "apps/web/components/ActionPreview.tsx": {
+          "additions": 714,
+          "deletions": 70,
+          "accepted_lines": 644
+        },
+        "apps/web/__tests__/reopen-task.acceptance.test.ts": {
+          "additions": 302,
+          "deletions": 27,
+          "accepted_lines": 275
+        },
+        "apps/web/__tests__/display-utils.test.ts": {
+          "additions": 27,
+          "deletions": 1,
+          "accepted_lines": 26
+        },
+        "apps/web/lib/use-media-query.ts": {
+          "additions": 25,
+          "accepted_lines": 25
+        },
+        "apps/web/__tests__/analytics-version-and-changelog.acceptance.test.ts": {
+          "additions": 81,
+          "accepted_lines": 81
+        },
+        "apps/web/e2e/smoke.spec.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "apps/web/app/api/orgs/join/[code]/route.ts": {
+          "additions": 76,
+          "deletions": 3,
+          "accepted_lines": 73
+        },
+        "apps/web/app/api/auth/session/finalize/route.ts": {
+          "additions": 101,
+          "accepted_lines": 101
+        },
+        "apps/web/__tests__/auth-gateway-session.test.ts": {
+          "additions": 90,
+          "accepted_lines": 90
+        },
+        "apps/web/__tests__/use-voice-input.acceptance.test.ts": {
+          "additions": 199,
+          "deletions": 7,
+          "accepted_lines": 192
+        },
+        "apps/web/public/sw.js": {
+          "additions": 65,
+          "accepted_lines": 65
+        },
+        "apps/web/app/(app)/spaces/new/page.tsx": {
+          "additions": 156,
+          "deletions": 4,
+          "accepted_lines": 152
+        },
+        "apps/web/lib/push.ts": {
+          "additions": 61,
+          "accepted_lines": 61
+        },
+        "apps/web/components/TaskSkeleton.tsx": {
+          "additions": 26,
+          "deletions": 2,
+          "accepted_lines": 24
+        },
+        "apps/web/public/window.svg": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "apps/web/app/api/spaces/[id]/tokens/route.ts": {
+          "additions": 75,
+          "accepted_lines": 75
+        },
+        "apps/web/components/TaskItem.tsx": {
+          "additions": 868,
+          "deletions": 48,
+          "accepted_lines": 820
+        },
+        "apps/web/components/SpaceSettings.tsx": {
+          "additions": 709,
+          "accepted_lines": 709
+        },
+        "apps/web/components/NLInput.tsx": {
+          "additions": 354,
+          "deletions": 27,
+          "accepted_lines": 327
+        },
+        "apps/web/__tests__/task-detail.acceptance.test.ts": {
+          "additions": 192,
+          "deletions": 2,
+          "accepted_lines": 190
+        },
+        "apps/web/app/api/spaces/[id]/summary-config/route.ts": {
+          "additions": 215,
+          "deletions": 18,
+          "accepted_lines": 197
+        },
+        "apps/web/app/api/account/profile/route.ts": {
+          "additions": 37,
+          "accepted_lines": 37
+        },
+        "apps/web/app/api/me/summary/route.ts": {
+          "additions": 212,
+          "deletions": 33,
+          "accepted_lines": 179
+        },
+        "apps/web/__tests__/api/spaces/admin-space-guard.acceptance.test.ts": {
+          "additions": 120,
+          "accepted_lines": 120
+        },
+        "apps/web/__tests__/milestone.acceptance.test.ts": {
+          "additions": 158,
+          "accepted_lines": 158
+        },
+        ".autopilot/project/tasks/001-monorepo-migration.md": {
+          "additions": 55,
+          "accepted_lines": 55
+        },
+        "apps/web/components/DailyDigestNotificationDetail.tsx": {
+          "additions": 137,
+          "deletions": 9,
+          "accepted_lines": 128
+        },
+        "apps/web/public/globe.svg": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "apps/web/components/NotificationItem.tsx": {
+          "additions": 120,
+          "deletions": 22,
+          "accepted_lines": 98
+        },
+        "apps/web/app/api/url-meta/route.ts": {
+          "additions": 174,
+          "deletions": 3,
+          "accepted_lines": 171
+        },
+        "apps/web/__tests__/task-permissions.acceptance.test.ts": {
+          "additions": 358,
+          "accepted_lines": 358
+        },
+        "apps/web/components/AccountContent.tsx": {
+          "additions": 452,
+          "deletions": 52,
+          "accepted_lines": 400
+        },
+        "apps/web/playwright.perf.config.ts": {
+          "additions": 33,
+          "accepted_lines": 33
+        },
+        "apps/web/app/shared/[code]/page.tsx": {
+          "additions": 106,
+          "deletions": 3,
+          "accepted_lines": 103
+        },
+        "apps/web/__tests__/setup-dom.ts": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "apps/web/lib/gantt-utils.ts": {
+          "additions": 222,
+          "deletions": 15,
+          "accepted_lines": 207
+        },
+        "apps/web/app/api/push/vapid/route.ts": {
+          "additions": 11,
+          "accepted_lines": 11
+        },
+        "apps/web/lib/email-templates.ts": {
+          "additions": 119,
+          "deletions": 2,
+          "accepted_lines": 117
+        },
+        "apps/web/app/(app)/spaces/[id]/page.tsx": {
+          "additions": 737,
+          "accepted_lines": 737
+        },
+        "apps/web/lib/use-sidebar-resize.ts": {
+          "additions": 81,
+          "accepted_lines": 81
+        },
+        "apps/web/__tests__/task-detail-drawer-ui.test.tsx": {
+          "additions": 107,
+          "accepted_lines": 107
+        },
+        "apps/web/app/join/org/[code]/page.tsx": {
+          "additions": 178,
+          "deletions": 40,
+          "accepted_lines": 138
+        },
+        "apps/web/lib/email.ts": {
+          "additions": 77,
+          "deletions": 5,
+          "accepted_lines": 72
+        },
+        "apps/web/app/api/auth/cli-token/route.ts": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "apps/web/app/api/auth/logout/route.ts": {
+          "additions": 8,
+          "accepted_lines": 8
+        },
+        "apps/web/__tests__/proxy-bearer-session.acceptance.test.ts": {
+          "additions": 380,
+          "accepted_lines": 380
+        },
+        "apps/web/__tests__/spaces/members-merge.acceptance.test.ts": {
+          "additions": 353,
+          "accepted_lines": 353
+        },
+        "apps/web/components/AssigneeBadge.tsx": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "eslint.config.mjs": {
+          "additions": 8,
+          "deletions": 2,
+          "accepted_lines": 8
+        },
+        "apps/web/app/(app)/notifications/page.tsx": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "apps/web/app/api/spaces/[id]/summary-config/parse/route.ts": {
+          "additions": 175,
+          "deletions": 5,
+          "accepted_lines": 170
+        },
+        "apps/web/components/NotificationSettings.tsx": {
+          "additions": 299,
+          "deletions": 12,
+          "accepted_lines": 287
+        },
+        "apps/web/__tests__/task-utils.test.ts": {
+          "additions": 156,
+          "deletions": 4,
+          "accepted_lines": 152
+        },
+        "apps/web/app/api/notifications/prefs/route.ts": {
+          "additions": 32,
+          "deletions": 1,
+          "accepted_lines": 31
+        },
+        "apps/web/lib/llm-client.ts": {
+          "additions": 190,
+          "deletions": 7,
+          "accepted_lines": 183
+        },
+        "apps/web/lib/changelog.ts": {
+          "additions": 370,
+          "accepted_lines": 370
+        },
+        "package.json": {
+          "additions": 20,
+          "deletions": 65,
+          "accepted_lines": 20
+        },
+        "apps/web/app/(app)/orgs/page.tsx": {
+          "additions": 87,
+          "deletions": 4,
+          "accepted_lines": 83
+        },
+        ".github/workflows/ci.yml": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "apps/web/components/ui/alert-dialog.tsx": {
+          "additions": 220,
+          "deletions": 41,
+          "accepted_lines": 179
+        },
+        "apps/web/__tests__/gantt-completed-tasks.acceptance.test.ts": {
+          "additions": 642,
+          "accepted_lines": 642
+        },
+        "apps/web/lib/auth-config.ts": {
+          "additions": 50,
+          "deletions": 9,
+          "accepted_lines": 41
+        },
+        "apps/web/components/MultiTaskPreview.tsx": {
+          "additions": 469,
+          "deletions": 17,
+          "accepted_lines": 452
+        },
+        "apps/web/public/vercel.svg": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "apps/web/app/auth/cli/page.tsx": {
+          "additions": 95,
+          "deletions": 4,
+          "accepted_lines": 91
+        },
+        "apps/web/.size-limit.json": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "apps/web/lib/auth-gateway-session.ts": {
+          "additions": 223,
+          "deletions": 5,
+          "accepted_lines": 218
+        },
+        "vercel.json": {
+          "additions": 4,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "apps/web/app/api/tasks/[id]/route.ts": {
+          "additions": 266,
+          "deletions": 7,
+          "accepted_lines": 259
+        },
+        "apps/web/__tests__/summary-utils.acceptance.test.ts": {
+          "additions": 402,
+          "deletions": 42,
+          "accepted_lines": 360
+        },
+        "apps/web/app/api/tasks/[id]/summary/route.ts": {
+          "additions": 618,
+          "deletions": 58,
+          "accepted_lines": 560
+        },
+        "apps/web/app/(app)/loading.tsx": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "apps/web/lib/notifications.ts": {
+          "additions": 231,
+          "deletions": 1,
+          "accepted_lines": 230
+        },
+        "apps/web/components/EmptyState.tsx": {
+          "additions": 25,
+          "accepted_lines": 25
+        },
+        "apps/web/app/api/spaces/[id]/route.ts": {
+          "additions": 119,
+          "accepted_lines": 119
+        },
+        "apps/web/app/api/auth/switch-account/route.ts": {
+          "additions": 24,
+          "accepted_lines": 24
+        },
+        "apps/web/lib/spaces.ts": {
+          "additions": 90,
+          "accepted_lines": 90
+        },
+        "apps/web/__tests__/summary-template-management.acceptance.test.ts": {
+          "additions": 485,
+          "deletions": 5,
+          "accepted_lines": 480
+        },
+        "apps/web/lib/use-pwa-install.ts": {
+          "additions": 91,
+          "deletions": 1,
+          "accepted_lines": 90
+        },
+        "apps/web/lib/parse-utils.ts": {
+          "additions": 154,
+          "deletions": 16,
+          "accepted_lines": 138
+        },
+        "apps/web/app/join/[invite_code]/page.tsx": {
+          "additions": 193,
+          "deletions": 44,
+          "accepted_lines": 149
+        },
+        "apps/web/__tests__/gantt-utils.test.ts": {
+          "additions": 392,
+          "deletions": 11,
+          "accepted_lines": 381
+        },
+        "apps/web/__tests__/personal-daily-summary.acceptance.test.ts": {
+          "additions": 726,
+          "deletions": 80,
+          "accepted_lines": 646
+        },
+        "apps/web/app/(app)/layout.tsx": {
+          "additions": 47,
+          "deletions": 5,
+          "accepted_lines": 42
+        },
+        "apps/web/lib/milestone-utils.ts": {
+          "additions": 12,
+          "deletions": 6,
+          "accepted_lines": 6
+        },
+        "apps/web/app/(app)/spaces/[id]/summary-settings/page.tsx": {
+          "additions": 87,
+          "deletions": 10,
+          "accepted_lines": 77
+        },
+        "apps/web/lib/task-utils.ts": {
+          "additions": 16,
+          "accepted_lines": 16
+        },
+        "apps/web/proxy.ts": {
+          "additions": 157,
+          "accepted_lines": 157
+        },
+        "apps/web/__tests__/linked-spaces-summary.acceptance.test.ts": {
+          "additions": 312,
+          "deletions": 123,
+          "accepted_lines": 189
+        },
+        "apps/web/__tests__/changelog.test.ts": {
+          "additions": 26,
+          "accepted_lines": 26
+        },
+        "apps/web/lib/types.ts": {
+          "additions": 309,
+          "accepted_lines": 309
+        },
+        "apps/web/lib/server-auth.ts": {
+          "additions": 33,
+          "deletions": 3,
+          "accepted_lines": 30
+        },
+        "apps/web/app/(app)/orgs/[id]/page.tsx": {
+          "additions": 419,
+          "accepted_lines": 419
+        },
+        "apps/web/components/PushPromptBanner.tsx": {
+          "additions": 82,
+          "deletions": 1,
+          "accepted_lines": 81
+        },
+        "apps/web/app/api/invitation/codes/generate/route.ts": {
+          "additions": 30,
+          "deletions": 4,
+          "accepted_lines": 26
+        },
+        ".autopilot/tasks/mac-app/brainstorm.md": {
+          "additions": 91,
+          "accepted_lines": 91
+        },
+        "apps/web/lib/note-utils.ts": {
+          "additions": 44,
+          "deletions": 3,
+          "accepted_lines": 41
+        },
+        "apps/web/components/PWAInstallBanner.tsx": {
+          "additions": 254,
+          "deletions": 12,
+          "accepted_lines": 242
+        },
+        "apps/web/__tests__/api/notifications-unread-count.acceptance.test.ts": {
+          "additions": 88,
+          "deletions": 1,
+          "accepted_lines": 87
+        },
+        "apps/web/__tests__/org-space-access.acceptance.test.ts": {
+          "additions": 229,
+          "accepted_lines": 229
+        },
+        "apps/web/public/next.svg": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "apps/web/lib/use-tasks.ts": {
+          "additions": 103,
+          "accepted_lines": 103
+        },
+        "apps/web/app/api/cron/daily-digest/route.ts": {
+          "additions": 157,
+          "accepted_lines": 157
+        },
+        "apps/web/__tests__/analytics-finalize-and-fault-tolerance.acceptance.test.ts": {
+          "additions": 193,
+          "accepted_lines": 193
+        },
+        "apps/web/lib/use-voice-input.ts": {
+          "additions": 385,
+          "deletions": 6,
+          "accepted_lines": 379
+        },
+        ".autopilot/project/tasks/003-mac-frontend-shell.md": {
+          "additions": 59,
+          "accepted_lines": 59
+        },
+        "apps/web/components/ui/separator.tsx": {
+          "additions": 34,
+          "deletions": 6,
+          "accepted_lines": 28
+        },
+        ".autopilot/project/dag.yaml": {
+          "additions": 80,
+          "accepted_lines": 80
+        },
+        "apps/web/__tests__/api/tasks-route.acceptance.test.ts": {
+          "additions": 222,
+          "deletions": 5,
+          "accepted_lines": 217
+        },
+        "apps/web/__tests__/ai-flow-log.test.ts": {
+          "additions": 100,
+          "deletions": 4,
+          "accepted_lines": 96
+        },
+        "apps/web/app/api/summarize-voice/route.ts": {
+          "additions": 62,
+          "deletions": 1,
+          "accepted_lines": 61
+        },
+        "apps/web/__tests__/AssigneeBadge.test.tsx": {
+          "additions": 37,
+          "accepted_lines": 37
+        },
+        "apps/web/__tests__/auth-config.test.ts": {
+          "additions": 73,
+          "accepted_lines": 73
+        },
+        "apps/web/lib/use-notifications.ts": {
+          "additions": 27,
+          "accepted_lines": 27
+        },
+        "apps/web/components/PeopleGantt.tsx": {
+          "additions": 302,
+          "accepted_lines": 302
+        },
+        "apps/web/components/ui/popover.tsx": {
+          "additions": 36,
+          "accepted_lines": 36
+        },
+        "apps/web/public/manifest.json": {
+          "additions": 20,
+          "deletions": 1,
+          "accepted_lines": 19
+        },
+        "apps/web/components/ui/card.tsx": {
+          "additions": 103,
+          "deletions": 28,
+          "accepted_lines": 75
+        },
+        "apps/web/__tests__/completed-tasks-pagination.acceptance.test.ts": {
+          "additions": 356,
+          "deletions": 13,
+          "accepted_lines": 343
+        },
+        "apps/web/__tests__/org-notification-types.acceptance.test.ts": {
+          "additions": 112,
+          "deletions": 2,
+          "accepted_lines": 110
+        },
+        "apps/web/components/AssigneePicker.tsx": {
+          "additions": 355,
+          "deletions": 38,
+          "accepted_lines": 317
+        },
+        "apps/web/components/ui/button.tsx": {
+          "additions": 76,
+          "deletions": 15,
+          "accepted_lines": 61
+        },
+        ".autopilot/project/tasks/005-tauri-skeleton.md": {
+          "additions": 68,
+          "accepted_lines": 68
+        },
+        "apps/web/__tests__/invitation-codes-pagination.acceptance.test.ts": {
+          "additions": 456,
+          "deletions": 34,
+          "accepted_lines": 422
+        },
+        "apps/web/lib/use-voice-note.ts": {
+          "additions": 87,
+          "deletions": 26,
+          "accepted_lines": 61
+        },
+        "apps/web/__tests__/NotificationItem.test.tsx": {
+          "additions": 134,
+          "deletions": 1,
+          "accepted_lines": 133
+        },
+        "apps/web/next.config.ts": {
+          "additions": 17,
+          "accepted_lines": 17
+        },
+        "apps/web/app/(app)/spaces/page.tsx": {
+          "additions": 87,
+          "deletions": 4,
+          "accepted_lines": 83
+        },
+        "apps/web/lib/summary-utils.ts": {
+          "additions": 338,
+          "deletions": 27,
+          "accepted_lines": 311
+        },
+        "apps/web/components/VoiceButton.tsx": {
+          "additions": 60,
+          "deletions": 1,
+          "accepted_lines": 59
+        },
+        ".autopilot/project/tasks/007-distribution.md": {
+          "additions": 65,
+          "accepted_lines": 65
+        },
+        "apps/web/app/api/notifications/unread-count/route.ts": {
+          "additions": 18,
+          "accepted_lines": 18
+        },
+        "apps/web/__tests__/voice-note-creation.acceptance.test.ts": {
+          "additions": 200,
+          "deletions": 5,
+          "accepted_lines": 195
+        },
+        "apps/web/lib/utils.ts": {
+          "additions": 12,
+          "deletions": 6,
+          "accepted_lines": 3,
+          "overriden_lines": 3
+        },
+        "apps/web/__tests__/route-timing.test.ts": {
+          "additions": 19,
+          "accepted_lines": 19
+        },
+        "apps/web/__tests__/org-types.acceptance.test.ts": {
+          "additions": 169,
+          "accepted_lines": 169
+        },
+        "apps/web/app/api/spaces/[id]/join/route.ts": {
+          "additions": 49,
+          "deletions": 1,
+          "accepted_lines": 48
+        },
+        "apps/web/app/(app)/all/page.tsx": {
+          "additions": 5,
+          "accepted_lines": 5
+        },
+        "apps/web/__tests__/space-create-org.acceptance.test.ts": {
+          "additions": 79,
+          "deletions": 7,
+          "accepted_lines": 72
+        },
+        "apps/web/app/api/spaces/join/[code]/route.ts": {
+          "additions": 70,
+          "deletions": 2,
+          "accepted_lines": 68
+        },
+        "apps/web/lib/url-meta-cache.ts": {
+          "additions": 25,
+          "accepted_lines": 25
+        },
+        "apps/web/lib/personal-summary.ts": {
+          "additions": 16,
+          "deletions": 8,
+          "accepted_lines": 8
+        },
+        "apps/web/components/DailySummary.tsx": {
+          "additions": 414,
+          "deletions": 57,
+          "accepted_lines": 357
+        },
+        "apps/web/__tests__/helpers/make-request.ts": {
+          "additions": 40,
+          "deletions": 1,
+          "accepted_lines": 39
+        },
+        "apps/web/components/NoteCard.tsx": {
+          "additions": 266,
+          "deletions": 9,
+          "accepted_lines": 257
+        },
+        "apps/web/lib/task-permissions.ts": {
+          "additions": 136,
+          "accepted_lines": 136
+        },
+        "apps/web/components/SpaceNav.tsx": {
+          "additions": 616,
+          "deletions": 107,
+          "accepted_lines": 509
+        },
+        "apps/web/.env.example": {
+          "additions": 39,
+          "accepted_lines": 39
+        },
+        "apps/web/lib/db.ts": {
+          "additions": 1866,
+          "accepted_lines": 1866
+        },
+        "apps/web/components/readme-tabs.tsx": {
+          "additions": 40,
+          "accepted_lines": 40
+        },
+        ".gitignore": {
+          "additions": 8,
+          "deletions": 8,
+          "accepted_lines": 8
+        },
+        "apps/web/__tests__/helpers/mock-auth.ts": {
+          "additions": 14,
+          "deletions": 1,
+          "accepted_lines": 13
+        },
+        "apps/web/components/ServiceWorkerRegistrar.tsx": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "apps/web/app/api/spaces/[id]/members/[uid]/route.ts": {
+          "additions": 137,
+          "accepted_lines": 137
+        },
+        "apps/web/components/ui/badge.tsx": {
+          "additions": 58,
+          "deletions": 12,
+          "accepted_lines": 46
+        },
+        "apps/web/__tests__/cli-session-token.acceptance.test.ts": {
+          "additions": 371,
+          "deletions": 8,
+          "accepted_lines": 363
+        },
+        "apps/web/__tests__/api/tasks-id-route.acceptance.test.ts": {
+          "additions": 261,
+          "deletions": 4,
+          "accepted_lines": 257
+        },
+        "apps/web/app/api/spaces/route.ts": {
+          "additions": 58,
+          "deletions": 6,
+          "accepted_lines": 52
+        },
+        "apps/web/components/TaskList.tsx": {
+          "additions": 280,
+          "deletions": 5,
+          "accepted_lines": 275
+        },
+        "apps/web/app/api/orgs/[id]/members/[uid]/route.ts": {
+          "additions": 109,
+          "deletions": 1,
+          "accepted_lines": 108
+        },
+        "apps/web/__tests__/parse-utils.test.ts": {
+          "additions": 411,
+          "deletions": 25,
+          "accepted_lines": 386
+        },
+        "apps/web/app/(app)/notes/page.tsx": {
+          "additions": 242,
+          "deletions": 17,
+          "accepted_lines": 225
+        },
+        "apps/web/app/(app)/page.tsx": {
+          "additions": 255,
+          "deletions": 28,
+          "accepted_lines": 227
+        },
+        "apps/web/lib/assignee-utils.ts": {
+          "additions": 111,
+          "deletions": 13,
+          "accepted_lines": 98
+        },
+        "apps/web/tsconfig.json": {
+          "additions": 34,
+          "accepted_lines": 34
+        },
+        "apps/web/__tests__/helpers/fixtures.ts": {
+          "additions": 42,
+          "accepted_lines": 42
+        },
+        "apps/web/app/api/notifications/route.ts": {
+          "additions": 44,
+          "deletions": 1,
+          "accepted_lines": 43
+        },
+        "apps/web/lib/date-utils.ts": {
+          "additions": 153,
+          "deletions": 11,
+          "accepted_lines": 142
+        },
+        "apps/web/components.json": {
+          "additions": 23,
+          "accepted_lines": 23
+        },
+        "apps/web/app/api/tasks/route.ts": {
+          "additions": 259,
+          "accepted_lines": 259
+        },
+        "apps/web/app/(app)/account/page.tsx": {
+          "additions": 20,
+          "accepted_lines": 20
+        },
+        "apps/web/knip.config.ts": {
+          "additions": 36,
+          "deletions": 18,
+          "accepted_lines": 18
+        },
+        "apps/web/app/api/invitation/redeem/route.ts": {
+          "additions": 59,
+          "deletions": 4,
+          "accepted_lines": 55
+        },
+        "apps/web/components/RichText.tsx": {
+          "additions": 115,
+          "deletions": 5,
+          "accepted_lines": 110
+        },
+        "apps/web/app/api/notes/shared/[code]/route.ts": {
+          "additions": 20,
+          "accepted_lines": 20
+        },
+        "apps/web/app/api/push/subscribe/route.ts": {
+          "additions": 50,
+          "deletions": 4,
+          "accepted_lines": 46
+        },
+        ".autopilot/project/tasks/004-auth-bearer-keychain.md": {
+          "additions": 62,
+          "accepted_lines": 62
+        },
+        "__tests__/acceptance/t001-monorepo-migration.acceptance.test.ts": {
+          "additions": 271
+        },
+        "apps/web/lib/auth.ts": {
+          "additions": 87,
+          "accepted_lines": 87
+        },
+        "apps/web/app/api/orgs/[id]/spaces/[spaceId]/join/route.ts": {
+          "additions": 53,
+          "accepted_lines": 53
+        },
+        "apps/web/e2e/performance.spec.ts": {
+          "additions": 82,
+          "accepted_lines": 82
+        },
+        ".autopilot/project/tasks/006-native-capabilities.md": {
+          "additions": 55,
+          "accepted_lines": 55
+        },
+        "apps/web/vitest.config.ts": {
+          "additions": 32,
+          "accepted_lines": 32
+        },
+        "apps/web/scripts/vercel-rt-report.mjs": {
+          "additions": 338,
+          "deletions": 7,
+          "accepted_lines": 331
+        },
+        "apps/web/postcss.config.mjs": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "CLAUDE.md": {
+          "additions": 8,
+          "deletions": 6,
+          "accepted_lines": 8
+        },
+        "apps/web/package.json": {
+          "additions": 73,
+          "accepted_lines": 73
+        }
+      }
+    }
+  }
+}
