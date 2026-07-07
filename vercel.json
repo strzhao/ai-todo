@@ -5,5 +5,8 @@
       "path": "/api/cron/daily-digest",
       "schedule": "0 1 * * *"
     }
-  ]
+  ],
+  "buildCommand": "npm run build --workspace apps/web",
+  "outputDirectory": "apps/web/.next",
+  "installCommand": "npm install"
 }

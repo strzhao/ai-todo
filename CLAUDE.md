@@ -138,8 +138,10 @@ UMAMI_WEBSITE_ID=...                               # Umami Website ID（服务�
 
 ## 项目结构
 
+根目录为 npm workspaces monorepo（`apps/*` + `packages/*`），当前唯一 app 为 `apps/web/`：
+
 ```
-app/
+apps/web/app/
   (app)/                        # 路由组，共享 AppShell 布局
     layout.tsx                  # Server Component，读取 user + spaces + orgs，渲染 SpaceNav
     page.tsx                    # 今日视图
@@ -193,7 +195,7 @@ app/
     push/vapid/route.ts         # GET 返回 VAPID 公钥
     push/subscribe/route.ts     # POST（订阅）+ DELETE（取消订阅）
     cron/daily-digest/route.ts  # Cron 每日摘要（按 in-app / 邮件 / 推送偏好分发，UTC 01:00 = 北京 09:00）
-components/
+apps/web/components/
   SpaceNav.tsx                  # 侧边栏导航（桌面）+ 底部 Tab（移动端）+ 组织区块 + 当前空间一级任务目录 + 通知铃铛
   NLInput.tsx                   # 自然语言输入框，Cmd+K 聚焦，@ 触发成员菜单，传 tasks + parent_task 上下文给 AI；聚焦态下 placeholder 提示父任务名
   ActionPreview.tsx             # 统一操作预览 + 执行（create/update/complete/delete/add_log/move）
@@ -224,7 +226,7 @@ components/
   PWAInstallBanner.tsx          # PWA 安装引导横幅（访问 5 次后提示添加到主屏幕，Chrome 一键安装 / iOS 步骤引导）
   VoiceButton.tsx               # 语音按钮组件（idle/recording/transcribing 三态 UI）
   ServiceWorkerRegistrar.tsx    # Service Worker 注册（app 加载时自动注册）
-lib/
+apps/web/lib/
   types.ts                      # Task、ParsedTask、ParsedAction、ActionResult、TaskLog、AppNotification、SummaryConfig、LinkedSpace、Organization、OrgMember 等接口
   llm-client.ts                 # DeepSeek 客户端（55s 超时，AbortError 兜底）
   task-utils.ts                 # 纯函数：buildTree（flat Task[] → 树形 TaskNode[]）
@@ -259,14 +261,14 @@ lib/
   notes-auth.ts                 # 笔记鉴权工具（resolveNoteUserId 复用 getUserFromRequest，支持 session_token Bearer）
   task-permissions.ts            # 任务粒度权限矩阵（纯函数：getTaskRoles / checkTaskPermission / getDisallowedFields / TaskPermissionError）
   validations.ts                 # Zod schema（createTaskSchema + formatZodError，API 输入验证）
-__tests__/
+apps/web/__tests__/
   helpers/                       # 共享测试工具（mock-auth, mock-db, fixtures, make-request）
   api/                           # API Route 验收测试（notifications, tasks, tasks/[id]）
   task-utils.test.ts            # buildTree 单元测试
   gantt-utils.test.ts           # 日期函数单元测试
   parse-utils.test.ts           # parseItem / parseActions 单元测试（含 move action）
-proxy.ts                        # 路由保护（未登录重定向到 /authorize）
-public/
+apps/web/proxy.ts               # 路由保护（未登录重定向到 /authorize）
+apps/web/public/
   sw.js                         # Service Worker（push 通知 + 离线 fallback）
   manifest.json                 # PWA manifest（standalone 模式 + 苔色主题）
   offline.html                  # 离线提示页（自包含 HTML）

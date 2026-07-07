@@ -4,7 +4,14 @@ import reactHooks from "eslint-plugin-react-hooks";
 
 export default tseslint.config(
   {
-    ignores: [".next/", "node_modules/", "public/sw.js", ".autopilot/"],
+    ignores: [
+      "apps/web/.next/",
+      "apps/web/node_modules/",
+      "apps/web/public/sw.js",
+      "**/.next/",
+      "**/node_modules/",
+      ".autopilot/",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -25,7 +32,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["types/**/*.d.ts"],
+    files: ["apps/web/types/**/*.d.ts", "**/types/**/*.d.ts"],
     rules: {
       "no-var": "off",
     },
