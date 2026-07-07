@@ -1,0 +1,80 @@
+# ai-todo Mac app 任务 DAG
+# 机器可读的任务依赖图，autopilot-project skill 消费
+# 任务状态：pending | in_progress | done | blocked
+# 执行顺序（线性，无并行）：T001 → T002 → T003 → T004 → T005 → T006 → T007
+
+project: ai-todo-mac-app
+created: 2026-07-06
+total_tasks: 7
+
+tasks:
+  - id: T001
+    name: monorepo-migration
+    title: monorepo 迁移（Next.js 下移 apps/web + root workspaces）
+    status: done
+    depends_on: []
+    milestone: M1
+    brief: tasks/001-monorepo-migration.md
+
+  - id: T002
+    name: shared-packages-extraction
+    title: 抽取共享包 packages/ui + packages/api-client
+    status: pending
+    depends_on: [T001]
+    milestone: M1
+    brief: tasks/002-shared-packages-extraction.md
+
+  - id: T003
+    name: mac-frontend-shell
+    title: mac 前端 Vite+React 壳（引用 packages/ui + api-client）
+    status: pending
+    depends_on: [T002]
+    milestone: M2
+    brief: tasks/003-mac-frontend-shell.md
+
+  - id: T004
+    name: auth-bearer-keychain
+    title: Bearer 认证改造（cli-token + 客户端守卫）
+    status: pending
+    depends_on: [T003]
+    milestone: M2
+    brief: tasks/004-auth-bearer-keychain.md
+
+  - id: T005
+    name: tauri-skeleton
+    title: Tauri 2 骨架（webview + keychain 集成）
+    status: pending
+    depends_on: [T003, T004]
+    milestone: M3
+    brief: tasks/005-tauri-skeleton.md
+
+  - id: T006
+    name: native-capabilities
+    title: 原生能力（菜单栏/快捷键/通知/托盘）
+    status: pending
+    depends_on: [T005]
+    milestone: M3
+    brief: tasks/006-native-capabilities.md
+
+  - id: T007
+    name: distribution
+    title: 分发（签名/公证/自动更新）
+    status: pending
+    depends_on: [T006]
+    milestone: M4
+    brief: tasks/007-distribution.md
+
+# 里程碑
+milestones:
+  - id: M1
+    name: monorepo 地基
+    tasks: [T001, T002]
+  - id: M2
+    name: mac 前端
+    tasks: [T003, T004]
+  - id: M3
+    name: Tauri 集成
+    tasks: [T005, T006]
+  - id: M4
+    name: 分发
+    tasks: [T007]

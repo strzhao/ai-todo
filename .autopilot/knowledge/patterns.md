@@ -1,5 +1,19 @@
 # Patterns
 
+## monorepo 迁移三陷阱：gitignore 根锚定 / eslint 相对路径 / Next.js env cwd
+
+<!-- tags: monorepo, workspaces, gitignore, eslint, nextjs, env, 迁移 -->
+
+单体 Next.js 工程下移到 `apps/web/` + root npm workspaces 化时，三个配置若不适配会静默破坏：
+
+1. **`.gitignore` 根锚定规则失效**：`/node_modules` `/.next/` `/coverage` 等带前导 `/` 的规则只匹配仓库根，迁移后 `apps/web/node_modules/`、`apps/web/.next/` 不被 ignore，`git add -A` 会误提交数百 MB 产物。**修复**：去前导 `/` 改非锚定（`node_modules/` `.next/` 等），匹配任意层级。
+2. **eslint flat config 相对路径错位**：`eslint.config.mjs` 留 root 时，`ignores: [".next/"]` `files: ["types/**/*.d.ts"]` 相对 root 解析，迁移后 `apps/web/.next/` 压缩产物不再被 ignore，lint 产生真实 error（非仅 rc 判断失误）。**修复**：ignores/files 加 `apps/web/` 前缀 + `**/` 通配覆盖未来 packages/。
+3. **Next.js 16 env 基于 cwd**：`next dev`/`next build` 在 apps/web 运行时 cwd=apps/web，**不读** root `.env.local`。**修复**：`.env.local` cp 到 apps/web/（未入 git 用 cp，已跟踪的 .env.example 用 git mv）。
+
+**教训**：monorepo 迁移的"纯 git mv"不真纯——根锚定配置（gitignore/eslint/ci tsc/vercel build）必须同步适配。plan 审查实测发现 B1/B2 critical（git check-ignore + eslint API 实跑复现），非阅读推断。CI 的 `npx tsc --noEmit` 也需加 `--project apps/web/tsconfig.json`（root 无 tsconfig）。commit 时注意 commitlint body-max-line-length 失败会触发 husky lint-staged 对暂存文件跑 prettier，可能把 R100 纯重命名变成 D+A（内容变化超相似度阈值），需用 `git show HEAD~1:<path>` 恢复。
+
+**关联**：T001 monorepo 迁移，commit da4f02c。
+
 ## proxy.ts 与路由层认证必须保持同步
 
 <!-- tags: proxy, auth, session_token, bearer, cli -->
