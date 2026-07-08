@@ -13,7 +13,8 @@ services:
       - NODE_ENV=production
       - PORT=3002
       - HOSTNAME=0.0.0.0
-    expose: ["3002"]
+    ports:
+      - "3002:3002" # 备案前直连 IP:3002;备案后可改回 expose 仅 Caddy 反代
     networks: [little-bee-net]
 
 networks:
