@@ -166,6 +166,10 @@ app/
     tasks/tree/route.ts         # GET 树形文本（CLI tasks:tree，format:text → { output }）
     tasks/[id]/route.ts         # GET（单条任务）+ PATCH（完成/更新/分享/取消分享）+ DELETE
     notes/shared/[code]/route.ts  # GET 公开笔记（无需认证，按 share_code 查询）
+    notes/route.ts                # GET（游标分页，type=1 隔离）/ POST 笔记门面（Mac app 接入，session_token 复用 getUserFromRequest）
+    notes/[id]/route.ts           # GET / PATCH / DELETE 单条笔记（NoteDTO 收窄，type=1 铁律，task 视角等同不存在 → 404）
+    notes/[id]/share/route.ts     # POST 生成 share_code / DELETE 取消分享
+    notes/shared/[code]/route.ts  # GET 公开笔记子集（门面视角，无需认证）
     tasks/[id]/logs/route.ts    # GET + POST 任务进展日报
     spaces/route.ts             # GET（我的空间列表）+ POST（创建空间）
     spaces/[id]/route.ts        # GET + PATCH + DELETE
@@ -250,6 +254,9 @@ lib/
   use-pwa-install.ts            # PWA 安装能力 hook（平台检测 + beforeinstallprompt 管理）
   use-media-query.ts            # 响应式 hook（useIsDesktop，768px 断点，SSR-safe）
   db.ts                         # Vercel Postgres CRUD（tasks + task_members + task_logs + push_subscriptions）；空间 = pinned 任务
+  pg.ts                         # pg 兼容层（对齐 @vercel/postgres 双形态 sql`` + sql.query，pool max:5 适配 VPS 2G）
+  notes.ts                      # 笔记 API 门面（NoteDTO 收窄 + type=1 隔离铁律 + 游标分页，供 /api/notes/* 路由调用）
+  notes-auth.ts                 # 笔记鉴权工具（resolveNoteUserId 复用 getUserFromRequest，支持 session_token Bearer）
   task-permissions.ts            # 任务粒度权限矩阵（纯函数：getTaskRoles / checkTaskPermission / getDisallowedFields / TaskPermissionError）
   validations.ts                 # Zod schema（createTaskSchema + formatZodError，API 输入验证）
 __tests__/
@@ -263,7 +270,20 @@ public/
   sw.js                         # Service Worker（push 通知 + 离线 fallback）
   manifest.json                 # PWA manifest（standalone 模式 + 苔色主题）
   offline.html                  # 离线提示页（自包含 HTML）
+deploy/                         # VPS 部署产物（node:20-alpine multi-stage Dockerfile + docker-compose.yml external little-bee-net + .dockerignore）
+scripts/
+  db-migrate.mjs                # 幂等建表/迁移脚本（pg 兼容）
+  gen-env-production.sh         # 生成 .env.production（从 .env.local 投影生产所需变量）
+  migrate-data-to-vps.mjs       # Neon → VPS PostgreSQL 数据迁移（pg 双 Pool replica/origin 幂等）
+HANDOFF-VPS-MIGRATION.md        # VPS 迁移 handoff（后续步骤：改 frps/DNS，凭据在 .env.local gitignored）
 ```
+
+## 部署形态
+
+代码层支持两种部署：
+
+- **Vercel**（历史默认）：`@vercel/postgres` 已替换为 `pg`，但 `POSTGRES_URL` 仍指向 Neon；`proxy.ts` 路由保护不变
+- **VPS（腾讯云上海）**：`deploy/` 多阶段 Docker 构建 + `output: standalone`，`docker-compose.yml` 接入 `little-bee-net` external 网络，端口 3002；`POSTGRES_URL` 指向本机 `little-bee-pg`。后续部署步骤见 `HANDOFF-VPS-MIGRATION.md`
 
 ## 任务优先级
 

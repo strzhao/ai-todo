@@ -1,14 +1,34 @@
 import nextEnv from "@next/env";
+import pg from "pg";
 
 const { loadEnvConfig } = nextEnv;
 loadEnvConfig(process.cwd());
 
+// 独立进程直连 pg(不经 tsconfig alias),构造与 lib/pg.ts 同构的 sql 双形态。
+// 注:lib/db.ts 已用相对路径 ./pg,故 node --experimental-strip-types 直跑可解析。
 async function main() {
   if (!process.env.POSTGRES_URL) {
     throw new Error("POSTGRES_URL is required");
   }
 
-  const { sql } = await import("@vercel/postgres");
+  const pool = new pg.Pool({
+    connectionString: process.env.POSTGRES_URL,
+    max: 5,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+  });
+  const sql = Object.assign(
+    (strings, ...values) => {
+      let text = "";
+      for (let i = 0; i < strings.length; i++) {
+        text += strings[i];
+        if (i < values.length) text += `$${i + 1}`;
+      }
+      return pool.query(text, values);
+    },
+    { query: (text, params) => pool.query(text, params) }
+  );
+
   const { migrateDb } = await import("../lib/db.ts");
 
   const startedAt = Date.now();
@@ -76,7 +96,9 @@ async function main() {
     `;
     const orphanCount = Number(orphaned[0]?.cnt ?? 0);
     if (orphanCount > 0) {
-      console.warn(`[db:migrate] WARNING: ${orphanCount} tasks have orphaned space_id — setting to NULL`);
+      console.warn(
+        `[db:migrate] WARNING: ${orphanCount} tasks have orphaned space_id — setting to NULL`
+      );
       await sql`
         UPDATE ai_todo_tasks SET space_id = NULL
         WHERE space_id IS NOT NULL
@@ -93,6 +115,7 @@ async function main() {
     console.log("[db:migrate] no ai_todo_spaces table found, skipping migration");
   }
 
+  await pool.end();
   const elapsed = Date.now() - startedAt;
   console.log(`[db:migrate] completed in ${elapsed}ms`);
 }

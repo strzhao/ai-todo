@@ -54,7 +54,7 @@ function setupRouteMocks(options?: {
   const sendDigestEmail = vi.fn().mockResolvedValue(undefined);
   const sendPushToUser = vi.fn().mockResolvedValue(undefined);
 
-  vi.doMock("@vercel/postgres", () => ({ sql }));
+  vi.doMock("@/lib/pg", () => ({ sql }));
   vi.doMock("@/lib/db", () => ({ initDb: vi.fn() }));
   vi.doMock("@/lib/notifications", () => ({ getUserNotificationPrefs }));
   vi.doMock("@/lib/daily-digest", () => ({

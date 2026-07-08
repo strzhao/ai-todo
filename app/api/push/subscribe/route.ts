@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sql } from "@vercel/postgres";
+import { sql } from "@/lib/pg";
 import { getUserFromRequest } from "@/lib/auth";
 import { initDb } from "@/lib/db";
 
@@ -37,10 +37,10 @@ export async function DELETE(req: NextRequest) {
   }
 
   await initDb();
-  await sql.query(
-    `DELETE FROM ai_todo_push_subscriptions WHERE user_id = $1 AND endpoint = $2`,
-    [user.id, endpoint]
-  );
+  await sql.query(`DELETE FROM ai_todo_push_subscriptions WHERE user_id = $1 AND endpoint = $2`, [
+    user.id,
+    endpoint,
+  ]);
 
   return NextResponse.json({ ok: true });
 }

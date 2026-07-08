@@ -1,4 +1,4 @@
-import { sql } from "@vercel/postgres";
+import { sql } from "@/lib/pg";
 import { initDb } from "./db";
 import { NOTIFICATION_TYPES, type NotificationType } from "./notification-types";
 import type { AppNotification, AppNotificationData, NotificationPrefs } from "./types";
@@ -44,7 +44,10 @@ export async function getUserNotificationPrefs(userId: string): Promise<Notifica
   return defaults;
 }
 
-export async function setUserNotificationPrefs(userId: string, prefs: NotificationPrefs): Promise<void> {
+export async function setUserNotificationPrefs(
+  userId: string,
+  prefs: NotificationPrefs
+): Promise<void> {
   await sql.query(
     `INSERT INTO ai_todo_notification_prefs (user_id, prefs, updated_at)
      VALUES ($1, $2, NOW())

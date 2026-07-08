@@ -80,7 +80,7 @@ vi.mock("@/lib/notifications", () => ({
   fireNotifications: vi.fn(),
 }));
 
-vi.mock("@vercel/postgres", () => ({
+vi.mock("@/lib/pg", () => ({
   sql: Object.assign(vi.fn(), { query: vi.fn() }),
 }));
 

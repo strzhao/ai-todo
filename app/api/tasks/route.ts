@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
   }
 
   // type=1 → notes only; type=0 or omitted → tasks only (backward compat)
+  // @deprecated use /api/notes — 笔记 API 门面(Phase 1:个人笔记;type=1 分支保留,web 端零感知)
   const wantType = typeParam === "1" ? 1 : 0;
 
   let tasks;
@@ -145,7 +146,7 @@ export async function POST(req: NextRequest) {
   let assigneeId: string | undefined;
 
   if (assigneeEmail && body.space_id) {
-    const { sql } = await import("@vercel/postgres");
+    const { sql } = await import("@/lib/pg");
     const { rows: memberRows } = await rt.track(
       "db_query",
       async () => sql`
@@ -223,7 +224,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (task.mentioned_emails?.length && task.space_id) {
-        const { sql: pgSql } = await import("@vercel/postgres");
+        const { sql: pgSql } = await import("@/lib/pg");
         for (const email of task.mentioned_emails) {
           const { rows } = await pgSql`
             SELECT user_id FROM ai_todo_task_members

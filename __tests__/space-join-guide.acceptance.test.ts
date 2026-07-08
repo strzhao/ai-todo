@@ -28,7 +28,7 @@ const { mockQuery, mockTaggedTemplate } = vi.hoisted(() => {
   return { mockQuery, mockTaggedTemplate };
 });
 
-vi.mock("@vercel/postgres", () => ({
+vi.mock("@/lib/pg", () => ({
   sql: mockTaggedTemplate,
 }));
 
@@ -182,9 +182,33 @@ describe("AC-1: 非成员 403 响应包含 space_preview", () => {
 
   it("space_preview 包含 member_count 字段（数字类型）", async () => {
     const members = [
-      { id: "tm-1", task_id: SPACE_ID, user_id: OWNER_ID, email: "a@test.com", role: "owner", status: "active", joined_at: "2026-01-01T00:00:00Z" },
-      { id: "tm-2", task_id: SPACE_ID, user_id: "u2", email: "b@test.com", role: "member", status: "active", joined_at: "2026-01-01T00:00:00Z" },
-      { id: "tm-3", task_id: SPACE_ID, user_id: "u3", email: "c@test.com", role: "member", status: "active", joined_at: "2026-01-01T00:00:00Z" },
+      {
+        id: "tm-1",
+        task_id: SPACE_ID,
+        user_id: OWNER_ID,
+        email: "a@test.com",
+        role: "owner",
+        status: "active",
+        joined_at: "2026-01-01T00:00:00Z",
+      },
+      {
+        id: "tm-2",
+        task_id: SPACE_ID,
+        user_id: "u2",
+        email: "b@test.com",
+        role: "member",
+        status: "active",
+        joined_at: "2026-01-01T00:00:00Z",
+      },
+      {
+        id: "tm-3",
+        task_id: SPACE_ID,
+        user_id: "u3",
+        email: "c@test.com",
+        role: "member",
+        status: "active",
+        joined_at: "2026-01-01T00:00:00Z",
+      },
     ];
     mockGetTaskById.mockResolvedValue(makeSpace());
     mockGetTaskMembers.mockResolvedValue(members);

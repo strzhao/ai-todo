@@ -11,7 +11,7 @@ import {
 } from "@/lib/db";
 import { requireSpaceMember, requireSpaceOwner, getAllSpaceMembers } from "@/lib/spaces";
 import { createRouteTimer } from "@/lib/route-timing";
-import { sql } from "@vercel/postgres";
+import { sql } from "@/lib/pg";
 
 export const preferredRegion = "hkg1";
 

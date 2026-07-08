@@ -31,7 +31,7 @@ const { mockQuery, mockTaggedTemplate } = vi.hoisted(() => {
   return { mockQuery, mockTaggedTemplate };
 });
 
-vi.mock("@vercel/postgres", () => ({
+vi.mock("@/lib/pg", () => ({
   sql: mockTaggedTemplate,
 }));
 
@@ -223,9 +223,7 @@ describe("AC-4: 公开端点返回笔记内容", () => {
     });
 
     const { GET } = await import("@/app/api/notes/shared/[code]/route");
-    const req = new NextRequest(
-      `https://ai-todo.stringzhao.life/api/notes/shared/${SHARE_CODE}`
-    );
+    const req = new NextRequest(`https://ai-todo.stringzhao.life/api/notes/shared/${SHARE_CODE}`);
 
     const res = await GET(req, { params: Promise.resolve({ code: SHARE_CODE }) });
     const body = await res.json();
@@ -247,9 +245,7 @@ describe("AC-4: 公开端点返回笔记内容", () => {
     });
 
     const { GET } = await import("@/app/api/notes/shared/[code]/route");
-    const req = new NextRequest(
-      `https://ai-todo.stringzhao.life/api/notes/shared/${SHARE_CODE}`
-    );
+    const req = new NextRequest(`https://ai-todo.stringzhao.life/api/notes/shared/${SHARE_CODE}`);
 
     const res = await GET(req, { params: Promise.resolve({ code: SHARE_CODE }) });
     const body = await res.json();
@@ -270,9 +266,7 @@ describe("AC-4: 公开端点返回笔记内容", () => {
     const { GET } = await import("@/app/api/notes/shared/[code]/route");
 
     // 不带任何 auth header
-    const req = new NextRequest(
-      `https://ai-todo.stringzhao.life/api/notes/shared/${SHARE_CODE}`
-    );
+    const req = new NextRequest(`https://ai-todo.stringzhao.life/api/notes/shared/${SHARE_CODE}`);
 
     const res = await GET(req, { params: Promise.resolve({ code: SHARE_CODE }) });
 
@@ -292,9 +286,7 @@ describe("AC-5: 无效或失效的 share_code 返回 404", () => {
     mockTaggedTemplate.mockReturnValueOnce({ rows: [] }); // 查不到
 
     const { GET } = await import("@/app/api/notes/shared/[code]/route");
-    const req = new NextRequest(
-      "https://ai-todo.stringzhao.life/api/notes/shared/INVALID1"
-    );
+    const req = new NextRequest("https://ai-todo.stringzhao.life/api/notes/shared/INVALID1");
 
     const res = await GET(req, { params: Promise.resolve({ code: "INVALID1" }) });
 
@@ -306,9 +298,7 @@ describe("AC-5: 无效或失效的 share_code 返回 404", () => {
     mockTaggedTemplate.mockReturnValueOnce({ rows: [] });
 
     const { GET } = await import("@/app/api/notes/shared/[code]/route");
-    const req = new NextRequest(
-      `https://ai-todo.stringzhao.life/api/notes/shared/${SHARE_CODE}`
-    );
+    const req = new NextRequest(`https://ai-todo.stringzhao.life/api/notes/shared/${SHARE_CODE}`);
 
     const res = await GET(req, { params: Promise.resolve({ code: SHARE_CODE }) });
 

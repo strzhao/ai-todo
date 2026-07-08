@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { getPinnedTasksForUser, createPinnedTask, initDb } from "@/lib/db";
 import { createRouteTimer } from "@/lib/route-timing";
-import { sql } from "@vercel/postgres";
+import { sql } from "@/lib/pg";
 
 export const preferredRegion = "hkg1";
 
@@ -23,16 +23,23 @@ export async function POST(req: NextRequest) {
 
   await rt.track("db_init", async () => initDb());
 
-  const body = await req.json() as { name?: string; description?: string; invite_mode?: string; org_id?: string };
+  const body = (await req.json()) as {
+    name?: string;
+    description?: string;
+    invite_mode?: string;
+    org_id?: string;
+  };
   if (!body.name?.trim()) {
     return rt.json({ error: "name is required" }, { status: 400 });
   }
 
-  const task = await rt.track("db_query", async () => createPinnedTask(user.id, user.email, {
-    title: body.name!.trim(),
-    description: body.description?.trim() || undefined,
-    invite_mode: body.invite_mode === "approval" ? "approval" : "open",
-  }));
+  const task = await rt.track("db_query", async () =>
+    createPinnedTask(user.id, user.email, {
+      title: body.name!.trim(),
+      description: body.description?.trim() || undefined,
+      invite_mode: body.invite_mode === "approval" ? "approval" : "open",
+    })
+  );
 
   // Set org_id if provided
   if (body.org_id) {

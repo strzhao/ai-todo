@@ -33,9 +33,9 @@ vi.mock("@/lib/db");
 vi.mock("@/lib/route-timing", () => ({
   createRouteTimer: vi.fn().mockImplementation(() => ({
     track: vi.fn().mockImplementation((_name: string, fn: () => unknown) => fn()),
-    json: vi.fn().mockImplementation((data: unknown, init?: ResponseInit) =>
-      Response.json(data, init)
-    ),
+    json: vi
+      .fn()
+      .mockImplementation((data: unknown, init?: ResponseInit) => Response.json(data, init)),
     empty: vi.fn().mockImplementation((status: number) => new Response(null, { status })),
   })),
 }));
@@ -55,7 +55,7 @@ vi.mock("@/lib/spaces", () => ({
   requireSpaceMember: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("@vercel/postgres", () => ({
+vi.mock("@/lib/pg", () => ({
   sql: Object.assign(vi.fn(), { query: vi.fn() }),
 }));
 
@@ -81,7 +81,8 @@ const mockNote = {
   tags: ["meeting"],
   parent_id: null,
   space_id: null,
-  voice_raw_text: "we discussed the roadmap in today's meeting and decided to prioritize the voice feature",
+  voice_raw_text:
+    "we discussed the roadmap in today's meeting and decided to prioritize the voice feature",
 };
 
 const mockNoteNoVoice = {
@@ -115,7 +116,8 @@ describe("Voice note creation via POST /api/tasks", () => {
         description: "We discussed the roadmap",
         type: 1,
         tags: ["meeting"],
-        voice_raw_text: "we discussed the roadmap in today's meeting and decided to prioritize the voice feature",
+        voice_raw_text:
+          "we discussed the roadmap in today's meeting and decided to prioritize the voice feature",
       })
     );
     expect(res.status).toBe(201);

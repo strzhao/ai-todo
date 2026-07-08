@@ -18,9 +18,9 @@ vi.mock("@/lib/db");
 vi.mock("@/lib/route-timing", () => ({
   createRouteTimer: vi.fn().mockImplementation(() => ({
     track: vi.fn().mockImplementation((_name: string, fn: () => unknown) => fn()),
-    json: vi.fn().mockImplementation((data: unknown, init?: ResponseInit) =>
-      Response.json(data, init)
-    ),
+    json: vi
+      .fn()
+      .mockImplementation((data: unknown, init?: ResponseInit) => Response.json(data, init)),
     empty: vi.fn().mockImplementation((status: number) => new Response(null, { status })),
   })),
 }));
@@ -33,7 +33,7 @@ vi.mock("@/lib/ai-flow-log", () => ({
   aiFlowLog: vi.fn(),
   getAiTraceIdFromHeaders: vi.fn().mockReturnValue(null),
 }));
-vi.mock("@vercel/postgres", () => ({
+vi.mock("@/lib/pg", () => ({
   sql: Object.assign(vi.fn(), { query: vi.fn() }),
 }));
 
@@ -83,7 +83,10 @@ describe("GET /api/tasks/[id]", () => {
   it("returns 404 when task not found", async () => {
     vi.mocked(getTaskForUser).mockResolvedValue(null);
     const { GET } = await import("@/app/api/tasks/[id]/route");
-    const res = await GET(makeGET("/api/tasks/nonexistent"), makeRouteContext({ id: "nonexistent" }));
+    const res = await GET(
+      makeGET("/api/tasks/nonexistent"),
+      makeRouteContext({ id: "nonexistent" })
+    );
     expect(res.status).toBe(404);
     const body = await res.json();
     expect(body).toEqual({ error: "Not found" });

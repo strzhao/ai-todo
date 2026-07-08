@@ -17,9 +17,9 @@ vi.mock("@/lib/db");
 vi.mock("@/lib/route-timing", () => ({
   createRouteTimer: vi.fn().mockImplementation(() => ({
     track: vi.fn().mockImplementation((_name: string, fn: () => unknown) => fn()),
-    json: vi.fn().mockImplementation((data: unknown, init?: ResponseInit) =>
-      Response.json(data, init)
-    ),
+    json: vi
+      .fn()
+      .mockImplementation((data: unknown, init?: ResponseInit) => Response.json(data, init)),
     empty: vi.fn().mockImplementation((status: number) => new Response(null, { status })),
   })),
 }));
@@ -35,12 +35,19 @@ vi.mock("@/lib/ai-flow-log", () => ({
 vi.mock("@/lib/spaces", () => ({
   requireSpaceMember: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock("@vercel/postgres", () => ({
+vi.mock("@/lib/pg", () => ({
   sql: Object.assign(vi.fn(), { query: vi.fn() }),
 }));
 
 import { getUserFromRequest } from "@/lib/auth";
-import { initDb, getTasks, getTodayTasks, getCompletedTasks, createTask, getTaskById } from "@/lib/db";
+import {
+  initDb,
+  getTasks,
+  getTodayTasks,
+  getCompletedTasks,
+  createTask,
+  getTaskById,
+} from "@/lib/db";
 import { requireSpaceMember } from "@/lib/spaces";
 
 const mockTask = {
@@ -193,7 +200,15 @@ describe("POST /api/tasks", () => {
   it("auto-inherits space_id from parent when parent is pinned", async () => {
     const pinnedParent = { ...mockTask, id: "parent-1", pinned: true, space_id: null };
     vi.mocked(getTaskById).mockResolvedValue(pinnedParent as never);
-    vi.mocked(requireSpaceMember).mockResolvedValue({ id: "m-1", task_id: "parent-1", user_id: "user-1", email: "test@example.com", role: "member", status: "active", joined_at: "2026-01-01T00:00:00Z" });
+    vi.mocked(requireSpaceMember).mockResolvedValue({
+      id: "m-1",
+      task_id: "parent-1",
+      user_id: "user-1",
+      email: "test@example.com",
+      role: "member",
+      status: "active",
+      joined_at: "2026-01-01T00:00:00Z",
+    });
     vi.mocked(createTask).mockResolvedValue({ ...mockTask, space_id: "parent-1" } as never);
     const { POST } = await import("@/app/api/tasks/route");
     const res = await POST(makePOST("/api/tasks", { title: "child", parent_id: "parent-1" }));

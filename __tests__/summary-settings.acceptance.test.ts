@@ -1,15 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type {
-  SummaryConfig,
-  PromptTemplate,
-  ParsedSummaryConfigAction,
-} from "@/lib/types";
+import type { SummaryConfig, PromptTemplate, ParsedSummaryConfigAction } from "@/lib/types";
 
 // ─── Mock @vercel/postgres ───────────────────────────────────────────────────
 
 const mockQuery = vi.fn();
 
-vi.mock("@vercel/postgres", () => ({
+vi.mock("@/lib/pg", () => ({
   sql: { query: (...args: unknown[]) => mockQuery(...args) },
 }));
 
@@ -129,10 +125,7 @@ describe("getSummaryConfig: 幽灵模版 bug 修复", () => {
 // ─── 2. applyActions 纯函数测试 ─────────────────────────────────────────────
 
 describe("applyActions: 模版操作", () => {
-  let applyActions: (
-    config: SummaryConfig,
-    actions: ParsedSummaryConfigAction[]
-  ) => SummaryConfig;
+  let applyActions: (config: SummaryConfig, actions: ParsedSummaryConfigAction[]) => SummaryConfig;
 
   async function loadApplyActions() {
     try {

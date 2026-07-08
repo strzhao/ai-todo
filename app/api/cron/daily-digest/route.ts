@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sql } from "@vercel/postgres";
+import { sql } from "@/lib/pg";
 import { initDb } from "@/lib/db";
 import { getUserNotificationPrefs } from "@/lib/notifications";
 import {

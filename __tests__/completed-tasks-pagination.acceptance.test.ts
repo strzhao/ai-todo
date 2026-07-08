@@ -19,7 +19,7 @@ const { mockQuery, mockTaggedTemplate } = vi.hoisted(() => {
   return { mockQuery, mockTaggedTemplate };
 });
 
-vi.mock("@vercel/postgres", () => ({
+vi.mock("@/lib/pg", () => ({
   sql: mockTaggedTemplate,
 }));
 
@@ -47,7 +47,10 @@ vi.mock("@/lib/route-timing", () => ({
       const body = JSON.stringify(data);
       return new Response(body, {
         status: 200,
-        headers: { "content-type": "application/json", ...(init?.headers as Record<string, string> || {}) },
+        headers: {
+          "content-type": "application/json",
+          ...((init?.headers as Record<string, string>) || {}),
+        },
       });
     }),
   }),
@@ -62,7 +65,11 @@ import { getCompletedTasks } from "@/lib/db";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function makeCompletedRow(id: string, completedAt: string, overrides: Record<string, unknown> = {}) {
+function makeCompletedRow(
+  id: string,
+  completedAt: string,
+  overrides: Record<string, unknown> = {}
+) {
   return {
     id,
     user_id: "user1",
@@ -181,16 +188,15 @@ describe("getCompletedTasks 游标分页", () => {
     expect(result.tasks).toHaveLength(2);
     // 所有返回的任务 completed_at 应该 <= 游标时间
     for (const task of result.tasks) {
-      expect(new Date(task.completed_at!).getTime()).toBeLessThanOrEqual(new Date(cursorTime).getTime());
+      expect(new Date(task.completed_at!).getTime()).toBeLessThanOrEqual(
+        new Date(cursorTime).getTime()
+      );
     }
 
     // 验证 SQL 包含游标过滤条件
-    const callArgs = mockQuery.mock.calls.length > 0
-      ? mockQuery.mock.calls[0]
-      : null;
-    const taggedCallArgs = mockTaggedTemplate.mock.calls.length > 0
-      ? mockTaggedTemplate.mock.calls
-      : null;
+    const callArgs = mockQuery.mock.calls.length > 0 ? mockQuery.mock.calls[0] : null;
+    const taggedCallArgs =
+      mockTaggedTemplate.mock.calls.length > 0 ? mockTaggedTemplate.mock.calls : null;
 
     // 至少有一个调用，且查询包含游标相关条件
     const allCalls = [
@@ -201,7 +207,9 @@ describe("getCompletedTasks 游标分页", () => {
       (sqlText: string) =>
         sqlText.includes("completed_at") && (sqlText.includes("<") || sqlText.includes("before"))
     );
-    expect(hasCursorFilter || mockQuery.mock.calls.length > 0 || mockTaggedTemplate.mock.calls.length > 0).toBe(true);
+    expect(
+      hasCursorFilter || mockQuery.mock.calls.length > 0 || mockTaggedTemplate.mock.calls.length > 0
+    ).toBe(true);
   });
 
   it("游标分页不漏不重：第一页 + 第二页 = 全部记录", async () => {
@@ -280,9 +288,7 @@ describe("API 响应格式向后兼容", () => {
   });
 
   it("API 支持 before 和 before_id 查询参数进行游标分页", async () => {
-    const rows = [
-      makeCompletedRow("t-old", "2026-03-10T10:00:00Z"),
-    ];
+    const rows = [makeCompletedRow("t-old", "2026-03-10T10:00:00Z")];
     mockTaggedTemplate.mockReturnValue({ rows });
     mockQuery.mockResolvedValue({ rows });
 

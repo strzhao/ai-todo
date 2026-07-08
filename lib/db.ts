@@ -1,4 +1,4 @@
-import { sql } from "@vercel/postgres";
+import { sql } from "./pg";
 import { createHash, randomBytes } from "crypto";
 import type {
   Task,

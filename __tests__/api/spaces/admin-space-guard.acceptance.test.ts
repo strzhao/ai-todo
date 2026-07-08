@@ -45,7 +45,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 // sql 仅在 PATCH org_id 分支用到，本测试不触发，mock 成空查询
-vi.mock("@vercel/postgres", () => ({
+vi.mock("@/lib/pg", () => ({
   sql: { query: vi.fn().mockResolvedValue({ rows: [] }) },
 }));
 

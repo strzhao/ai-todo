@@ -1,6 +1,6 @@
 // @ts-expect-error web-push has no type declarations
 import webpush from "web-push";
-import { sql } from "@vercel/postgres";
+import { sql } from "@/lib/pg";
 import { initDb } from "./db";
 
 // Lazy-init VAPID config

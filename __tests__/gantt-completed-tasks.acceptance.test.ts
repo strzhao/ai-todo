@@ -26,7 +26,7 @@ const { mockQuery, mockTaggedTemplate } = vi.hoisted(() => {
   return { mockQuery, mockTaggedTemplate };
 });
 
-vi.mock("@vercel/postgres", () => ({
+vi.mock("@/lib/pg", () => ({
   sql: mockTaggedTemplate,
 }));
 

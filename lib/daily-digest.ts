@@ -1,4 +1,4 @@
-import { sql } from "@vercel/postgres";
+import { sql } from "@/lib/pg";
 import type {
   AppNotificationData,
   DailyDigestMetric,
@@ -91,12 +91,14 @@ export async function getUserDigestData(userId: string, today: string): Promise<
     space_id: (r.space_id as string) || undefined,
   }));
 
-  const spaceIds = [...new Set(
-    [...overdueTasks, ...dueTodayTasks, ...completedYesterday]
-      .map((t) => t.space_id)
-      .concat(logsYesterday.map((l) => l.space_id))
-      .filter(Boolean)
-  )] as string[];
+  const spaceIds = [
+    ...new Set(
+      [...overdueTasks, ...dueTodayTasks, ...completedYesterday]
+        .map((t) => t.space_id)
+        .concat(logsYesterday.map((l) => l.space_id))
+        .filter(Boolean)
+    ),
+  ] as string[];
   const spaceNames = await getSpaceNames(spaceIds);
 
   return {
@@ -120,9 +122,30 @@ export function hasDigestContent(data: DigestData): boolean {
 export function buildDailyDigestSnapshot(data: DigestData, today: string): DailyDigestSnapshot {
   const metrics = buildDigestMetrics(data);
   const sections = [
-    buildTaskSection("overdue", "已过期任务", data.overdueTasks, data.spaceNames, today, NOTIFICATION_ITEM_LIMIT),
-    buildTaskSection("due_today", "今日到期", data.dueTodayTasks, data.spaceNames, today, NOTIFICATION_ITEM_LIMIT),
-    buildTaskSection("completed", "昨日完成", data.completedYesterday, data.spaceNames, today, NOTIFICATION_ITEM_LIMIT),
+    buildTaskSection(
+      "overdue",
+      "已过期任务",
+      data.overdueTasks,
+      data.spaceNames,
+      today,
+      NOTIFICATION_ITEM_LIMIT
+    ),
+    buildTaskSection(
+      "due_today",
+      "今日到期",
+      data.dueTodayTasks,
+      data.spaceNames,
+      today,
+      NOTIFICATION_ITEM_LIMIT
+    ),
+    buildTaskSection(
+      "completed",
+      "昨日完成",
+      data.completedYesterday,
+      data.spaceNames,
+      today,
+      NOTIFICATION_ITEM_LIMIT
+    ),
     buildLogSection(data.logsYesterday, data.spaceNames, NOTIFICATION_ITEM_LIMIT),
   ].filter((section): section is DailyDigestSection => !!section);
 
@@ -300,18 +323,26 @@ export async function getPersonalDaySummaryData(
   }));
 
   // Collect all unique space_ids
-  const spaceIds = [...new Set(
-    [...completedTasks, ...createdTasks, ...overdueTasks, ...dueTodayTasks]
-      .map((t) => t.space_id)
-      .concat(logs.map((log) => log.space_id))
-      .filter(Boolean)
-  )] as string[];
+  const spaceIds = [
+    ...new Set(
+      [...completedTasks, ...createdTasks, ...overdueTasks, ...dueTodayTasks]
+        .map((t) => t.space_id)
+        .concat(logs.map((log) => log.space_id))
+        .filter(Boolean)
+    ),
+  ] as string[];
   const spaceNames = await getSpaceNames(spaceIds);
 
   return { completedTasks, createdTasks, logs, overdueTasks, dueTodayTasks, spaceNames };
 }
 
-export function hasPersonalDayContent(data: { completedTasks: unknown[]; createdTasks: unknown[]; logs: unknown[]; overdueTasks: unknown[]; dueTodayTasks: unknown[] }): boolean {
+export function hasPersonalDayContent(data: {
+  completedTasks: unknown[];
+  createdTasks: unknown[];
+  logs: unknown[];
+  overdueTasks: unknown[];
+  dueTodayTasks: unknown[];
+}): boolean {
   return (
     data.completedTasks.length > 0 ||
     data.createdTasks.length > 0 ||
@@ -335,8 +366,13 @@ function rowToTask(row: Record<string, unknown>): Task {
     status: row.status as Task["status"],
     tags: (row.tags as string[]) ?? [],
     sort_order: row.sort_order as number,
-    created_at: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at ?? ""),
-    completed_at: row.completed_at ? (row.completed_at instanceof Date ? row.completed_at.toISOString() : String(row.completed_at)) : undefined,
+    created_at:
+      row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at ?? ""),
+    completed_at: row.completed_at
+      ? row.completed_at instanceof Date
+        ? row.completed_at.toISOString()
+        : String(row.completed_at)
+      : undefined,
     space_id: (row.space_id as string) || undefined,
     assignee_id: (row.assignee_id as string) || undefined,
     assignee_email: (row.assignee_email as string) || undefined,
@@ -409,9 +445,9 @@ function buildTaskSection(
 ): DailyDigestSection | null {
   if (tasks.length === 0) return null;
 
-  const items = tasks.slice(0, itemLimit).map((task) =>
-    buildTaskSectionItem(task, spaceNames, key, today)
-  );
+  const items = tasks
+    .slice(0, itemLimit)
+    .map((task) => buildTaskSectionItem(task, spaceNames, key, today));
 
   return {
     key,
@@ -526,10 +562,7 @@ function formatDigestTaskLine(
   return `${task.title} ${suffix.join(" · ")}`.trim();
 }
 
-function formatDigestLogLine(
-  log: DigestLogEntry,
-  spaceNames: Record<string, string>
-): string {
+function formatDigestLogLine(log: DigestLogEntry, spaceNames: Record<string, string>): string {
   const spaceName = log.space_id ? spaceNames[log.space_id] : undefined;
   const prefix = spaceName ? `${log.task_title} [${spaceName}]` : log.task_title;
   return `${prefix}: ${truncateText(log.content, 80)}`;

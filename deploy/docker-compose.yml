@@ -1,0 +1,21 @@
+# ai-todo 独立 compose(复用 little-bee 已建的 little-bee-net 网络)
+# 参照 HANDOFF-VPS-MIGRATION.md 步骤 4.2
+services:
+  ai-todo:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: ai-todo:latest
+    container_name: ai-todo
+    restart: unless-stopped
+    env_file: [../.env.production]
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - HOSTNAME=0.0.0.0
+    expose: ["3002"]
+    networks: [little-bee-net]
+
+networks:
+  little-bee-net:
+    external: true # little-bee 已创建,复用

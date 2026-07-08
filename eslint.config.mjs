@@ -4,7 +4,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 
 export default tseslint.config(
   {
-    ignores: [".next/", "node_modules/", "public/sw.js"],
+    ignores: [".next/", "node_modules/", "public/sw.js", ".autopilot/"],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

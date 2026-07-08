@@ -7,6 +7,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.49.0",
+    date: "2026-07-08",
+    title: "笔记 API 门面 + VPS 迁移代码层",
+    items: [
+      "新增笔记 API 门面 /api/notes/*（route / [id] / [id]/share / shared/[code]），供 Mac app 接入：NoteDTO 字段收窄、type=1 隔离铁律、游标分页、session_token 复用 getUserFromRequest 鉴权",
+      "保留 /api/tasks?type=1 兼容旧路径，新门面与旧入口并存过渡",
+      "DB 访问层从 @vercel/postgres 迁到 pg：lib/pg.ts 兼容层对齐 sql`` + sql.query 双形态、pool max:5 适配 VPS 2G 内存；10 个文件 import 替换 + 12 个测试 mock 路径同步",
+      "VPS 部署产物就绪：deploy/（node:20-alpine multi-stage Dockerfile + docker-compose.yml external little-bee-net）+ next.config.ts output:standalone + scripts/gen-env-production.sh",
+      "数据迁移脚本 scripts/migrate-data-to-vps.mjs（pg 双 Pool replica/origin 幂等迁移）",
+      "HANDOFF-VPS-MIGRATION.md 沉淀后续 VPS 部署步骤（改 frps/DNS 等），代码层迁移本次完成",
+    ],
+  },
+  {
     version: "1.48.0",
     date: "2026-07-04",
     title: "接入统一数据分析（PV/UV + 登录转化）",

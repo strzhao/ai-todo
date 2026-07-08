@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
   return rt.json({
     title: task.title,
     description: task.description ?? null,
-    tags: task.tags,
+    tags: task.tags ?? [],
     created_at: task.created_at,
   });
 }
