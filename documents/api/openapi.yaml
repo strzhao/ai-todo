@@ -1,0 +1,330 @@
+openapi: 3.0.3
+info:
+  title: ai-todo 笔记 API
+  version: 1.49.0
+  description: |
+    ai-todo 笔记 API 门面（`/api/notes/*`），供 Mac app 等外部客户端接入。
+
+    笔记与任务共用 `ai_todo_tasks` 表（`type=1` 区分笔记）。本 API 是笔记的**门面层**：
+    - **NoteDTO 字段收窄**：仅暴露笔记语义字段，屏蔽任务字段（priority/status/due_date/assignee 等）
+    - **type 隔离铁律**：任务（type=0）经笔记 API 访问 → 404（不泄漏存在性）
+    - **PATCH 字段收窄**：仅 {title, description, tags}，不暴露 type/due_date/priority，规避笔记→任务翻转
+
+    鉴权：Bearer session_token（/api/auth/cli-token 颁发，90 天 HMAC-SHA256），或浏览器 cookie。
+    除 `GET /api/notes/shared/{code}`（公开）外，所有端点需鉴权。
+  contact:
+    name: ai-todo
+    url: https://ai-todo.stringzhao.life
+
+servers:
+  - url: http://43.143.124.222:3002
+    description: 开发联调（VPS IP，备案前）
+  - url: https://ai-todo.stringzhao.life
+    description: 生产（备案通过后）
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: notes
+    description: 笔记 CRUD
+  - name: share
+    description: 笔记分享
+  - name: public
+    description: 公开访问（无需鉴权）
+
+paths:
+  /api/notes:
+    get:
+      tags: [notes]
+      summary: 列表（游标分页）
+      operationId: listNotes
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - name: tag
+          in: query
+          schema: { type: string }
+          description: 标签精确过滤
+        - name: q
+          in: query
+          schema: { type: string }
+          description: title/description 模糊（ILIKE）
+      responses:
+        '200':
+          description: 分页列表
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NoteListResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [notes]
+      summary: 创建笔记
+      operationId: createNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NoteCreateRequest' }
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NoteDTO' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/notes/{id}:
+    parameters:
+      - $ref: '#/components/parameters/NoteId'
+    get:
+      tags: [notes]
+      summary: 单条笔记
+      operationId: getNote
+      responses:
+        '200':
+          description: 笔记
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NoteDTO' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    patch:
+      tags: [notes]
+      summary: 更新笔记（仅 title/description/tags）
+      description: |
+        仅接受 {title, description, tags}，不暴露 type/due_date/priority（防翻转）。
+        至少 1 个字段，否则 400。
+      operationId: updateNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NoteUpdateRequest' }
+      responses:
+        '200':
+          description: 更新后
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NoteDTO' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    delete:
+      tags: [notes]
+      summary: 删除笔记
+      operationId: deleteNote
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { ok: { type: boolean, example: true } }
+                required: [ok]
+        '404': { $ref: '#/components/responses/NotFound' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/notes/{id}/share:
+    parameters:
+      - $ref: '#/components/parameters/NoteId'
+    post:
+      tags: [share]
+      summary: 生成分享码（幂等）
+      description: 已有 share_code 则复用，不重复生成。share_code 8 位。
+      operationId: shareNote
+      responses:
+        '200':
+          description: 分享信息
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShareResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    delete:
+      tags: [share]
+      summary: 取消分享
+      description: 原 share_code 立即失效（/shared/{code} 再访问 → 404）。
+      operationId: unshareNote
+      responses:
+        '200':
+          description: 取消成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { ok: { type: boolean, example: true } }
+                required: [ok]
+        '404': { $ref: '#/components/responses/NotFound' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/notes/shared/{code}:
+    parameters:
+      - $ref: '#/components/parameters/ShareCode'
+    get:
+      tags: [public]
+      summary: 公开访问笔记（无需鉴权）
+      description: |
+        屏蔽 id/share_code/space_id（防枚举），仅返回 title/description/tags/created_at。
+      operationId: getPublicNote
+      security: []
+      responses:
+        '200':
+          description: 公开子集
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicNote' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: session_token
+      description: |
+        session_token（/api/auth/cli-token 颁发，HMAC-SHA256，90 天）。
+        请求头：`Authorization: Bearer <session_token>`
+
+  parameters:
+    NoteId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+      description: 笔记 id
+    ShareCode:
+      name: code
+      in: path
+      required: true
+      schema: { type: string, minLength: 8, maxLength: 8 }
+      description: 分享码（8 位）
+    Cursor:
+      name: cursor
+      in: query
+      schema: { type: string }
+      description: Base64 编码的 `created_at|id`，上一页 next_cursor
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      description: 每页条数（1-50，默认 20）
+
+  responses:
+    BadRequest:
+      description: 输入错误
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { error: "title required (1-500 chars after trim)" }
+    Unauthorized:
+      description: 未授权
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { error: "Unauthorized" }
+    NotFound:
+      description: 未找到（含他人笔记 / 任务 id 经笔记 API 访问 → 不泄漏存在性）
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { error: "Not found" }
+
+  schemas:
+    NoteDTO:
+      type: object
+      description: 笔记对外 DTO（门面收窄，屏蔽任务字段）
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        tags:
+          type: array
+          items: { type: string }
+        created_at: { type: string, format: date-time }
+        share_code: { type: string, nullable: true, description: 8 位分享码 }
+        space_id: { type: string, format: uuid, nullable: true, description: Phase 1 恒 null }
+      required: [id, title, description, tags, created_at, share_code, space_id]
+      example:
+        id: 88661616-9d90-4da2-9f51-d6e1b902198a
+        title: 会议纪要
+        description: 讨论 v2 路线图
+        tags: ["#工作", "#会议"]
+        created_at: "2026-07-08T15:12:29.877Z"
+        share_code: a01r5al9
+        space_id: null
+
+    NoteCreateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: trim 后 1-500 字
+        description: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+      required: [title]
+
+    NoteUpdateRequest:
+      type: object
+      description: 至少 1 个字段；不接受 type/due_date/priority（防翻转，传了被忽略）
+      minProperties: 1
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+        description: { type: string, nullable: true }
+        tags:
+          type: array
+          items: { type: string }
+
+    NoteListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/NoteDTO' }
+        total: { type: integer }
+        has_more: { type: boolean }
+        next_cursor:
+          type: string
+          nullable: true
+          description: null 表末页
+      required: [items, total, has_more, next_cursor]
+
+    ShareResponse:
+      type: object
+      properties:
+        share_code:
+          type: string
+          minLength: 8
+          maxLength: 8
+        share_url: { type: string, description: "${APP_ORIGIN}/shared/${share_code}" }
+      required: [share_code, share_url]
+      example:
+        share_code: a01r5al9
+        share_url: https://ai-todo.stringzhao.life/shared/a01r5al9
+
+    PublicNote:
+      type: object
+      description: 公开子集（屏蔽 id/share_code/space_id 防枚举）
+      properties:
+        title: { type: string }
+        description: { type: string, nullable: true }
+        tags:
+          type: array
+          items: { type: string }
+        created_at: { type: string, format: date-time }
+      required: [title, description, tags, created_at]
+
+    ErrorResponse:
+      type: object
+      properties:
+        error: { type: string }
+      required: [error]

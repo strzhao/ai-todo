@@ -11,7 +11,7 @@
 - **为什么迁**：Vercel 国内访问不稳；且 Vercel Blob 曾因带宽超额被封（little-bee 线上图片 502）。迁国内云根治。
 - **little-bee 已迁成功**：同一台 VPS、同一套流程已跑通（数据全迁 + 容器部署 + `_next/image` 从 COS 拿图验证 OK）。ai-todo 是第二个服务，**参考 `../little-bee/`**。
 - **ai-todo 更简单**：无 Blob（无媒体）、无 Prisma（直接 SQL）。核心工作是 **DB 访问层重写**（`@vercel/postgres` → `pg`）。
-- **笔记 API 的 Mac app 鉴权已就绪**：Space API Token（`ait_*`）已实现，新 Mac app 直接用。
+- **笔记 API 门面已就绪**：`/api/notes/*`（个人笔记 + session_token 鉴权），Mac app 接入文档见 `documents/api/notes-api.md` + `documents/api/openapi.yaml`。
 
 ---
 
@@ -315,36 +315,33 @@ ai-todo.stringzhao.life {
 
 4. `docker compose restart caddy`（little-bee 的 caddy，或 ai-todo 自己的）触发 Let's Encrypt 签证
 
-### 步骤 6: Mac app 接入（Space API Token，现成）
+### 步骤 6: Mac app 接入（笔记 API 门面 + session_token）
 
-**ai-todo 已有 Space API Token（`ait_*`）机制**，Mac app 直接用，无需新开发鉴权。
+**笔记 API 已重构为独立门面 `/api/notes/*`**（Phase 1 个人笔记），鉴权用 **session_token**（复用 CLI `/api/auth/cli-token`，HMAC-SHA256，90 天），**非 `ait_*`**。
 
-**Mac app 调用**:
+> 完整接口文档（Mac app 接入依据）：[`documents/api/notes-api.md`](documents/api/notes-api.md) + [`documents/api/openapi.yaml`](documents/api/openapi.yaml)
+
+**Mac app 调用示例**:
 
 ```http
-POST https://ai-todo.stringzhao.life/api/spaces/{spaceId}/notes
-Authorization: Bearer ait_xxxxxxxxxxxxxxxx
+POST http://43.143.124.222:3002/api/notes
+Authorization: Bearer <session_token>
 Content-Type: application/json
 { "title": "笔记内容", "tags": ["#标签"] }
 ```
 
-**笔记 API 清单**（已有，直接暴露）:
-| 路径 | 方法 | 功能 | 鉴权 |
-|---|---|---|---|
-| `/api/spaces/{id}/notes` | POST | 创建空间笔记（**Mac app 主入口**）| `ait_*` 或用户登录 |
-| `/api/tasks?type=1&space_id={id}` | GET | 笔记列表 | `ait_*` |
-| `/api/tasks/{id}` | GET | 单条笔记 | 用户/`ait_*` |
-| `/api/tasks/{id}` | PATCH | 更新（含 share/unshare）| 同上 |
-| `/api/tasks/{id}` | DELETE | 删除 | 同上 |
+**笔记 API 端点**（详情见文档）:
+| 路径 | 方法 | 功能 |
+|---|---|---|
+| `/api/notes` | GET | 列表（游标分页）|
+| `/api/notes` | POST | 创建（**Mac app 主入口**）|
+| `/api/notes/{id}` | GET/PATCH/DELETE | 单条 / 更新 / 删除 |
+| `/api/notes/{id}/share` | POST/DELETE | 生成 / 取消分享 |
+| `/api/notes/shared/{code}` | GET | 公开访问（无需鉴权）|
 
-**生成 token**：ai-todo web 端创建 space + 生成 `ait_*`（现有功能），Mac app 内置该 token。
+**鉴权流程**：浏览器登录 ai-todo → `/api/auth/cli-token` 换 `session_token`（90 天）→ Mac app Bearer 调用。
 
-**鉴权代码**（现有，不用改）:
-
-```typescript
-const spaceAuth = await getSpaceFromApiToken(req);
-if (spaceAuth) userId = `space-api:${spaceAuth.tokenId}`;
-```
+> 注：`ait_*` Space API Token 绑死单空间，**不适用**个人笔记（Phase 2 笔记「移入空间」多人共享时再启用 `ait_*`）。
 
 ---
 
@@ -372,7 +369,7 @@ if (spaceAuth) userId = `space-api:${spaceAuth.tokenId}`;
 - [ ] Dockerfile build 成功，容器跑通，连 VPS PG 读数据
 - [ ] 容器内 `/api/tasks?type=1` 返回数据
 - [ ] 备案通过 → DNS 切 + Caddy HTTPS
-- [ ] Mac app 用 `ait_*` token 调笔记 API 成功（创建/列表/更新/删除）
+- [ ] Mac app 用 session_token 调 `/api/notes` 成功（创建/列表/更新/删除，参 `documents/api/notes-api.md`）
 
 ---
 
