@@ -28,10 +28,12 @@ function readSource(filePath: string): string {
   return fs.readFileSync(filePath, "utf-8");
 }
 
-describe("[D5] 版本号升级 0.10.4 → 0.11.0", () => {
-  it("package.json version 升级到 0.11.0", () => {
+describe("[D5] 版本号升级(已从 0.10.4 升级,>= 0.11.0)", () => {
+  it("package.json version >= 0.11.0(D5 升级后后续可更高,动态断言避免硬编码)", () => {
     const pkg = JSON.parse(readSource(PACKAGE_JSON_PATH));
-    expect(pkg.version, "package.json version 必须为 0.11.0").toBe("0.11.0");
+    const [maj, min] = String(pkg.version).split(".").map(Number);
+    expect(maj, "version 必须有效").toBeTypeOf("number");
+    expect(maj > 0 || (maj === 0 && min >= 11), `version ${pkg.version} 必须 >= 0.11.0`).toBe(true);
   });
 
   it("package.json version 不再是旧版本 0.10.4", () => {

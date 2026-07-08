@@ -1,4 +1,4 @@
-import { sql } from "./pg";
+import { sql } from "./pg.ts";
 import { createHash, randomBytes } from "crypto";
 import type {
   Task,
@@ -17,7 +17,7 @@ import {
   checkTaskPermission,
   buildOperationErrorMessage,
   TaskPermissionError,
-} from "./task-permissions";
+} from "./task-permissions.ts";
 
 export class TaskValidationError extends Error {
   constructor(message: string) {

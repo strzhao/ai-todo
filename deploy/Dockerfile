@@ -8,7 +8,8 @@ WORKDIR /app
 
 FROM base AS deps
 COPY package*.json ./
-RUN npm ci
+ENV NPM_CONFIG_REGISTRY=https://registry.npmmirror.com
+RUN npm ci --legacy-peer-deps
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
