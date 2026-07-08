@@ -7,3 +7,5 @@
 - [契约偏差读上游源码验证](patterns.md) — 设计文档契约可能与上游实际不符（200/201、错误格式），蓝队读源码验证 + contract-change-request，否则红蓝冲突
 - [changelog 版本号体系](decisions.md) — changelog 1.x 产品版本 vs package.json 0.x 工程版本解耦，新条目必须单调递增避免误触红点
 - [Playwright 服务端上报验证](patterns.md) — 服务端 trackServerEvent 不经浏览器，用临时 route fetch status 验证；route 勿以 \_ 开头
+- [红队信息隔离致 mock 脚手架缺陷](patterns.md) — 红队不读实现致 mock/签名/返回结构假设错误测试崩溃（非断言失败）；授权修脚手架保留逻辑断言
+- [@vercel/postgres→pg 兼容层 + node alias 陷阱](patterns.md) — Object.assign(taggedSql,{query}) 双形态对齐 mock；被 node 直跑的底层模块用相对路径非 @/ alias；.autopilot 副本需 vitest/eslint exclude

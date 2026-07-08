@@ -86,3 +86,37 @@ ai-todo 调用 user.stringzhao.life（base-account）的 API（反馈、邀请�
 - 服务端上报用**临时 route 端 fetch 同一外部端点取 status** 返回（SDK 容错吞响应，故单独 fetch），Playwright 访问 route 断言返回 status（200 = 接受）；浏览器上报（PV / script.js 加载）仍用 `page.on("response")` 监听
 - 临时 route 命名**不能以 `_` 开头**（Next.js App Router 把 `_foo` 目录当私有目录，不注册路由，curl 返回 404）；用 `analytics-verify-test` 等普通名，验证完即删
 - 真实数据落库的最强证据是**外部端点返回 200**（Umami 校验 `website_id` 存在才接受），无需登录后台截图；本地用 mock Umami 闭环验证接入代码 + 配真实 website_id 跑 Playwright 验证落库
+
+## 红队信息隔离致 mock 脚手架缺陷（非断言失败）
+
+<!-- tags: red-team, mock, information-isolation, autopilot, acceptance-test, false-green -->
+
+autopilot 红蓝对抗中，红队**信息隔离**（不读蓝队实现）的代价：红队对实现的内部依赖、返回值结构、函数签名做"合理假设"，常与实际不符 → mock 脚手架不完整 → 测试崩溃（TypeError / `No X export is defined on mock` / undefined 读取），**非断言失败**。
+
+**教训**：笔记 API 门面轮，红队假设 createNote 直 SQL INSERT（实际委托 createTask）、getNote 两参含 user_id 过滤（实际单参，归属在路由层 `found.user_id !== userId`）、门面返回 Task（实际 `{note, user_id}`）→ 15 测试崩溃。根因非实现 bug（contract-checker + build + 1011 单测全绿），是信息隔离的固有副作用。
+
+**处理**：编排者识别后**征得用户授权**修红队测试的 mock 脚手架（补全 mock 返回值结构、对齐签名），**严格保留逻辑断言**（type 隔离 / 字段收窄 / 404 不泄漏 / HTTP 码 / 边界逐字不变）。区分两类：① 脚手架缺陷（mock / 签名 / TS 类型）→ 可修；② 逻辑断言（expect）→ 绝不放宽。符合 autopilot knowledge「契约偏差同步红队契约性断言」精神。
+
+**检查清单**：
+
+- 红队测试崩溃（TypeError / `No X export is defined on mock` / undefined 读取）而非 `expect` 失败 → 先查 contract-checker + build 是否绿，判断是信息隔离致 mock 缺陷还是实现偏离
+- 修红队脚手架前**征得用户授权**（违反字面铁律"不改红队"），明确边界"保留逻辑断言，只修 mock / 签名 / 类型"
+- 设计文档尽量精确到内部依赖（createNote 委托 createTask）+ 返回值结构（`{note, user_id}`）+ 签名（单参 / 多参），压缩红队假设空间
+- Evidence: 笔记 API 门面轮 15 红队测试崩溃，3 文件经授权修脚手架后 56/56 全绿，逻辑断言（type 隔离 / DTO 收窄 / 归属 404 / HTTP 契约 / 边界）逐字保留
+
+## @vercel/postgres → pg 兼容层形状 + node 直跑模块的 alias 陷阱
+
+<!-- tags: pg, migration, vercel-postgres, db-migrate, alias, object-assign, vitest-exclude -->
+
+VPS 迁移把 `@vercel/postgres` 换 `pg`，兼容层必须保持 ``sql` ` `` tagged template + `sql.query()` 双形态（业务 ~70% 用 ``sql` ```，~30% 用 `sql.query`含 TEXT[] 数组字段）。形状`export const sql = Object.assign(taggedSql, { query })`对齐现有测试 mock`Object.assign(vi.fn(), { query: vi.fn() })`，业务代码零改动。
+
+**教训**：`lib/db.ts` 被 `scripts/db-migrate.mjs`（node `--experimental-strip-types` 直跑）import 时，`@/lib/pg` 的 tsconfig alias **不解析** → 脚本失效。解法：`lib/db.ts` 用相对路径 `./pg`（同目录），其余 app/api 文件仍用 `@/lib/pg`（Next/webpack 解析）。另外改 route import 后易漏改既有测试的 `vi.doMock("@vercel/postgres")`（daily-digest-cron 漏改 → 真连 PG 报 `database does not exist`）；`.autopilot/runtime/.../acceptance-staging/` 副本会被 vitest/eslint 扫到污染全量结果。
+
+**检查清单**：
+
+- pg 兼容层用 `Object.assign(taggedSql, { query })`（匹配测试 mock 形状 `Object.assign(vi.fn(),{query})`）
+- 被 node 直跑脚本（.mjs）import 的底层模块（lib/db.ts）用相对路径，非 `@/` alias
+- 迁移后 `grep -rn "from ['\"]@vercel/postgres['\"]" app lib components` 确认无业务残留（含动态 `await import()`）
+- 改 route import 后，grep 既有测试的 `vi.mock/doMock("@vercel/postgres")` 同步改 `@/lib/pg`（易漏 doMock 形式）
+- `.autopilot/` runtime 副本污染 vitest/eslint → `vitest.config.ts` exclude + `eslint.config.mjs` ignores 都加 `.autopilot/`
+- Evidence: VPS 迁移 47 文件，pg 兼容层 + 10 import 替换（静态 9 + 动态 2），daily-digest-cron doMock 漏改致真连 PG，修后 test 1011 全绿
