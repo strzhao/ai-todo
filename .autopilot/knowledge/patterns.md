@@ -120,3 +120,29 @@ VPS 迁移把 `@vercel/postgres` 换 `pg`，兼容层必须保持 ``sql` ` `` ta
 - 改 route import 后，grep 既有测试的 `vi.mock/doMock("@vercel/postgres")` 同步改 `@/lib/pg`（易漏 doMock 形式）
 - `.autopilot/` runtime 副本污染 vitest/eslint → `vitest.config.ts` exclude + `eslint.config.mjs` ignores 都加 `.autopilot/`
 - Evidence: VPS 迁移 47 文件，pg 兼容层 + 10 import 替换（静态 9 + 动态 2），daily-digest-cron doMock 漏改致真连 PG，修后 test 1011 全绿
+
+## 腾讯云 Lighthouse（轻量）vs CVM — 机型认错会让 API 全空转
+
+<!-- tags: tencent, lighthouse, cvm, vpc, firewall, security-group, tccli, cam, vps, ports -->
+
+腾讯云「VPS」可能是 **Lighthouse（轻量应用服务器）** 或 **CVM（云服务器）**，两者 API / 防火墙 / CAM 完全独立。认错机型会让 `cvm/vpc` API 全返回 0 实例 / UnauthorizedOperation，空转半天。
+
+**判别**：实例 ID 前缀 `lhins-` = Lighthouse；`ins-` = CVM。Lighthouse 有独立控制台「防火墙」，CVM 用「安全组」。
+
+**教训**：ai-todo VPS（`43.143.124.222`）是 Lighthouse（`lhins-1g04zh0s`）。排查 3002 端口不通时，先 `tccli cvm DescribeInstances` 全 region 0 实例 → 误以为没权限 / region 错，实际是机型错（Lighthouse 不在 cvm）。换 `tccli lighthouse DescribeInstances` 立刻看到实例。
+
+**Lighthouse 操作（tccli）**：
+
+- 查实例：`tccli lighthouse DescribeInstances --region ap-shanghai`
+- 查防火墙：`tccli lighthouse DescribeFirewallRules --region ap-shanghai --InstanceId lhins-xxx`
+- 加规则：`CreateFirewallRules`（`--FirewallRules.0.{Protocol,Port,CidrBlock,Action}`）
+- 改规则：`ModifyFirewallRules`
+- CAM 策略：`QcloudLighthouseFullAccess`（**不是** CVM/VPC 的策略）
+
+**检查清单**：
+
+- VPS 排查先确认机型：实例 ID `lhins-` = Lighthouse，`ins-` = CVM
+- Lighthouse 防火墙是云层独立于 VPS 内 iptables（改 VPS 内 iptables 不影响 Lighthouse 防火墙）
+- tccli 操作 Lighthouse 用 `lighthouse` 模块，CAM 授 `QcloudLighthouseFullAccess`
+- docker 容器外部可达要双重：host 端口映射（`ports: "3002:3002"`，**非** `expose`）+ Lighthouse 防火墙放行该端口
+- Evidence: ai-todo 3002 不通，cvm 全 0 实例 → 认错机型；改 lighthouse + docker ports 映射 + 防火墙 TCP:3002 → 通

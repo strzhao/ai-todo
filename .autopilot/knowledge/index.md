@@ -9,3 +9,4 @@
 - [Playwright 服务端上报验证](patterns.md) — 服务端 trackServerEvent 不经浏览器，用临时 route fetch status 验证；route 勿以 \_ 开头
 - [红队信息隔离致 mock 脚手架缺陷](patterns.md) — 红队不读实现致 mock/签名/返回结构假设错误测试崩溃（非断言失败）；授权修脚手架保留逻辑断言
 - [@vercel/postgres→pg 兼容层 + node alias 陷阱](patterns.md) — Object.assign(taggedSql,{query}) 双形态对齐 mock；被 node 直跑的底层模块用相对路径非 @/ alias；.autopilot 副本需 vitest/eslint exclude
+- [腾讯云 Lighthouse vs CVM](patterns.md) — VPS 机型认错(lhins- vs ins-)让 cvm/vpc API 全空转；Lighthouse 用 lighthouse 模块 + 防火墙(FirewallRules)+ QcloudLighthouseFullAccess CAM
