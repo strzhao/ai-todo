@@ -85,7 +85,11 @@ function parseCookie(request: Request, name: string): string {
   return "";
 }
 
-export function createAuthStateCookieValue(state: string, nextPath: string, ttlSeconds = 600): string {
+export function createAuthStateCookieValue(
+  state: string,
+  nextPath: string,
+  ttlSeconds = 600
+): string {
   const now = Date.now();
   return encodeSignedPayload({
     state,
@@ -95,7 +99,10 @@ export function createAuthStateCookieValue(state: string, nextPath: string, ttlS
   });
 }
 
-export function verifyAuthStateCookieValue(raw: string, expectedState: string): AuthStatePayload | null {
+export function verifyAuthStateCookieValue(
+  raw: string,
+  expectedState: string
+): AuthStatePayload | null {
   const decoded = decodeSignedPayload(raw);
   if (!decoded) return null;
 
@@ -111,11 +118,17 @@ export function verifyAuthStateCookieValue(raw: string, expectedState: string): 
   return { state, next, issuedAt, expiresAt };
 }
 
-export function createGatewaySessionCookieValue(userId: string, email: string, ttlSeconds = 2_592_000): string {
+export function createGatewaySessionCookieValue(
+  userId: string,
+  email: string,
+  ttlSeconds = 2_592_000
+): string {
   const now = Date.now();
   return encodeSignedPayload({
     userId: String(userId || "").trim(),
-    email: String(email || "").trim().toLowerCase(),
+    email: String(email || "")
+      .trim()
+      .toLowerCase(),
     issuedAt: now,
     expiresAt: now + ttlSeconds * 1000,
   });
@@ -126,7 +139,9 @@ export function verifyGatewaySessionCookieValue(raw: string): GatewaySessionPayl
   if (!decoded) return null;
 
   const userId = String(decoded.userId || "").trim();
-  const email = String(decoded.email || "").trim().toLowerCase();
+  const email = String(decoded.email || "")
+    .trim()
+    .toLowerCase();
   const issuedAt = Number(decoded.issuedAt || 0);
   const expiresAt = Number(decoded.expiresAt || 0);
 
@@ -145,7 +160,8 @@ export function readGatewaySessionCookie(request: Request): string {
 }
 
 export function applyAuthStateCookie(response: NextResponse, value: string): void {
-  const secure = process.env.NODE_ENV === "production";
+  const secure =
+    process.env.NODE_ENV === "production" && process.env.AUTH_COOKIE_SECURE !== "false";
   response.cookies.set({
     name: AUTH_STATE_COOKIE_NAME,
     value,
@@ -158,7 +174,8 @@ export function applyAuthStateCookie(response: NextResponse, value: string): voi
 }
 
 export function clearAuthStateCookie(response: NextResponse): void {
-  const secure = process.env.NODE_ENV === "production";
+  const secure =
+    process.env.NODE_ENV === "production" && process.env.AUTH_COOKIE_SECURE !== "false";
   response.cookies.set({
     name: AUTH_STATE_COOKIE_NAME,
     value: "",
@@ -171,7 +188,8 @@ export function clearAuthStateCookie(response: NextResponse): void {
 }
 
 export function applyGatewaySessionCookie(response: NextResponse, value: string): void {
-  const secure = process.env.NODE_ENV === "production";
+  const secure =
+    process.env.NODE_ENV === "production" && process.env.AUTH_COOKIE_SECURE !== "false";
   response.cookies.set({
     name: GATEWAY_SESSION_COOKIE_NAME,
     value,
@@ -184,7 +202,8 @@ export function applyGatewaySessionCookie(response: NextResponse, value: string)
 }
 
 export function clearGatewaySessionCookie(response: NextResponse): void {
-  const secure = process.env.NODE_ENV === "production";
+  const secure =
+    process.env.NODE_ENV === "production" && process.env.AUTH_COOKIE_SECURE !== "false";
   response.cookies.set({
     name: GATEWAY_SESSION_COOKIE_NAME,
     value: "",
