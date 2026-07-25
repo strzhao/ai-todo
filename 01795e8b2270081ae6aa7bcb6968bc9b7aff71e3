@@ -1,0 +1,805 @@
+.autopilot/project/tasks/004-auth-bearer-keychain.md
+  504239503d4f85ab 1-62
+.autopilot/tasks/mac-app/brainstorm.md
+  504239503d4f85ab 1-51,53-58,60-65,67-85,87-95
+.autopilot/project/design.md
+  504239503d4f85ab 1-105
+.autopilot/project/tasks/001-monorepo-migration.md
+  504239503d4f85ab 1-55
+.autopilot/project/tasks/003-mac-frontend-shell.md
+  504239503d4f85ab 1-59
+.autopilot/project/tasks/006-native-capabilities.md
+  504239503d4f85ab 1-55
+.autopilot/project/tasks/007-distribution.md
+  504239503d4f85ab 1-65
+.autopilot/project/tasks/005-tauri-skeleton.md
+  504239503d4f85ab 1-68
+.autopilot/project/tasks/002-shared-packages-extraction.md
+  504239503d4f85ab 1-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "b2963b9cb971e0db36a5060690031a36713ced86",
+  "prompts": {
+    "504239503d4f85ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "06c8e569-1019-4177-a115-df5123713485",
+        "model": "glm-5.2-aliyun"
+      },
+      "human_author": "赵桂雄",
+      "messages": [],
+      "total_additions": 537,
+      "total_deletions": 0,
+      "accepted_lines": 41605,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "apps/web/components/TaskSkeleton.tsx": {
+          "accepted_lines": 24
+        },
+        "apps/web/e2e/performance.spec.ts": {
+          "accepted_lines": 82
+        },
+        "apps/web/__tests__/gantt-completed-tasks.acceptance.test.ts": {
+          "accepted_lines": 642
+        },
+        "apps/web/app/api/tasks/[id]/logs/route.ts": {
+          "accepted_lines": 68
+        },
+        "apps/web/__tests__/milestone.acceptance.test.ts": {
+          "accepted_lines": 158
+        },
+        "apps/web/lib/route-timing.ts": {
+          "accepted_lines": 102
+        },
+        "apps/web/lib/notification-utils.ts": {
+          "accepted_lines": 10
+        },
+        "apps/web/__tests__/DailyDigestNotificationDetail.test.tsx": {
+          "accepted_lines": 112
+        },
+        "apps/web/app/(app)/orgs/new/page.tsx": {
+          "accepted_lines": 90
+        },
+        "apps/web/components/NoteCard.tsx": {
+          "accepted_lines": 257
+        },
+        "apps/web/__tests__/org-space-access.acceptance.test.ts": {
+          "accepted_lines": 229
+        },
+        "apps/web/.env.example": {
+          "accepted_lines": 39
+        },
+        ".autopilot/project/tasks/006-native-capabilities.md": {
+          "additions": 55,
+          "accepted_lines": 55
+        },
+        "apps/web/app/api/spaces/join/[code]/route.ts": {
+          "accepted_lines": 68
+        },
+        "apps/web/lib/changelog.ts": {
+          "accepted_lines": 370
+        },
+        "apps/web/__tests__/NotificationItem.test.tsx": {
+          "accepted_lines": 133
+        },
+        "apps/web/app/api/orgs/[id]/spaces/route.ts": {
+          "accepted_lines": 25
+        },
+        "apps/web/components/SpaceSettings.tsx": {
+          "accepted_lines": 709
+        },
+        "apps/web/app/(app)/loading.tsx": {
+          "accepted_lines": 9
+        },
+        "apps/web/__tests__/dangerous-operations.acceptance.test.tsx": {
+          "accepted_lines": 539
+        },
+        "apps/web/app/(app)/spaces/new/page.tsx": {
+          "accepted_lines": 152
+        },
+        "apps/web/components/EmptyState.tsx": {
+          "accepted_lines": 25
+        },
+        "apps/web/app/api/url-meta/route.ts": {
+          "accepted_lines": 171
+        },
+        "apps/web/app/api/tasks/[id]/route.ts": {
+          "accepted_lines": 259
+        },
+        "apps/web/components/AssigneeBadge.tsx": {
+          "accepted_lines": 24
+        },
+        "apps/web/lib/notifications.ts": {
+          "accepted_lines": 230
+        },
+        "apps/web/types/speech-recognition.d.ts": {
+          "accepted_lines": 29
+        },
+        "apps/web/lib/task-permissions.ts": {
+          "accepted_lines": 136
+        },
+        "apps/web/components/SpaceNotes.tsx": {
+          "accepted_lines": 234
+        },
+        "apps/web/__tests__/TaskSkeleton.test.tsx": {
+          "accepted_lines": 36
+        },
+        "apps/web/public/globe.svg": {
+          "accepted_lines": 1
+        },
+        "apps/web/lib/validations.ts": {
+          "accepted_lines": 31
+        },
+        "apps/web/__tests__/summary-utils.acceptance.test.ts": {
+          "accepted_lines": 360
+        },
+        "apps/web/__tests__/daily-digest.test.ts": {
+          "accepted_lines": 180
+        },
+        "apps/web/app/api/tasks/tree/route.ts": {
+          "accepted_lines": 64
+        },
+        "apps/web/__tests__/analytics-version-and-changelog.acceptance.test.ts": {
+          "accepted_lines": 81
+        },
+        "apps/web/components/ChangelogContent.tsx": {
+          "accepted_lines": 35
+        },
+        "apps/web/app/api/notifications/route.ts": {
+          "accepted_lines": 43
+        },
+        "apps/web/app/auth/logged-out/page.tsx": {
+          "accepted_lines": 24
+        },
+        "apps/web/app/api/cron/daily-digest/route.ts": {
+          "accepted_lines": 157
+        },
+        "apps/web/app/api/account/profile/route.ts": {
+          "accepted_lines": 37
+        },
+        "apps/web/__tests__/ai-flow-log.test.ts": {
+          "accepted_lines": 96
+        },
+        "apps/web/__tests__/use-voice-input.acceptance.test.ts": {
+          "accepted_lines": 192
+        },
+        "apps/web/lib/email.ts": {
+          "accepted_lines": 72
+        },
+        "apps/web/lib/task-utils.ts": {
+          "accepted_lines": 16
+        },
+        "apps/web/app/(app)/spaces/[id]/page.tsx": {
+          "accepted_lines": 737
+        },
+        "apps/web/app/(app)/spaces/page.tsx": {
+          "accepted_lines": 83
+        },
+        "apps/web/__tests__/daily-digest-cron-route.acceptance.test.ts": {
+          "accepted_lines": 145
+        },
+        "apps/web/__tests__/voice-note-creation.acceptance.test.ts": {
+          "accepted_lines": 195
+        },
+        "apps/web/components/ActionPreview.tsx": {
+          "accepted_lines": 644
+        },
+        "apps/web/__tests__/NoteCard.test.tsx": {
+          "accepted_lines": 113
+        },
+        "apps/web/__tests__/linked-spaces-summary.acceptance.test.ts": {
+          "accepted_lines": 189
+        },
+        "apps/web/components/ui/alert-dialog.tsx": {
+          "accepted_lines": 179
+        },
+        "apps/web/components/SummarySettings.tsx": {
+          "accepted_lines": 745
+        },
+        "apps/web/app/(app)/spaces/[id]/summary-settings/page.tsx": {
+          "accepted_lines": 77
+        },
+        ".autopilot/project/tasks/004-auth-bearer-keychain.md": {
+          "additions": 62,
+          "accepted_lines": 62
+        },
+        "apps/web/components/TaskDetail.tsx": {
+          "accepted_lines": 922
+        },
+        "apps/web/__tests__/auth-gateway-session.test.ts": {
+          "accepted_lines": 90
+        },
+        "apps/web/app/api/parse-task/route.ts": {
+          "accepted_lines": 262
+        },
+        "apps/web/__tests__/gantt-utils.test.ts": {
+          "accepted_lines": 381
+        },
+        "apps/web/components/ui/button.tsx": {
+          "accepted_lines": 61
+        },
+        "apps/web/app/api/notifications/unread-count/route.ts": {
+          "accepted_lines": 18
+        },
+        "apps/web/public/sw.js": {
+          "accepted_lines": 65
+        },
+        "apps/web/__tests__/reopen-task.acceptance.test.ts": {
+          "accepted_lines": 275
+        },
+        "apps/web/lib/gantt-utils.ts": {
+          "accepted_lines": 207
+        },
+        "apps/web/.size-limit.json": {
+          "accepted_lines": 14
+        },
+        "apps/web/public/vercel.svg": {
+          "accepted_lines": 1
+        },
+        "apps/web/lib/milestone-utils.ts": {
+          "accepted_lines": 6
+        },
+        "apps/web/__tests__/db-space-queries.test.ts": {
+          "accepted_lines": 131
+        },
+        "apps/web/app/readme/page.tsx": {
+          "accepted_lines": 390
+        },
+        "apps/web/app/api/manifest/route.ts": {
+          "accepted_lines": 622
+        },
+        ".autopilot/tasks/mac-app/brainstorm.md": {
+          "accepted_lines": 91
+        },
+        "apps/web/__tests__/org-types.acceptance.test.ts": {
+          "accepted_lines": 169
+        },
+        "apps/web/lib/db.ts": {
+          "accepted_lines": 1866
+        },
+        ".autopilot/project/tasks/003-mac-frontend-shell.md": {
+          "additions": 59,
+          "accepted_lines": 59
+        },
+        "apps/web/app/api/orgs/[id]/members/[uid]/route.ts": {
+          "accepted_lines": 108
+        },
+        "apps/web/__tests__/space-join-guide.acceptance.test.ts": {
+          "accepted_lines": 413
+        },
+        "apps/web/components/ui/sheet.tsx": {
+          "accepted_lines": 73
+        },
+        "apps/web/app/(app)/notifications/page.tsx": {
+          "accepted_lines": 9
+        },
+        "apps/web/lib/display-utils.ts": {
+          "accepted_lines": 10
+        },
+        "apps/web/lib/use-sidebar-resize.ts": {
+          "accepted_lines": 81
+        },
+        "apps/web/__tests__/api/notifications-unread-count.acceptance.test.ts": {
+          "accepted_lines": 87
+        },
+        "apps/web/app/api/transcribe/route.ts": {
+          "accepted_lines": 81
+        },
+        "apps/web/lib/auth-config.ts": {
+          "accepted_lines": 41
+        },
+        "apps/web/components/DateTimePicker.tsx": {
+          "accepted_lines": 335
+        },
+        "apps/web/app/(app)/page.tsx": {
+          "accepted_lines": 227
+        },
+        "apps/web/__tests__/org-notification-types.acceptance.test.ts": {
+          "accepted_lines": 110
+        },
+        "apps/web/app/api/orgs/route.ts": {
+          "accepted_lines": 38
+        },
+        "apps/web/app/api/spaces/[id]/route.ts": {
+          "accepted_lines": 119
+        },
+        "apps/web/lib/daily-digest.ts": {
+          "accepted_lines": 586
+        },
+        "apps/web/app/api/push/vapid/route.ts": {
+          "accepted_lines": 11
+        },
+        "apps/web/__tests__/api/tasks-route.acceptance.test.ts": {
+          "accepted_lines": 217
+        },
+        "apps/web/__tests__/helpers/make-request.ts": {
+          "accepted_lines": 39
+        },
+        "apps/web/lib/personal-summary.ts": {
+          "accepted_lines": 8
+        },
+        "apps/web/__tests__/api/spaces/admin-space-guard.acceptance.test.ts": {
+          "accepted_lines": 120
+        },
+        "apps/web/components/ui/badge.tsx": {
+          "accepted_lines": 46
+        },
+        "apps/web/app/api/spaces/[id]/summary-config/parse/route.ts": {
+          "accepted_lines": 170
+        },
+        "apps/web/__tests__/summary-utils.test.ts": {
+          "accepted_lines": 299
+        },
+        "apps/web/public/window.svg": {
+          "accepted_lines": 1
+        },
+        "apps/web/public/next.svg": {
+          "accepted_lines": 1
+        },
+        "apps/web/proxy.ts": {
+          "accepted_lines": 157
+        },
+        "apps/web/lib/summary-utils.ts": {
+          "accepted_lines": 311
+        },
+        "apps/web/lib/server-auth.ts": {
+          "accepted_lines": 30
+        },
+        "apps/web/__tests__/AssigneeBadge.test.tsx": {
+          "accepted_lines": 37
+        },
+        "apps/web/app/api/orgs/[id]/route.ts": {
+          "accepted_lines": 74
+        },
+        "apps/web/__tests__/note-share.acceptance.test.ts": {
+          "accepted_lines": 410
+        },
+        "apps/web/lib/push.ts": {
+          "accepted_lines": 61
+        },
+        "apps/web/app/api/auth/session/finalize/route.ts": {
+          "accepted_lines": 101
+        },
+        "apps/web/app/api/spaces/[id]/summary-config/route.ts": {
+          "accepted_lines": 197
+        },
+        "apps/web/public/file.svg": {
+          "accepted_lines": 1
+        },
+        "apps/web/__tests__/changelog.test.ts": {
+          "accepted_lines": 26
+        },
+        "apps/web/lib/use-push.ts": {
+          "accepted_lines": 100
+        },
+        "apps/web/components/DailyDigestNotificationDetail.tsx": {
+          "accepted_lines": 128
+        },
+        "apps/web/lib/date-utils.ts": {
+          "accepted_lines": 142
+        },
+        "apps/web/__tests__/utils.test.ts": {
+          "accepted_lines": 25
+        },
+        "apps/web/app/api/spaces/[id]/tokens/route.ts": {
+          "accepted_lines": 75
+        },
+        "apps/web/__tests__/task-detail.acceptance.test.ts": {
+          "accepted_lines": 190
+        },
+        "apps/web/app/api/tasks/[id]/summary/route.ts": {
+          "accepted_lines": 560
+        },
+        "apps/web/__tests__/helpers/mock-db.ts": {
+          "accepted_lines": 44
+        },
+        "apps/web/app/(app)/account/page.tsx": {
+          "accepted_lines": 20
+        },
+        "apps/web/__tests__/space-nav-assignee.acceptance.test.ts": {
+          "accepted_lines": 157
+        },
+        "apps/web/app/join/[invite_code]/page.tsx": {
+          "accepted_lines": 149
+        },
+        "apps/web/app/api/spaces/route.ts": {
+          "accepted_lines": 52
+        },
+        "apps/web/__tests__/setup-dom.ts": {
+          "accepted_lines": 1
+        },
+        "apps/web/app/(app)/notes/page.tsx": {
+          "accepted_lines": 225
+        },
+        "apps/web/playwright.perf.config.ts": {
+          "accepted_lines": 33
+        },
+        "apps/web/__tests__/api/spaces/members-role.acceptance.test.ts": {
+          "accepted_lines": 450
+        },
+        "apps/web/__tests__/EmptyState.test.tsx": {
+          "accepted_lines": 49
+        },
+        "apps/web/app/api/auth/switch-account/route.ts": {
+          "accepted_lines": 24
+        },
+        "apps/web/__tests__/helpers/fixtures.ts": {
+          "accepted_lines": 42
+        },
+        "apps/web/app/globals.css": {
+          "accepted_lines": 391
+        },
+        "apps/web/__tests__/display-utils.test.ts": {
+          "accepted_lines": 26
+        },
+        "apps/web/components/AccountContent.tsx": {
+          "accepted_lines": 400
+        },
+        "apps/web/next.config.ts": {
+          "accepted_lines": 17
+        },
+        "apps/web/lib/assignee-utils.ts": {
+          "accepted_lines": 98
+        },
+        "apps/web/lib/auth.ts": {
+          "accepted_lines": 87
+        },
+        "apps/web/__tests__/task-detail-drawer-ui.test.tsx": {
+          "accepted_lines": 107
+        },
+        "apps/web/__tests__/api/summarize-voice.acceptance.test.ts": {
+          "accepted_lines": 173
+        },
+        "apps/web/__tests__/auth-config.test.ts": {
+          "accepted_lines": 73
+        },
+        "apps/web/__tests__/route-timing.test.ts": {
+          "accepted_lines": 19
+        },
+        "apps/web/__tests__/space-create-org.acceptance.test.ts": {
+          "accepted_lines": 72
+        },
+        "apps/web/components/TaskItem.tsx": {
+          "accepted_lines": 820
+        },
+        "apps/web/components/ui/textarea.tsx": {
+          "accepted_lines": 18
+        },
+        "apps/web/knip.config.ts": {
+          "accepted_lines": 18
+        },
+        ".autopilot/project/tasks/002-shared-packages-extraction.md": {
+          "additions": 68,
+          "accepted_lines": 68
+        },
+        "apps/web/__tests__/analytics-static-contracts.acceptance.test.ts": {
+          "accepted_lines": 149
+        },
+        "apps/web/lib/email-templates.ts": {
+          "accepted_lines": 117
+        },
+        "apps/web/vitest.config.ts": {
+          "accepted_lines": 32
+        },
+        "apps/web/__tests__/org-manifest.acceptance.test.ts": {
+          "accepted_lines": 139
+        },
+        "apps/web/__tests__/personal-daily-summary.acceptance.test.ts": {
+          "accepted_lines": 646
+        },
+        "apps/web/lib/use-voice-note.ts": {
+          "accepted_lines": 61
+        },
+        "apps/web/app/api/invitation/codes/generate/route.ts": {
+          "accepted_lines": 26
+        },
+        "apps/web/components/AssigneePicker.tsx": {
+          "accepted_lines": 317
+        },
+        "apps/web/components/NLInput.tsx": {
+          "accepted_lines": 327
+        },
+        "apps/web/lib/parse-utils.ts": {
+          "accepted_lines": 138
+        },
+        "apps/web/__tests__/assignee-picker.acceptance.test.ts": {
+          "accepted_lines": 268
+        },
+        "apps/web/__tests__/PushPromptBanner.test.tsx": {
+          "accepted_lines": 117
+        },
+        "apps/web/lib/auth-gateway-session.ts": {
+          "accepted_lines": 218
+        },
+        "apps/web/components/ui/separator.tsx": {
+          "accepted_lines": 28
+        },
+        "apps/web/postcss.config.mjs": {
+          "accepted_lines": 7
+        },
+        "apps/web/lib/types.ts": {
+          "accepted_lines": 309
+        },
+        "apps/web/app/auth/cli/page.tsx": {
+          "accepted_lines": 91
+        },
+        "apps/web/tsconfig.json": {
+          "accepted_lines": 34
+        },
+        ".autopilot/project/tasks/001-monorepo-migration.md": {
+          "additions": 55,
+          "accepted_lines": 55
+        },
+        "apps/web/app/api/orgs/join/[code]/route.ts": {
+          "accepted_lines": 73
+        },
+        "apps/web/components/PWAInstallBanner.tsx": {
+          "accepted_lines": 242
+        },
+        "apps/web/__tests__/completed-tasks-pagination.acceptance.test.ts": {
+          "accepted_lines": 343
+        },
+        "apps/web/components/NotificationList.tsx": {
+          "accepted_lines": 238
+        },
+        "apps/web/components/PeopleGantt.tsx": {
+          "accepted_lines": 302
+        },
+        "apps/web/components/readme-tabs.tsx": {
+          "accepted_lines": 40
+        },
+        "apps/web/app/(app)/changelog/page.tsx": {
+          "accepted_lines": 9
+        },
+        "apps/web/app/auth/callback/page.tsx": {
+          "accepted_lines": 117
+        },
+        "apps/web/components/ConfigActionPreview.tsx": {
+          "accepted_lines": 488
+        },
+        "apps/web/app/api/auth/logout/route.ts": {
+          "accepted_lines": 8
+        },
+        "apps/web/__tests__/helpers/mock-auth.ts": {
+          "accepted_lines": 13
+        },
+        "apps/web/__tests__/notification-drawer.acceptance.test.tsx": {
+          "accepted_lines": 435
+        },
+        "apps/web/app/api/spaces/[id]/join/route.ts": {
+          "accepted_lines": 48
+        },
+        "apps/web/lib/use-tasks.ts": {
+          "accepted_lines": 103
+        },
+        "apps/web/app/(app)/all/page.tsx": {
+          "accepted_lines": 5
+        },
+        "apps/web/components/DailySummary.tsx": {
+          "accepted_lines": 357
+        },
+        "apps/web/app/join/org/[code]/page.tsx": {
+          "accepted_lines": 138
+        },
+        "apps/web/__tests__/notification-utils.test.ts": {
+          "accepted_lines": 24
+        },
+        "apps/web/components.json": {
+          "accepted_lines": 23
+        },
+        "apps/web/app/(app)/orgs/[id]/page.tsx": {
+          "accepted_lines": 419
+        },
+        "apps/web/app/api/auth/cli-token/route.ts": {
+          "accepted_lines": 24
+        },
+        "apps/web/app/api/spaces/[id]/members/route.ts": {
+          "accepted_lines": 22
+        },
+        "apps/web/playwright.config.ts": {
+          "accepted_lines": 26
+        },
+        "apps/web/__tests__/summary-template-management.acceptance.test.ts": {
+          "accepted_lines": 480
+        },
+        "apps/web/__tests__/cli-session-token.acceptance.test.ts": {
+          "accepted_lines": 363
+        },
+        "apps/web/components/PushPromptBanner.tsx": {
+          "accepted_lines": 81
+        },
+        "apps/web/app/api/orgs/[id]/members/route.ts": {
+          "accepted_lines": 25
+        },
+        "apps/web/components/ui/card.tsx": {
+          "accepted_lines": 75
+        },
+        "apps/web/lib/orgs.ts": {
+          "accepted_lines": 34
+        },
+        "apps/web/components/ServiceWorkerRegistrar.tsx": {
+          "accepted_lines": 12
+        },
+        ".autopilot/project/tasks/007-distribution.md": {
+          "additions": 65,
+          "accepted_lines": 65
+        },
+        "apps/web/e2e/smoke.spec.ts": {
+          "accepted_lines": 7
+        },
+        "apps/web/components/NotificationSettings.tsx": {
+          "accepted_lines": 287
+        },
+        ".autopilot/project/tasks/005-tauri-skeleton.md": {
+          "additions": 68,
+          "accepted_lines": 68
+        },
+        "apps/web/components/MultiTaskPreview.tsx": {
+          "accepted_lines": 452
+        },
+        "apps/web/components/PersonalDailySummary.tsx": {
+          "accepted_lines": 302
+        },
+        "apps/web/app/api/notes/shared/[code]/route.ts": {
+          "accepted_lines": 20
+        },
+        "apps/web/public/offline.html": {
+          "accepted_lines": 54
+        },
+        "apps/web/__tests__/computeTaskBars.acceptance.test.ts": {
+          "accepted_lines": 294
+        },
+        "apps/web/app/api/tasks/route.ts": {
+          "accepted_lines": 259
+        },
+        "apps/web/components/ui/input.tsx": {
+          "accepted_lines": 21
+        },
+        "apps/web/app/api/push/subscribe/route.ts": {
+          "accepted_lines": 46
+        },
+        "apps/web/components/NotificationItem.tsx": {
+          "accepted_lines": 98
+        },
+        "apps/web/lib/note-utils.ts": {
+          "accepted_lines": 41
+        },
+        "apps/web/lib/use-media-query.ts": {
+          "accepted_lines": 25
+        },
+        "apps/web/__tests__/performance-cache.acceptance.test.ts": {
+          "accepted_lines": 85
+        },
+        "apps/web/__tests__/pwa-install.test.ts": {
+          "accepted_lines": 110
+        },
+        "apps/web/app/api/notifications/prefs/route.ts": {
+          "accepted_lines": 31
+        },
+        "apps/web/__tests__/parse-utils.test.ts": {
+          "accepted_lines": 386
+        },
+        "apps/web/app/(app)/orgs/page.tsx": {
+          "accepted_lines": 83
+        },
+        "apps/web/app/api/invitation/codes/route.ts": {
+          "accepted_lines": 63
+        },
+        "apps/web/components/VoiceButton.tsx": {
+          "accepted_lines": 59
+        },
+        "apps/web/app/(app)/layout.tsx": {
+          "accepted_lines": 42
+        },
+        "apps/web/scripts/vercel-rt-report.mjs": {
+          "accepted_lines": 331
+        },
+        "apps/web/lib/llm-client.ts": {
+          "accepted_lines": 183
+        },
+        "apps/web/components/SpaceNav.tsx": {
+          "accepted_lines": 509
+        },
+        "apps/web/components/TaskList.tsx": {
+          "accepted_lines": 275
+        },
+        "apps/web/app/api/invitation/redeem/route.ts": {
+          "accepted_lines": 55
+        },
+        "apps/web/app/api/spaces/[id]/notes/route.ts": {
+          "accepted_lines": 63
+        },
+        "apps/web/components/ParsePreviewCard.tsx": {
+          "accepted_lines": 172
+        },
+        "apps/web/__tests__/summary-settings.acceptance.test.ts": {
+          "accepted_lines": 356
+        },
+        "apps/web/__tests__/api/tasks-id-route.acceptance.test.ts": {
+          "accepted_lines": 257
+        },
+        "apps/web/__tests__/proxy-bearer-session.acceptance.test.ts": {
+          "accepted_lines": 380
+        },
+        "apps/web/lib/spaces.ts": {
+          "accepted_lines": 90
+        },
+        "apps/web/lib/ai-flow-log.ts": {
+          "accepted_lines": 105
+        },
+        "apps/web/app/shared/[code]/page.tsx": {
+          "accepted_lines": 103
+        },
+        "apps/web/app/activate/page.tsx": {
+          "accepted_lines": 101
+        },
+        "apps/web/__tests__/date-utils.test.ts": {
+          "accepted_lines": 170
+        },
+        "apps/web/app/api/spaces/[id]/members/[uid]/route.ts": {
+          "accepted_lines": 137
+        },
+        "apps/web/components/ui/popover.tsx": {
+          "accepted_lines": 36
+        },
+        "apps/web/lib/use-notifications.ts": {
+          "accepted_lines": 27
+        },
+        "apps/web/app/layout.tsx": {
+          "accepted_lines": 47
+        },
+        ".autopilot/project/design.md": {
+          "additions": 105,
+          "accepted_lines": 105
+        },
+        "apps/web/lib/use-voice-input.ts": {
+          "accepted_lines": 379
+        },
+        "apps/web/components/RichText.tsx": {
+          "accepted_lines": 110
+        },
+        "apps/web/__tests__/note-display.acceptance.test.tsx": {
+          "accepted_lines": 366
+        },
+        "apps/web/__tests__/invitation-codes-pagination.acceptance.test.ts": {
+          "accepted_lines": 422
+        },
+        "apps/web/__tests__/task-permissions.acceptance.test.ts": {
+          "accepted_lines": 358
+        },
+        "apps/web/scripts/db-migrate.mjs": {
+          "accepted_lines": 106
+        },
+        "apps/web/app/api/me/summary/route.ts": {
+          "accepted_lines": 179
+        },
+        "apps/web/__tests__/analytics-finalize-and-fault-tolerance.acceptance.test.ts": {
+          "accepted_lines": 193
+        },
+        "apps/web/__tests__/task-utils.test.ts": {
+          "accepted_lines": 152
+        },
+        "apps/web/__tests__/spaces/members-merge.acceptance.test.ts": {
+          "accepted_lines": 353
+        },
+        "apps/web/app/api/summarize-voice/route.ts": {
+          "accepted_lines": 61
+        },
+        "apps/web/public/manifest.json": {
+          "accepted_lines": 19
+        },
+        "apps/web/lib/use-pwa-install.ts": {
+          "accepted_lines": 90
+        },
+        "apps/web/app/api/orgs/[id]/spaces/[spaceId]/join/route.ts": {
+          "accepted_lines": 53
+        },
+        "apps/web/lib/url-meta-cache.ts": {
+          "accepted_lines": 25
+        }
+      }
+    }
+  }
+}
