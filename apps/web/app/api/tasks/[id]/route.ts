@@ -22,6 +22,28 @@ import type { ParsedTask } from "@/lib/types";
 
 export const preferredRegion = "hkg1";
 
+/** 将 PG 等未预期错误转为 400/500 响应，避免原始错误泄露到客户端 */
+function handleError(e: unknown) {
+  if (e instanceof TaskPermissionError) {
+    return Response.json({ error: e.message }, { status: 403 });
+  }
+  if (e instanceof TaskValidationError) {
+    return Response.json({ error: e.message }, { status: 400 });
+  }
+  if (e instanceof Error && e.message === "Task not found") {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
+  // PG 协议错误：数据类型不匹配（如非法 UUID）→ 400
+  if (e instanceof Error && "code" in e) {
+    const pgCode = (e as Error & { code?: string }).code;
+    if (pgCode === "22P02") {
+      return Response.json({ error: "Invalid input format" }, { status: 400 });
+    }
+  }
+  // 其余未预期错误重新抛出 → 500
+  throw e;
+}
+
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const rt = createRouteTimer(req);
   const user = await rt.track("auth", async () => getUserFromRequest(req));
@@ -29,9 +51,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   await initDb();
   const { id } = await params;
-  const task = await rt.track("db_query", async () => getTaskForUser(id, user.id));
-  if (!task) return rt.json({ error: "Not found" }, { status: 404 });
-  return rt.json(task);
+  try {
+    const task = await rt.track("db_query", async () => getTaskForUser(id, user.id));
+    if (!task) return rt.json({ error: "Not found" }, { status: 404 });
+    return rt.json(task);
+  } catch (e) {
+    return handleError(e);
+  }
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -208,16 +234,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
     return rt.json(task);
   } catch (e) {
-    if (e instanceof TaskPermissionError) {
-      return rt.json({ error: e.message }, { status: 403 });
-    }
-    if (e instanceof Error && e.message === "Task not found") {
-      return rt.json({ error: "Not found" }, { status: 404 });
-    }
-    if (e instanceof TaskValidationError) {
-      return rt.json({ error: e.message }, { status: 400 });
-    }
-    throw e;
+    return handleError(e);
   }
 }
 
@@ -251,9 +268,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
     return rt.empty(204);
   } catch (e) {
-    if (e instanceof TaskPermissionError) {
-      return rt.json({ error: e.message }, { status: 403 });
-    }
-    throw e;
+    return handleError(e);
   }
 }
