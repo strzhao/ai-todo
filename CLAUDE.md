@@ -280,12 +280,24 @@ scripts/
 HANDOFF-VPS-MIGRATION.md        # VPS 迁移 handoff（后续步骤：改 frps/DNS，凭据在 .env.local gitignored）
 ```
 
-## 部署形态
+## 部署
 
-代码层支持两种部署：
+统一使用 `vps` CLI（来自 `../vps-ops/`，npm 全局命令 `vps`，任意目录可跑，env 自动加载）：
 
-- **Vercel**（历史默认）：`@vercel/postgres` 已替换为 `pg`，但 `POSTGRES_URL` 仍指向 Neon；`proxy.ts` 路由保护不变
-- **VPS（腾讯云上海）**：`deploy/` 多阶段 Docker 构建 + `output: standalone`，`docker-compose.yml` 接入 `little-bee-net` external 网络，端口 3002；`POSTGRES_URL` 指向本机 `little-bee-pg`。后续部署步骤见 `HANDOFF-VPS-MIGRATION.md`
+```bash
+vps deploy ai-todo --plan          # dry-run，看将执行什么
+vps deploy ai-todo --yes           # 正式部署（local buildx → ssh load → compose up → 健康检查 → 失败自动回滚）
+vps deploy ai-todo --local-build   # 强制本地构建（当前默认 local）
+vps deploy ai-todo --remote-build  # 远端 VPS 上构建（fallback）
+vps rollback ai-todo               # 回滚到上一版
+```
+
+- **local 模式**（默认）：Mac 上 `docker buildx --platform linux/amd64` 构建 → `save|gzip|ssh load` 推到 VPS → `compose up --no-build`。约 2.5 分钟，比远端构建快 8x。
+- **preflight**：工程根需 `.dockerignore` 覆盖 `node_modules/.next/.git/.env*`（已就绪）。
+- **健康检查**：`https://ai-todo.stringzhao.life/` 接受 200/301/302/307。
+- 旧版手动 rsync + ssh docker compose 方式仍可用，但不推荐。
+
+VPS 详情（IP/容器/DB/网络）见 `../vps-ops/CLAUDE.md`。
 
 ## 任务优先级
 
