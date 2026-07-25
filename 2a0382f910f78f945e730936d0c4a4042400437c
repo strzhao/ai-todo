@@ -1,0 +1,30 @@
+CLAUDE.md
+  4f6c9ad0397f72ba 283,285,287-300
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "2a0382f910f78f945e730936d0c4a4042400437c",
+  "prompts": {
+    "4f6c9ad0397f72ba": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1f67f9fa-3a5e-4377-8d8c-bbd9be74d356",
+        "model": "deepseek-v4-pro"
+      },
+      "human_author": "赵桂雄",
+      "messages": [],
+      "total_additions": 16,
+      "total_deletions": 4,
+      "accepted_lines": 16,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "CLAUDE.md": {
+          "additions": 16,
+          "deletions": 4,
+          "accepted_lines": 16
+        }
+      }
+    }
+  }
+}
