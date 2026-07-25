@@ -1,0 +1,37 @@
+deploy/Dockerfile
+  4f6c9ad0397f72ba 10,12-13,15-16,31-34,36
+apps/web/app/api/tasks/[id]/route.ts
+  4f6c9ad0397f72ba 25-46,54-60,237,271
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "0a99f004620ce23e83d135a85c61d629d3572189",
+  "prompts": {
+    "4f6c9ad0397f72ba": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1f67f9fa-3a5e-4377-8d8c-bbd9be74d356",
+        "model": "deepseek-v4-pro"
+      },
+      "human_author": "赵桂雄",
+      "messages": [],
+      "total_additions": 57,
+      "total_deletions": 38,
+      "accepted_lines": 41,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "apps/web/app/api/tasks/[id]/route.ts": {
+          "additions": 41,
+          "deletions": 27,
+          "accepted_lines": 31
+        },
+        "deploy/Dockerfile": {
+          "additions": 16,
+          "deletions": 11,
+          "accepted_lines": 10
+        }
+      }
+    }
+  }
+}
