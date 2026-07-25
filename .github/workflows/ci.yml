@@ -11,6 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # 完整克隆：T001 验收测试用 `git log --follow` 校验迁移前历史，
+          # 默认浅克隆（fetch-depth=1）下无历史可查
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
