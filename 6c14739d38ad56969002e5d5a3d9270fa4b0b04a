@@ -1,0 +1,29 @@
+.dockerignore
+  4f6c9ad0397f72ba 1-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "6c14739d38ad56969002e5d5a3d9270fa4b0b04a",
+  "prompts": {
+    "4f6c9ad0397f72ba": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1f67f9fa-3a5e-4377-8d8c-bbd9be74d356",
+        "model": "deepseek-v4-pro"
+      },
+      "human_author": "赵桂雄",
+      "messages": [],
+      "total_additions": 36,
+      "total_deletions": 0,
+      "accepted_lines": 36,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        ".dockerignore": {
+          "additions": 36,
+          "accepted_lines": 36
+        }
+      }
+    }
+  }
+}
