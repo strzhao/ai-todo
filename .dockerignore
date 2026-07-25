@@ -1,0 +1,36 @@
+# 依赖与构建产物（容器内重新安装/构建）
+node_modules
+.next
+out
+build
+coverage
+
+# 版本控制与 IDE
+.git
+.gitignore
+.vscode
+.idea
+.claude
+
+# 环境变量（避免泄漏到镜像层；生产 env 经 docker-compose env_file 注入）
+.env
+.env.*
+!.env.example
+
+# 测试与报告
+__tests__
+playwright-report
+test-results
+blob-report
+e2e
+
+# 文档与本地脚本
+*.md
+LICENSE
+HANDOFF-VPS-MIGRATION.md
+scripts/vercel-rt-report.mjs
+
+# 系统文件
+.DS_Store
+*.log
+npm-debug.log*
