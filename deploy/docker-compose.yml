@@ -13,9 +13,8 @@ services:
       - NODE_ENV=production
       - PORT=3002
       - HOSTNAME=0.0.0.0
-      - AUTH_COOKIE_SECURE=false  # VPS HTTP(备案前):secure cookie 在 HTTP 下浏览器拒存 → OAuth state_mismatch,关掉让 auth_state cookie 工作
-    ports:
-      - "3002:3002" # 备案前直连 IP:3002;备案后可改回 expose 仅 Caddy 反代
+    expose:
+      - "3002" # 仅 Caddy 反代访问，不对宿主机公开（备案后正式上线）
     networks: [little-bee-net]
 
 networks:
