@@ -29,5 +29,6 @@
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix",
     "*.{ts,tsx,json,md,mjs}": "prettier --write"
-  }
+  },
+  "description": "NL-first task manager for humans and AI agents — one input box, preview before execute"
 }

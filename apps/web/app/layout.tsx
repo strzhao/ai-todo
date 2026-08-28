@@ -19,6 +19,11 @@ export const metadata: Metadata = {
   description: "用自然语言管理你的任务",
   manifest: "/manifest.json",
   themeColor: "#3A7D68",
+  openGraph: {
+    title: "AI Todo",
+    description: "NL-first 任务管理，给人和 AI agent 用 —— 一句话、先预览、再执行",
+    images: [{ url: "/assets/og-bi.png", width: 1200, height: 630, alt: "AI Todo" }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

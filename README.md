@@ -1,100 +1,89 @@
 # AI Todo
 
-AI 驱动的任务管理工具。用自然语言说一句话，AI 自动解析成结构化任务。
+**Natural-language task management for humans and AI agents.** Type one sentence — AI parses it into a structured task, shows you a preview, and executes only after you confirm.
 
-**在线地址**：https://ai-todo.stringzhao.life
+[简体中文](README.zh-CN.md) | **English**
 
----
+![AI Todo demo — type one sentence, preview the change, confirm](apps/web/public/screenshots/demo-en.gif)
 
-## 核心理念
+[![CI](https://github.com/strzhao/ai-todo/actions/workflows/ci.yml/badge.svg)](https://github.com/strzhao/ai-todo/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-3A7D68.svg)](LICENSE)
+[![Live](https://img.shields.io/website?url=https%3A%2F%2Fai-todo.stringzhao.life&label=live)](https://ai-todo.stringzhao.life)
 
-**AI 输入框是唯一入口**。不需要点按钮、填表单，直接用自然语言描述你要做的事：
+## Why ai-todo
 
-| 你说的话 | 系统执行 |
-|---------|---------|
-| 明天下午写周报 | 创建任务，自动识别日期和时间 |
-| 把写报告改成高优先级 | 定位任务并更新优先级 |
-| 完成调研任务 | 标记为已完成 |
-| 删除测试任务 | 删除任务 |
-| 给项目计划加进展：完成第一阶段 | 添加进展日志 |
-| 把调研、联调移到项目计划下面 | 批量移动为子任务 |
+Most todo apps make you fill forms. ai-todo makes the input box the only interface:
 
-所有操作都会先预览再执行，不会误改。
+- **One sentence, fully parsed** — "Move the weekly review to Friday 3pm and make it high priority" locates the right task, extracts date and priority, and shows a diff preview before anything changes.
+- **Preview before execute** — every operation lands as a reviewable action first. No accidental edits, no lost tasks.
+- **Deep structure** — unlimited parent/child nesting, cascading complete/delete, and any top-level task can be pinned into a shared project space with `@member` assignment and a Gantt view.
 
-## 30 秒上手
+## Built for AI agents
 
-1. **打开页面**，登录后进入任务列表
-2. **按 `Cmd/Ctrl + K`** 聚焦 AI 输入框，用自然语言描述任务
-3. **确认预览**，AI 解析结果无误后点确认执行
-
-## 主要功能
-
-### 自然语言任务管理
-
-- 一句话创建任务，自动提取标题、日期、优先级
-- 支持更新、完成、删除、添加进展等全部操作
-- 支持一次输入批量操作多个任务
-
-### 任务层级
-
-- 任务支持无限深度的父子嵌套
-- 完成父任务会自动完成所有子任务
-- 删除父任务会级联删除子任务
-
-### 项目空间
-
-- 任何顶层任务都可以通过「⋮ → 置顶到侧边栏」升级为项目空间
-- 空间支持邀请成员协作，用 `@邮箱` 指派任务
-- 按成员筛选任务，甘特图查看时间分布
-- 取消置顶后任务和子任务保留，只是退出空间导航
-
-### 快捷操作
-
-- `Cmd/Ctrl + K` — 聚焦 AI 输入框
-- `Cmd/Ctrl + Enter` — 快速触发解析
-- 聚焦父任务后输入，默认创建其子任务
-
-## CLI 工具
-
-ai-todo 提供命令行工具，专为 AI agent（如 Claude Code）设计：
+ai-todo ships a CLI designed for agents like Claude Code — commands are discovered dynamically from the server, and **every output is pure JSON** (no scraping, no guessing):
 
 ```bash
-# 安装
 npm install -g ai-todo-cli
-
-# 登录
 ai-todo login
-
-# 常用命令
-ai-todo tasks:list                    # 列出任务
-ai-todo tasks:list --filter today     # 今日任务
-ai-todo tasks:create --title '写周报'  # 创建任务
-ai-todo tasks:complete --id <id>      # 完成任务
-ai-todo tasks:add-log --id <id> --content '进展内容'  # 添加日志
+ai-todo tasks:list --filter today
+ai-todo tasks:create --title "Ship v0.13"
+ai-todo tasks:add-log --id <id> --content "progress note"
 ```
 
-### Claude Code Skill 集成
+Install the Claude Code skill and task-related intents route straight into ai-todo:
 
 ```bash
 npx skills add strzhao/ai-todo-cli
 ```
 
-安装后，Claude Code 会自动识别任务相关意图并调用 ai-todo 管理任务。
+CLI repo: [strzhao/ai-todo-cli](https://github.com/strzhao/ai-todo-cli)
 
-## 常见问题
+## Quickstart
 
-**AI 解析不准确？**
-换成更短、更直接的表达重试。确保输入包含明确的动作和目标。
+1. Open [ai-todo.stringzhao.life](https://ai-todo.stringzhao.life) and sign in
+2. Press `Cmd/Ctrl + K` to focus the AI input
+3. Describe the task or operation in one sentence, review the preview, confirm
 
-**提示未登录？**
-按页面提示重新登录，登录后会回到原来的页面。
+> Note: the UI is currently Chinese-only; the AI parser understands English input fine, and an English UI is on the roadmap.
 
-**完成父任务会怎样？**
-所有未完成的子任务会一起标记为已完成。
+### Self-hosting
 
-**空间和任务是什么关系？**
-空间就是被置顶的顶层任务。先建任务再置顶，或直接创建空间，效果一样。
+Next.js 16 monorepo (`apps/web`). You provide: a Postgres database (`POSTGRES_URL`), a DeepSeek API key for NL parsing (`DEEPSEEK_API_KEY`), and an OIDC provider (`AUTH_ISSUER`; set `AUTH_DEV_BYPASS=true` for local development). Then:
 
-## 技术栈
+```bash
+npm install && npm run dev   # http://localhost:4000
+```
 
-Next.js 16 · Tailwind CSS · shadcn/ui · DeepSeek API · Vercel Postgres · Vercel 部署
+## Features
+
+- Natural-language create / update / complete / delete / add-progress, with batch operations in one input
+- Preview-and-confirm for every action
+- Unlimited task nesting; completing a parent completes the subtree
+- Project spaces: pin any top-level task, invite members, assign with `@email`, Gantt timeline
+- `Cmd/Ctrl + K` focus input · `Cmd/Ctrl + Enter` parse · focus a parent task to default-create subtasks
+
+![Task list with nested project tree](apps/web/public/screenshots/home-zh@2x.png)
+
+## How it compares
+
+|                                   | ai-todo            | [Taskosaur](https://github.com/Taskosaur/Taskosaur) | [TaskFlow AI](https://github.com/webcodelabb/taskflow-ai) |
+| --------------------------------- | ------------------ | --------------------------------------------------- | --------------------------------------------------------- |
+| Input paradigm                    | NL-first, one box  | conversational AI in-app                            | NL → daily plans                                          |
+| Preview before execute            | ✅ per-action diff | —                                                   | —                                                         |
+| Dedicated agent CLI (pure JSON)   | ✅                 | —                                                   | —                                                         |
+| Claude Code skill                 | ✅                 | —                                                   | —                                                         |
+| Unlimited nesting + shared spaces | ✅                 | project-based                                       | plan-based                                                |
+
+## Roadmap
+
+- [ ] i18n (English UI)
+- [ ] More agent integrations (MCP server)
+- [ ] Mobile PWA polish
+
+## Contributing
+
+Issues and PRs are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). The API surface is documented in [`documents/api/`](documents/api/).
+
+## License
+
+[MIT](LICENSE) © 2026 strzhao
