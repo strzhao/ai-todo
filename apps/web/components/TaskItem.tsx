@@ -398,7 +398,7 @@ export const TaskItem = memo(function TaskItem({
           )}
           {task.description && (
             <div
-              className="text-sm text-muted-foreground mt-0.5 truncate md:pointer-events-none cursor-pointer md:cursor-default"
+              className="text-sm text-muted-foreground mt-0.5 truncate md:pointer-events-none md:[&_a]:pointer-events-auto cursor-pointer md:cursor-default"
               onClick={handleMobileDetailToggle}
             >
               <RichText text={task.description} truncate />

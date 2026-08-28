@@ -180,3 +180,23 @@ VPS 迁移把 `@vercel/postgres` 换 `pg`，兼容层必须保持 ``sql` ` `` ta
 **Lesson**：先用独立脚本直测 DB 稳态延迟（同一查询连跑两次取第二次，排除建连），若约等于单 RTT 则慢在叠加项：每请求幂等 DDL × RTT、dev 模式路由首次编译、并发请求排队等。e2e 断言超时要按本地 dev 校准（而非生产预期）并在测试里注明原因；生产拓扑不同（应用与 DB 同机）时，不要把本地延迟当生产 bug 报。
 
 **Evidence**：complete PATCH 本地 dev 耗时 8.5s：稳态查询仅 ~95ms，分解 = 每请求 initDb 15 条 DDL × 95ms + [id] 路由首编译 ~5s；VPS 生产 DB 为 localhost 不受影响。e2e 窗口 5s→30s 后 PASS（apps/web/e2e/complete-task.spec.ts）。
+
+## 容器 pointer-events-none 会连带禁用富文本链接，需任意变体豁免
+
+<!-- tags: css, pointer-events, tailwind, richtext, task-item -->
+
+**Scenario**：给任务行/卡片的某个区域容器加 `pointer-events-none`（意图：桌面端点这块不触发行级点击、cursor 不变手型），而该容器内由 RichText 渲染出 `<a>`（标题/描述中的 URL）。
+
+**Lesson**：`pointer-events: none` 作用于容器即禁用**全部后代**的指针事件，富文本链接会静默失效——症状是"标题里的 URL 能点、描述里的不能点"这类同数据不同渲染面的差异。若意图只是屏蔽容器级行为，应保留容器 none 并对交互后代豁免：Tailwind 任意变体 `[&_a]:pointer-events-auto`（与 ui/button.tsx 的 `[&_svg]:pointer-events-none` 同款惯例）。链接组件自带的 `stopPropagation` 保证豁免后不会误触发容器 onClick。
+
+**Evidence**：TaskItem 描述容器 `md:pointer-events-none` 导致桌面端描述 URL 不可点、标题 URL（无该容器）可点；追加 `md:[&_a]:pointer-events-auto` 修复（核对锚点：2026-08-29 源码版本 apps/web/components/TaskItem.tsx）。
+
+## jsdom 属性选择器对含 &/? 的 URL 值匹配不可靠
+
+<!-- tags: jsdom, testing-library, selector, url, vitest -->
+
+**Scenario**：组件测试中用属性选择器定位带查询串的链接，如 `a[href="https://x.com/manage?a=1&b=2"]`。
+
+**Lesson**：jsdom 的选择器引擎（nwsapi）对属性值含原始 `&`/`?` 的选择器匹配不可靠——元素确实存在但 querySelector 返回 null，断言会以"找不到元素"假失败。改用遍历元素集合并比对 `getAttribute("href") === 期望完整 URL` 来定位，勿依赖属性选择器。
+
+**Evidence**：description-link-clickable.acceptance.test.tsx 中 `a[href="...&time=..."]` 偶发 null；改 getAttribute 遍历后稳定（核对锚点：2026-08-29 源码版本）。

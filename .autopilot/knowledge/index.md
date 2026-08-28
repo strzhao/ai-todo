@@ -13,3 +13,5 @@
 - [腾讯云 Lighthouse vs CVM](patterns.md) — VPS 机型认错(lhins- vs ins-)让 cvm/vpc API 全空转；Lighthouse 用 lighthouse 模块 + 防火墙(FirewallRules)+ QcloudLighthouseFullAccess CAM
 - [客户端缓存库已接管缓存时 API 禁用 stale-while-revalidate](patterns.md) — SWR revalidation 会被 HTTP 缓存旧 body 覆盖乐观更新；症状：mutation 后回闪、刷新才对；用 private, no-store
 - [本地 dev「写接口慢」先分环境层 vs 应用层](patterns.md) — 直测 DB 稳态延迟排除建连；慢因常是每请求 DDL×RTT + dev 首编译，勿当生产 bug
+- [容器 pointer-events-none 连带禁用富文本链接](patterns.md) — none 作用全部后代，URL 链接静默失效；用 `[&_a]:pointer-events-auto` 任意变体豁免
+- [jsdom 属性选择器对含 &/? 的 URL 匹配不可靠](patterns.md) — `a[href="...&..."]` 假失败；改 getAttribute 遍历比对完整 URL

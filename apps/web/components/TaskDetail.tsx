@@ -95,6 +95,7 @@ export function TaskDetail({
   const [logsLoaded, setLogsLoaded] = useState(false);
   const [description, setDescription] = useState(task.description ?? "");
   const [savingDesc, setSavingDesc] = useState(false);
+  const [descEditing, setDescEditing] = useState(false);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -754,16 +755,34 @@ export function TaskDetail({
           ) : (
             <p className="text-sm text-muted-foreground/50">无描述</p>
           )
-        ) : (
+        ) : descEditing ? (
           <textarea
+            autoFocus
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            onBlur={saveDescription}
+            onBlur={() => {
+              void saveDescription();
+              setDescEditing(false);
+            }}
             disabled={savingDesc}
             placeholder="添加描述（AI 会参考描述来理解任务，建议填写）"
             rows={2}
             className="w-full text-sm bg-muted/40 border border-border/50 rounded-md px-3 py-2 resize-none outline-none focus:border-sage/50 placeholder:text-muted-foreground/50 transition-colors min-h-[72px]"
           />
+        ) : (
+          <div
+            className="w-full text-sm bg-muted/40 border border-border/50 rounded-md px-3 py-2 cursor-text hover:border-sage/50 transition-colors min-h-[72px]"
+            onClick={() => setDescEditing(true)}
+            title="点击编辑描述"
+          >
+            {description ? (
+              <RichText text={description} className="text-sm text-foreground/80" />
+            ) : (
+              <span className="text-muted-foreground/50">
+                添加描述（AI 会参考描述来理解任务，建议填写）
+              </span>
+            )}
+          </div>
         )}
       </div>
 
