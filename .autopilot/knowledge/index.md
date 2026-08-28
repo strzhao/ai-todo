@@ -11,3 +11,5 @@
 - [红队信息隔离致 mock 脚手架缺陷](patterns.md) — 红队不读实现致 mock/签名/返回结构假设错误测试崩溃（非断言失败）；授权修脚手架保留逻辑断言
 - [@vercel/postgres→pg 兼容层 + node alias 陷阱](patterns.md) — Object.assign(taggedSql,{query}) 双形态对齐 mock；被 node 直跑的底层模块用相对路径非 @/ alias；.autopilot 副本需 vitest/eslint exclude
 - [腾讯云 Lighthouse vs CVM](patterns.md) — VPS 机型认错(lhins- vs ins-)让 cvm/vpc API 全空转；Lighthouse 用 lighthouse 模块 + 防火墙(FirewallRules)+ QcloudLighthouseFullAccess CAM
+- [客户端缓存库已接管缓存时 API 禁用 stale-while-revalidate](patterns.md) — SWR revalidation 会被 HTTP 缓存旧 body 覆盖乐观更新；症状：mutation 后回闪、刷新才对；用 private, no-store
+- [本地 dev「写接口慢」先分环境层 vs 应用层](patterns.md) — 直测 DB 稳态延迟排除建连；慢因常是每请求 DDL×RTT + dev 首编译，勿当生产 bug

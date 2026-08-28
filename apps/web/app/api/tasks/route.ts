@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
     );
     return rt.json(completedTasks, {
       headers: {
-        "Cache-Control": "private, max-age=0, stale-while-revalidate=10",
+        "Cache-Control": "private, no-store",
         "X-Has-More": String(hasMore),
       },
     });
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
 
   return rt.json(tasks, {
     headers: {
-      "Cache-Control": "private, max-age=0, stale-while-revalidate=10",
+      "Cache-Control": "private, no-store",
     },
   });
 }

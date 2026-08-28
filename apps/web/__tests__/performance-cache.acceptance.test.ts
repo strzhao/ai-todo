@@ -72,14 +72,15 @@ describe("布局查询并行化", () => {
 // ── D. API Cache-Control 头 ──────────────────────────────────────────────────
 
 describe("API Cache-Control 头", () => {
-  it("tasks route GET 应返回 stale-while-revalidate Cache-Control", async () => {
+  it("tasks route GET 应返回 no-store Cache-Control", async () => {
     const fs = await import("fs");
     const path = await import("path");
     const routePath = path.join(process.cwd(), "app/api/tasks/route.ts");
     const content = fs.readFileSync(routePath, "utf-8");
 
-    // 验证响应包含 Cache-Control 头
+    // 验证响应包含 Cache-Control 头且为 no-store（禁止 HTTP 缓存，缓存职责由客户端 SWR 承担）
     expect(content).toContain("Cache-Control");
-    expect(content).toContain("stale-while-revalidate");
+    expect(content).toContain("no-store");
+    expect(content).not.toContain("stale-while-revalidate");
   });
 });

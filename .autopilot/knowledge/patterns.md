@@ -160,3 +160,23 @@ VPS 迁移把 `@vercel/postgres` 换 `pg`，兼容层必须保持 ``sql` ` `` ta
 - tccli 操作 Lighthouse 用 `lighthouse` 模块，CAM 授 `QcloudLighthouseFullAccess`
 - docker 容器外部可达要双重：host 端口映射（`ports: "3002:3002"`，**非** `expose`）+ Lighthouse 防火墙放行该端口
 - Evidence: ai-todo 3002 不通，cvm 全 0 实例 → 认错机型；改 lighthouse + docker ports 映射 + 防火墙 TCP:3002 → 通
+
+## 客户端缓存库已接管缓存时，API 禁用 stale-while-revalidate
+
+<!-- tags: swr, http-cache, cache-control, optimistic-update, regression -->
+
+**Scenario**：前端用 SWR/React Query 管理数据缓存与乐观更新，服务端想给 GET 接口加 HTTP 缓存头提速。
+
+**Lesson**：缓存职责只能归一层。客户端库发出的 revalidation 请求恰好是"需要看到最新写入"的请求，HTTP 层任何允许向调用方直接返回旧 body 的指令（stale-while-revalidate 等）都会让缓存旧值精确覆盖乐观更新。症状签名：mutation 后 UI"回闪"旧状态、手动刷新反而正确（后台已悄悄刷新 HTTP 缓存）。正确姿势：这类 API 用 `private, no-store`，提速完全交给客户端缓存库。
+
+**Evidence**：ai-todo 点击完成任务后任务不消失、刷新才消失。根因 = GET /api/tasks 响应头 `stale-while-revalidate=10` 使浏览器向 SWR revalidation 返回缓存旧 body（apps/web/app/api/tasks/route.ts 两处）；改 `private, no-store` 后 Playwright e2e 验证不刷新即消失。注：该 header 是此前性能优化有意引入且被 performance-cache.acceptance.test.ts Section D 锁定——加缓存头时未识别与客户端 SWR 的职责冲突，性能优化变成回归源。
+
+## 本地 dev「写接口慢」先分环境层 vs 应用层
+
+<!-- tags: e2e, dev-latency, postgres, timeout, debugging -->
+
+**Scenario**：本地 e2e/联调时 mutation 接口出现秒级耗时，怀疑业务代码有性能问题。
+
+**Lesson**：先用独立脚本直测 DB 稳态延迟（同一查询连跑两次取第二次，排除建连），若约等于单 RTT 则慢在叠加项：每请求幂等 DDL × RTT、dev 模式路由首次编译、并发请求排队等。e2e 断言超时要按本地 dev 校准（而非生产预期）并在测试里注明原因；生产拓扑不同（应用与 DB 同机）时，不要把本地延迟当生产 bug 报。
+
+**Evidence**：complete PATCH 本地 dev 耗时 8.5s：稳态查询仅 ~95ms，分解 = 每请求 initDb 15 条 DDL × 95ms + [id] 路由首编译 ~5s；VPS 生产 DB 为 localhost 不受影响。e2e 窗口 5s→30s 后 PASS（apps/web/e2e/complete-task.spec.ts）。
