@@ -96,6 +96,7 @@ export function TaskDetail({
   const [description, setDescription] = useState(task.description ?? "");
   const [savingDesc, setSavingDesc] = useState(false);
   const [descEditing, setDescEditing] = useState(false);
+  const [descError, setDescError] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -223,7 +224,13 @@ export function TaskDetail({
       });
       if (res.ok) {
         onUpdate?.(task.id, { description: trimmed || undefined });
+        setDescError(null);
+      } else {
+        // 保留本地未保存文本，视图态提示失败，点击重新编辑即可重试
+        setDescError(`描述保存失败（${res.status}），未同步到服务器，点击重新编辑可重试`);
       }
+    } catch {
+      setDescError("描述保存失败（网络错误），未同步到服务器，点击重新编辑可重试");
     } finally {
       setSavingDesc(false);
     }
@@ -772,7 +779,10 @@ export function TaskDetail({
         ) : (
           <div
             className="w-full text-sm bg-muted/40 border border-border/50 rounded-md px-3 py-2 cursor-text hover:border-sage/50 transition-colors min-h-[72px]"
-            onClick={() => setDescEditing(true)}
+            onClick={() => {
+              setDescEditing(true);
+              setDescError(null);
+            }}
             title="点击编辑描述"
           >
             {description ? (
@@ -784,6 +794,7 @@ export function TaskDetail({
             )}
           </div>
         )}
+        {!readonly && descError && <p className="mt-1 text-xs text-destructive">{descError}</p>}
       </div>
 
       {/* ── Logs ──────────────────────────────────────────────────── */}
