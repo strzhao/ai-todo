@@ -1,0 +1,23 @@
+name: 🐛 Bug 报告 / Bug report
+description: Something is broken / 有东西坏了
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened / 发生了什么
+      description: What did you do, what did you expect, what happened instead / 你做了什么、期望什么、实际发生了什么
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment / 环境
+      description: Browser & OS or CLI version / 浏览器与系统，或 CLI 版本
+      placeholder: "e.g. Chrome 129 / macOS; ai-todo-cli 0.4.3"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots / 日志或截图
+      description: Anything that helps reproduce it / 任何有助复现的信息
+      render: shell
