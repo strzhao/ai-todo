@@ -1,0 +1,55 @@
+{
+  "name": "ai-todo-cli",
+  "version": "0.4.3",
+  "description": "CLI tool for AI agents to interact with ai-todo",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/strzhao/ai-todo-cli.git"
+  },
+  "homepage": "https://github.com/strzhao/ai-todo-cli#readme",
+  "bugs": {
+    "url": "https://github.com/strzhao/ai-todo-cli/issues"
+  },
+  "bin": {
+    "ai-todo": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --fix src/",
+    "format": "biome format --write src/",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "commander": "^13.0.0",
+    "open": "^10.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.8",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^4.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "lint-staged": {
+    "src/**/*.ts": [
+      "biome check --fix",
+      "biome format --write"
+    ]
+  }
+}
