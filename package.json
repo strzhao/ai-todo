@@ -24,11 +24,18 @@
     "test:e2e:perf": "npm run test:e2e:perf --workspace apps/web",
     "prepare": "husky",
     "dead-code": "npm run dead-code --workspace apps/web",
-    "size": "npm run size --workspace apps/web"
+    "size": "npm run size --workspace apps/web",
+    "cli:dev": "npm run dev --workspace apps/cli",
+    "cli:build": "npm run build --workspace apps/cli",
+    "cli:test": "npm run test --workspace apps/cli",
+    "cli:test:coverage": "npm run test:coverage --workspace apps/cli",
+    "cli:lint": "npm run lint --workspace apps/cli"
   },
   "lint-staged": {
-    "*.{ts,tsx}": "eslint --fix",
-    "*.{ts,tsx,json,md,mjs}": "prettier --write"
+    "apps/cli/**/*.ts": "biome check --write",
+    "apps/web/**/*.{ts,tsx}": "eslint --fix",
+    "apps/web/**/*.{ts,tsx,json,md,mjs}": "prettier --write",
+    "*.{json,md,mjs}": "prettier --write"
   },
   "description": "NL-first task manager for humans and AI agents — one input box, preview before execute"
 }

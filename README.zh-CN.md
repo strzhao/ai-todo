@@ -36,7 +36,7 @@ ai-todo tasks:add-log --id <id> --content "进展记录"
 npx skills add strzhao/ai-todo-cli
 ```
 
-CLI 仓库：[strzhao/ai-todo-cli](https://github.com/strzhao/ai-todo-cli)
+CLI 源码：本 monorepo 的 [`apps/cli`](apps/cli)（以 `ai-todo-cli` 发布到 npm）
 
 ## 30 秒上手
 
@@ -46,7 +46,7 @@ CLI 仓库：[strzhao/ai-todo-cli](https://github.com/strzhao/ai-todo-cli)
 
 ### 自托管
 
-Next.js 16 monorepo（`apps/web`）。你需要准备：Postgres 数据库（`POSTGRES_URL`）、DeepSeek API key（`DEEPSEEK_API_KEY`）、OIDC 认证服务（`AUTH_ISSUER`；本地开发可设 `AUTH_DEV_BYPASS=true` 跳过）。然后：
+Next.js 16 monorepo（`apps/web` + `apps/cli`）。你需要准备：Postgres 数据库（`POSTGRES_URL`）、DeepSeek API key（`DEEPSEEK_API_KEY`）、OIDC 认证服务（`AUTH_ISSUER`；本地开发可设 `AUTH_DEV_BYPASS=true` 跳过）。然后：
 
 ```bash
 npm install && npm run dev   # http://localhost:4000

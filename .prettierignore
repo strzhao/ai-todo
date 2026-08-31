@@ -1,0 +1,6 @@
+apps/cli
+.next
+coverage
+dist
+playwright-report
+test-results

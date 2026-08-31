@@ -50,3 +50,27 @@ jobs:
           AUTH_SERVICE_ID: base-account-client
           APP_ORIGIN: https://ai-todo.stringzhao.life
           NEXT_PUBLIC_AUTH_ISSUER: https://user.stringzhao.life
+
+  cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --legacy-peer-deps
+
+      - name: Type check
+        run: npx tsc --noEmit --project apps/cli/tsconfig.json
+
+      - name: Lint (biome)
+        run: npm run lint --workspace apps/cli
+
+      - name: Test
+        run: npm run test --workspace apps/cli
+
+      - name: Build
+        run: npm run build --workspace apps/cli

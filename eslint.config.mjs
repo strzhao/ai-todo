@@ -8,6 +8,7 @@ export default tseslint.config(
       "apps/web/.next/",
       "apps/web/node_modules/",
       "apps/web/public/sw.js",
+      "apps/cli/",
       "**/.next/",
       "**/node_modules/",
       ".autopilot/",

@@ -1,0 +1,41 @@
+name: Publish CLI to npm
+
+on:
+  push:
+    tags:
+      - "cli-v*"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    environment: npm
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+      - run: npm install -g npm@^11.5.1
+      - name: Verify tag matches apps/cli package.json version
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./apps/cli/package.json').version")
+          TAG_VERSION="${GITHUB_REF_NAME#cli-v}"
+
+          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+            echo "Tag version ($TAG_VERSION) does not match apps/cli package.json version ($PACKAGE_VERSION)"
+            exit 1
+          fi
+      - run: npm ci --legacy-peer-deps
+      - run: npm run build --workspace apps/cli
+      - name: Publish to npm with trusted publishing
+        working-directory: apps/cli
+        env:
+          NODE_AUTH_TOKEN: ""
+        run: |
+          # setup-node writes a placeholder auth token when registry-url is set.
+          # Remove token auth so npm can use GitHub OIDC trusted publishing.
+          npm config delete "//registry.npmjs.org/:_authToken"
+          npm publish --provenance --access public

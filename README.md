@@ -36,7 +36,7 @@ Install the Claude Code skill and task-related intents route straight into ai-to
 npx skills add strzhao/ai-todo-cli
 ```
 
-CLI repo: [strzhao/ai-todo-cli](https://github.com/strzhao/ai-todo-cli)
+CLI source: [`apps/cli`](apps/cli) in this monorepo (published to npm as `ai-todo-cli`)
 
 ## Quickstart
 
@@ -48,7 +48,7 @@ CLI repo: [strzhao/ai-todo-cli](https://github.com/strzhao/ai-todo-cli)
 
 ### Self-hosting
 
-Next.js 16 monorepo (`apps/web`). You provide: a Postgres database (`POSTGRES_URL`), a DeepSeek API key for NL parsing (`DEEPSEEK_API_KEY`), and an OIDC provider (`AUTH_ISSUER`; set `AUTH_DEV_BYPASS=true` for local development). Then:
+Next.js 16 monorepo (`apps/web` + `apps/cli`). You provide: a Postgres database (`POSTGRES_URL`), a DeepSeek API key for NL parsing (`DEEPSEEK_API_KEY`), and an OIDC provider (`AUTH_ISSUER`; set `AUTH_DEV_BYPASS=true` for local development). Then:
 
 ```bash
 npm install && npm run dev   # http://localhost:4000
