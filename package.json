@@ -32,7 +32,7 @@
     "cli:lint": "npm run lint --workspace apps/cli"
   },
   "lint-staged": {
-    "apps/cli/**/*.ts": "biome check --write --config-path=apps/cli",
+    "apps/cli/**/*.ts": "biome check --write",
     "apps/web/**/*.{ts,tsx}": "eslint --fix",
     "apps/web/**/*.{ts,tsx,json,md,mjs}": "prettier --write",
     "*.{json,md,mjs}": "prettier --write"

@@ -1,5 +1,13 @@
 import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// CLAUDE.md 位于包根目录（src/__tests__/ 的上两级），相对解析避免硬编码绝对路径
+const CLAUDE_MD_PATH = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../CLAUDE.md",
+);
 
 vi.mock("../config.js", () => ({
   API_BASE_URL: "https://test.example.com",
@@ -328,10 +336,7 @@ describe("Doctor Fix 验收测试", () => {
 
   describe("CLAUDE.md 文档完整性", () => {
     it("应包含常用命令章节，列出 build/dev/test/lint/format 等命令", () => {
-      const claudeMd = readFileSync(
-        "/Users/stringzhao/workspace_sync/personal_projects/ai-todo-cli/CLAUDE.md",
-        "utf-8",
-      );
+      const claudeMd = readFileSync(CLAUDE_MD_PATH, "utf-8");
 
       expect(claudeMd).toContain("## 常用命令");
       expect(claudeMd).toContain("npm run build");
@@ -342,10 +347,7 @@ describe("Doctor Fix 验收测试", () => {
     });
 
     it("应包含测试规范章节，说明框架、命名约定、mock 模式", () => {
-      const claudeMd = readFileSync(
-        "/Users/stringzhao/workspace_sync/personal_projects/ai-todo-cli/CLAUDE.md",
-        "utf-8",
-      );
+      const claudeMd = readFileSync(CLAUDE_MD_PATH, "utf-8");
 
       expect(claudeMd).toContain("## 测试规范");
       expect(claudeMd).toContain("vitest");
