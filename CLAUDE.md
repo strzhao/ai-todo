@@ -34,6 +34,11 @@ npm run test:e2e       # 运行 E2E 测试（Playwright）
 npm run lint   # ESLint 检查
 npm run lint:fix  # ESLint 自动修复
 npm run dead-code  # 死代码检测（Knip）
+
+# apps/cli（ai-todo-cli，工具链为 biome + tsup，不走 eslint/prettier）
+npm run cli:build  # 构建 CLI（tsup）
+npm run cli:test   # CLI 单元测试（vitest）
+npm run cli:lint   # CLI 代码检查（biome）
 ```
 
 ## 技术栈
@@ -91,11 +96,13 @@ export async function GET(req: NextRequest) {
 
 ### CLI 命令扩展原则（严格遵守）
 
-ai-todo-cli 的所有业务命令从 `/api/manifest` 动态下发，**严禁在 CLI 中硬编码业务命令**。新增 CLI 命令的正确做法：
+ai-todo-cli（同仓 `apps/cli`）的所有业务命令从 `/api/manifest` 动态下发，**严禁在 CLI 中硬编码业务命令**。新增 CLI 命令的正确做法：
 
-1. 在本项目（ai-todo 服务端）新增 API 路由
-2. 在 `app/api/manifest/route.ts` 的 operations 数组中注册新操作
+1. 在服务端（`apps/web`）新增 API 路由
+2. 在 `apps/web/app/api/manifest/route.ts` 的 operations 数组中注册新操作
 3. CLI 自动发现并注册命令，无需修改 CLI 代码
+
+CLI 与服务端同仓后，manifest 契约变更可在**同一个 PR** 原子更新 `apps/cli` 侧的类型/测试，这是 monorepo 的核心收益——跨包改动不要拆成两个 PR。
 
 ### Vercel Postgres 数组字段
 
@@ -138,7 +145,10 @@ UMAMI_WEBSITE_ID=...                               # Umami Website ID（服务�
 
 ## 项目结构
 
-根目录为 npm workspaces monorepo（`apps/*` + `packages/*`），当前唯一 app 为 `apps/web/`：
+根目录为 npm workspaces monorepo（`apps/*` + `packages/*`），包含两个 app：
+
+- `apps/web/` —— Next.js 16 服务端 + Web UI（eslint + prettier）
+- `apps/cli/` —— ai-todo-cli，面向 AI agent 的命令行工具（TS + tsup + biome，npm 公共包，tag `cli-v*` 触发 OIDC 发布；业务命令全部来自 `/api/manifest`，详见 `apps/cli/CLAUDE.md`）
 
 ```
 apps/web/app/
