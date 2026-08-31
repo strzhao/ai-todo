@@ -36,6 +36,7 @@ jobs:
           NODE_AUTH_TOKEN: ""
         run: |
           # setup-node writes a placeholder auth token when registry-url is set.
-          # Remove token auth so npm can use GitHub OIDC trusted publishing.
-          npm config delete "//registry.npmjs.org/:_authToken"
+          # Remove it so npm uses GitHub OIDC trusted publishing.
+          # 注意：npm 11 的 `npm config` 在 workspace 子目录内会报 ENOWORKSPACES，故用 sed 直接删行
+          sed -i '/_authToken/d' "$NPM_CONFIG_USERCONFIG"
           npm publish --provenance --access public
