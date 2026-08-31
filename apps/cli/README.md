@@ -38,14 +38,18 @@ Run `ai-todo --help` to see all available commands (fetched from server).
 
 ## Release
 
-This package is published to npm via GitHub Actions when a tag like `v0.1.3` is pushed.
+This package lives in the [ai-todo monorepo](https://github.com/strzhao/ai-todo) under `apps/cli` and is published to npm via GitHub Actions when a tag like `cli-v0.4.4` is pushed.
 
 ```bash
-npm version patch
-git push origin main --follow-tags
+# 在 monorepo 根目录执行
+npm version patch --workspace ai-todo-cli --no-git-tag-version
+git add apps/cli/package.json package-lock.json
+git commit -m "chore(cli): release v0.4.4"
+git tag cli-v0.4.4
+git push origin main && git push origin cli-v0.4.4
 ```
 
-The workflow will verify that the Git tag matches `package.json` before publishing.
+The workflow will verify that the Git tag matches `apps/cli/package.json` before publishing.
 
 ## For AI Agents
 

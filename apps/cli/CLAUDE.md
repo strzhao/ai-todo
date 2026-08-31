@@ -24,10 +24,11 @@ ai-todo-cli 是为 AI agent 设计的命令行工具，与 ai-todo (https://ai-t
 
 ## 对应服务端
 
-- ai-todo 项目在 ../ai-todo/
-- manifest 端点: app/api/manifest/route.ts
-- CLI 认证页面: app/auth/cli/page.tsx
-- CLI token 端点: app/api/auth/cli-token/route.ts
+- 服务端代码在同仓 `../../apps/web/`（本包位于 ai-todo monorepo 的 `apps/cli`）
+- manifest 端点: apps/web/app/api/manifest/route.ts
+- CLI 认证页面: apps/web/app/auth/cli/page.tsx
+- CLI token 端点: apps/web/app/api/auth/cli-token/route.ts
+- manifest 契约变更可与 CLI 侧调整在同一个 PR 原子提交（monorepo 核心收益）
 
 ## 常用命令
 

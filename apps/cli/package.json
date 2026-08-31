@@ -5,11 +5,15 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/strzhao/ai-todo-cli.git"
+    "url": "git+https://github.com/strzhao/ai-todo.git",
+    "directory": "apps/cli"
   },
-  "homepage": "https://github.com/strzhao/ai-todo-cli#readme",
+  "homepage": "https://github.com/strzhao/ai-todo/tree/main/apps/cli#readme",
   "bugs": {
-    "url": "https://github.com/strzhao/ai-todo-cli/issues"
+    "url": "https://github.com/strzhao/ai-todo/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "bin": {
     "ai-todo": "dist/index.js"
@@ -25,8 +29,7 @@
     "format": "biome format --write src/",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "prepare": "husky"
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "commander": "^13.0.0",
@@ -36,8 +39,6 @@
     "@biomejs/biome": "^2.4.8",
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^4.1.0",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.4.0",
     "tsup": "^8.0.0",
     "typescript": "^5.9.0",
     "vitest": "^4.1.0"
@@ -45,11 +46,5 @@
   "engines": {
     "node": ">=18"
   },
-  "license": "MIT",
-  "lint-staged": {
-    "src/**/*.ts": [
-      "biome check --fix",
-      "biome format --write"
-    ]
-  }
+  "license": "MIT"
 }
